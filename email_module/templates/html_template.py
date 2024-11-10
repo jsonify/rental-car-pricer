@@ -1,5 +1,6 @@
 # email_module/templates/html_template.py
 from typing import Dict, List, Optional
+import json
 import traceback
 from datetime import datetime
 from ..styles.css_styles import EMAIL_CSS
@@ -7,27 +8,43 @@ from .formatters import format_price_change_html
 
 def create_price_trend_table(price_history: List[Dict]) -> str:
     """Create an HTML table showing price trends"""
-    if not price_history:
-        return ""
-    
-    rows = []
-    for record in price_history:
-        rows.append(f"""
-            <tr>
-                <td style="padding: 4px; border-bottom: 1px solid #e5e7eb;">{record['timestamp']}</td>
-                <td style="padding: 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${record['price']:.2f}</td>
-            </tr>
-        """)
-    
-    return f"""
-        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px;">
-            <tr>
-                <th style="padding: 4px; border-bottom: 2px solid #e5e7eb; text-align: left;">Time</th>
-                <th style="padding: 4px; border-bottom: 2px solid #e5e7eb; text-align: right;">Price</th>
-            </tr>
-            {''.join(rows)}
-        </table>
-    """
+    try:
+        if not price_history:
+            print("No price history available")
+            return ""
+        
+        print("\nCreating price trend table")
+        print(f"Number of records: {len(price_history)}")
+        print("First record structure:", json.dumps(price_history[0], indent=2))
+        
+        rows = []
+        for record in price_history:
+            # Try both possible key names
+            price = record.get('price') or record.get('focus_category_price')
+            if price is None:
+                print(f"Warning: No price found in record: {record}")
+                continue
+                
+            rows.append(f"""
+                <tr>
+                    <td style="padding: 4px; border-bottom: 1px solid #e5e7eb;">{record['timestamp']}</td>
+                    <td style="padding: 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${price:.2f}</td>
+                </tr>
+            """)
+        
+        return f"""
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px;">
+                <tr>
+                    <th style="padding: 4px; border-bottom: 2px solid #e5e7eb; text-align: left;">Time</th>
+                    <th style="padding: 4px; border-bottom: 2px solid #e5e7eb; text-align: right;">Price</th>
+                </tr>
+                {''.join(rows)}
+            </table>
+        """
+    except Exception as e:
+        print(f"Error creating price trend table: {str(e)}")
+        traceback.print_exc()
+        return f"<div style='color: red;'>Error creating price trend table: {str(e)}</div>"
 
 def create_price_rows(prices: Dict[str, float], focus_category: str) -> str:
     """Create HTML rows for all price categories"""
@@ -45,10 +62,17 @@ def create_price_rows(prices: Dict[str, float], focus_category: str) -> str:
 def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -> str:
     """Format a single booking card"""
     try:
+        print(f"\nFormatting booking card for {booking.get('location')}")
+        print("Trends structure:", json.dumps(trends, indent=2))
+        
         focus_category = booking['focus_category']
         holding_price = booking.get('holding_price')
         focus_trends = trends.get('focus_category', {})
-        price_history = booking.get('price_history', [])
+        price_history = focus_trends.get('price_history', [])
+        
+        print(f"Focus category: {focus_category}")
+        print(f"Current prices: {prices}")
+        print(f"Number of price history records: {len(price_history)}")
         
         # Better deals section
         better_deals_html = []
@@ -137,7 +161,7 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
             </td>
         """
     except Exception as e:
-        print(f"Error in format_booking_card: {str(e)}")
+        print(f"Error formatting booking card: {str(e)}")
         traceback.print_exc()
         return f"""
             <td style="padding: 20px;">
