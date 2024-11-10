@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Rental Price Trends</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f7;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .price-chart {
+            margin: 20px 0;
+            height: 300px !important;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            background: #f1f5f9;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+        .prediction-card {
+            background: #f0f9ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .prediction-header {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0369a1;
+            margin-bottom: 10px;
+        }
+        .best-time {
+            background: #ecfdf5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .best-time:hover {
+            background: #d1fae5;
+        }
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Car Rental Price Analysis</h1>
+    <div class="tooltip" id="tooltip"></div>
+    <div id="dashboard" class="dashboard">
+        <!-- Charts will be inserted here -->
+    </div>
+
+<script>
+// Generate test price history data
+function generatePriceHistory(basePrice, days = 14, samplesPerDay = 4, trend = 0) {
+    const history = [];
+    const now = new Date();
+    
+    for (let day = days - 1; day >= 0; day--) {
+        for (let sample = 0; sample < samplesPerDay; sample++) {
+            const date = new Date(now);
+            date.setDate(date.getDate() - day);
+            date.setHours(Math.floor(24 / samplesPerDay * sample));
+            
+            const trendEffect = trend * (days - day);
+            const timeOfDay = sample / samplesPerDay;
+            const dailyPattern = Math.sin(timeOfDay * Math.PI) * 5; // Higher prices during mid-day
+            const randomVariation = (Math.random() - 0.5) * 15;
+            
+            const price = basePrice + trendEffect + dailyPattern + randomVariation;
+            
+            history.push({
+                timestamp: `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:00`,
+                price: Math.max(price, basePrice * 0.8).toFixed(2),
+                day_of_week: date.toLocaleDateString('en-US', { weekday: 'long' }),
+                hour: date.getHours()
+            });
+        }
+    }
+    return history;
+}
+
+// Create booking data with generated price history
+const testData = {
+    bookings: [
+        {
+            booking: {
+                location: 'LIH',
+                location_full_name: 'Lihue Airport',
+                focus_category: 'Full-size Car',
+                holding_price: 299.99
+            },
+            trends: {
+                focus_category: {
+                    current: 292.59,
+                    previous: 298.45,
+                    lowest: 285.99,
+                    highest: 315.99,
+                    average: 295.50,
+                    daily_trend: 1.25,
+                    volatility: 0.02,
+                    momentum: 0.015,
+                    price_history: generatePriceHistory(285, 14, 4, 1),  // Upward trend
+                    prediction: {
+                        next_day: 293.84,
+                        next_week: 301.34,
+                        confidence: 0.83
+                    },
+                    best_booking_time: {
+                        day_of_week: 'Tuesday',
+                        hour: 6
+                    }
+                }
+            }
+        },
+        {
+            booking: {
+                location: 'KOA',
+                location_full_name: 'Kailua-Kona International Airport',
+                focus_category: 'Standard SUV',
+                holding_price: 450.00
+            },
+            trends: {
+                focus_category: {
+                    current: 425.75,
+                    previous: 445.99,
+                    lowest: 425.75,
+                    highest: 499.99,
+                    average: 465.75,
+                    daily_trend: -2.15,
+                    volatility: 0.03,
+                    momentum: -0.015,
+                    price_history: generatePriceHistory(499, 14, 4, -2),  // Downward trend
+                    prediction: {
+                        next_day: 423.60,
+                        next_week: 410.70,
+                        confidence: 0.82
+                    },
+                    best_booking_time: {
+                        day_of_week: 'Wednesday',
+                        hour: 8
+                    }
+                }
+            }
+        }
+    ]
+};
+
+function createBookingSection(bookingData) {
+    const container = document.createElement('div');
+    container.className = 'chart-container';
+    
+    // Add header and stats
+    container.innerHTML = `
+        <h2>${bookingData.booking.location_full_name} - ${bookingData.booking.focus_category}</h2>
+        <div class="stats-grid">
+            <div class="stat-card" data-tooltip="Current price for ${bookingData.booking.focus_category}">
+                <div class="stat-value">$${bookingData.trends.focus_category.current.toFixed(2)}</div>
+                <div class="stat-label">Current Price</div>
+            </div>
+            <div class="stat-card" data-tooltip="Average price over the last 14 days">
+                <div class="stat-value">$${bookingData.trends.focus_category.average.toFixed(2)}</div>
+                <div class="stat-label">Average Price</div>
+            </div>
+            <div class="stat-card" data-tooltip="Daily price change trend">
+                <div class="stat-value" style="color: ${bookingData.trends.focus_category.daily_trend > 0 ? '#dc2626' : '#16a34a'}">
+                    ${bookingData.trends.focus_category.daily_trend > 0 ? '↑' : '↓'} 
+                    $${Math.abs(bookingData.trends.focus_category.daily_trend).toFixed(2)}
+                </div>
+                <div class="stat-label">Daily Trend</div>
+            </div>
+        </div>
+    `;
+
+    // Add chart canvas
+    const chartContainer = document.createElement('div');
+    chartContainer.style.position = 'relative';
+    chartContainer.style.height = '300px';
+    
+    const canvas = document.createElement('canvas');
+    canvas.className = 'price-chart';
+    chartContainer.appendChild(canvas);
+    container.appendChild(chartContainer);
+    
+    // Add predictions
+    const predictions = bookingData.trends.focus_category.prediction;
+    container.innerHTML += `
+        <div class="prediction-card">
+            <div class="prediction-header">Price Predictions</div>
+            <div>Tomorrow: $${predictions.next_day.toFixed(2)} 
+                <span style="color: ${predictions.next_day > bookingData.trends.focus_category.current ? '#dc2626' : '#16a34a'}">
+                    (${predictions.next_day > bookingData.trends.focus_category.current ? '↑' : '↓'} 
+                    ${Math.abs(predictions.next_day - bookingData.trends.focus_category.current).toFixed(2)})
+                </span>
+            </div>
+            <div>Next Week: $${predictions.next_week.toFixed(2)}
+                <span style="color: ${predictions.next_week > bookingData.trends.focus_category.current ? '#dc2626' : '#16a34a'}">
+                    (${predictions.next_week > bookingData.trends.focus_category.current ? '↑' : '↓'} 
+                    ${Math.abs(predictions.next_week - bookingData.trends.focus_category.current).toFixed(2)})
+                </span>
+            </div>
+            <div class="best-time" data-tooltip="Based on historical price patterns">
+                <strong>💡 Best Booking Time:</strong><br>
+                ${bookingData.trends.focus_category.best_booking_time.day_of_week} at 
+                ${bookingData.trends.focus_category.best_booking_time.hour}:00
+            </div>
+        </div>
+    `;
+
+    // Create price history chart
+    const priceHistory = bookingData.trends.focus_category.price_history;
+    new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: priceHistory.map(record => record.timestamp),
+            datasets: [
+                {
+                    label: 'Price History',
+                    data: priceHistory.map(record => parseFloat(record.price)),
+                    borderColor: '#2563eb',
+                    backgroundColor: '#2563eb20',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Holding Price',
+                    data: new Array(priceHistory.length).fill(bookingData.booking.holding_price),
+                    borderColor: '#dc2626',
+                    borderDash: [5, 5],
+                    borderWidth: 2,
+                    pointRadius: 0
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(context) {
+                            return `$${parseFloat(context.raw).toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(0);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    return container;
+}
+
+// Handle tooltips
+function setupTooltips() {
+    const tooltip = document.getElementById('tooltip');
+    document.querySelectorAll('[data-tooltip]').forEach(element => {
+        element.addEventListener('mouseover', (e) => {
+            tooltip.style.display = 'block';
+            tooltip.textContent = e.target.dataset.tooltip;
+            tooltip.style.left = e.pageX + 10 + 'px';
+            tooltip.style.top = e.pageY + 10 + 'px';
+        });
+        
+        element.addEventListener('mousemove', (e) => {
+            tooltip.style.left = e.pageX + 10 + 'px';
+            tooltip.style.top = e.pageY + 10 + 'px';
+        });
+        
+        element.addEventListener('mouseout', () => {
+            tooltip.style.display = 'none';
+        });
+    });
+}
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', () => {
+    const dashboard = document.getElementById('dashboard');
+    testData.bookings.forEach(bookingData => {
+        dashboard.appendChild(createBookingSection(bookingData));
+    });
+    setupTooltips();
+});
+</script>
+</body>
+</html>

@@ -1,14 +1,15 @@
 # Costco Travel Car Rental Price Tracker 🚗
 
-An automated tool that tracks rental car prices on Costco Travel, featuring email notifications, focus category tracking, and support for multiple bookings. Built with Python and Selenium, this tool helps you monitor price changes and find the best deals for your preferred vehicle types across multiple rentals.
+An automated tool that tracks rental car prices on Costco Travel, featuring email notifications, real-time price monitoring dashboard, focus category tracking, and support for multiple bookings. Built with Python and Selenium, this tool helps you monitor price changes and find the best deals for your preferred vehicle types across multiple rentals.
 
 ## Features ✨
 
 - 🤖 Automated price checking using Selenium WebDriver
+- 📊 Real-time price monitoring dashboard
 - 📧 Consolidated email notifications for all tracked bookings
 - 🎯 Focus category tracking for each booking
 - 💰 Cheaper alternatives suggestions per booking
-- 📊 Price history tracking with JSON storage
+- 📈 Price history tracking with JSON storage
 - 🔄 Price change notifications with trends
 - 🕒 Configurable search parameters
 - 🔒 Secure credential management using environment variables
@@ -102,6 +103,24 @@ python3 main.py
 2. Add a new booking
 ```
 
+### Real-Time Price Dashboard 📊
+
+After running main.py, you can launch the real-time price monitoring dashboard:
+
+```bash
+python3 dashboard_server.py
+```
+
+The dashboard features:
+- Live price monitoring for all bookings
+- Interactive price history charts
+- Price trend analysis
+- Automated 30-second updates
+- Visual price change indicators
+- Savings calculations vs holding prices
+
+Access the dashboard at `http://localhost:8000` in your web browser.
+
 ### Adding More Bookings
 
 Select option 2 when running main.py to add additional bookings:
@@ -127,6 +146,7 @@ When you run the script to check prices (option 1):
 - Takes screenshots of results for each booking
 - Updates price history for each booking
 - Sends a single consolidated email with all results
+- Updates the real-time dashboard data
 
 ### Email Notifications 📬
 
@@ -170,7 +190,7 @@ Average Price: $289.08
 ==================================================
 ```
 
-## Price History Tracking 📈
+## Price History & Data Storage 📈
 
 The tool maintains a JSON file (`price_history.json`) containing:
 
@@ -178,6 +198,8 @@ The tool maintains a JSON file (`price_history.json`) containing:
 - Price trends per booking
 - Focus category performance
 - Booking metadata
+- Real-time monitoring data
+- Trend analysis
 
 ## Troubleshooting 🔍
 
@@ -200,6 +222,13 @@ The tool maintains a JSON file (`price_history.json`) containing:
 ✅ Location selected successfully
 ```
 
+3. **Dashboard Connection Issues**:
+```
+# Ensure price_history.json exists
+# Check if port 8000 is available
+# Try restarting the dashboard server
+```
+
 ### Debug Tools:
 
 - Check `selenium.log` for WebDriver logs
@@ -207,6 +236,7 @@ The tool maintains a JSON file (`price_history.json`) containing:
   - `results_[LOCATION]_[TIMESTAMP].png` for successful searches
   - `error_[LOCATION]_[TIMESTAMP].png` for failed attempts
 - Verify `price_history.json` for tracking data
+- Check browser console for dashboard issues
 
 ## Maintenance 🛠️
 
@@ -216,6 +246,7 @@ Regular maintenance tasks:
 2. Monitor price_history.json file size
 3. Review screenshot directory periodically
 4. Update Gmail App Password if needed
+5. Check dashboard performance and logs
 
 ## Contributing 🤝
 
@@ -227,6 +258,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - Keep your Gmail App Password secure
 - Don't share your price history files
 - Regularly review app permissions
+- Ensure dashboard is only accessible locally
 
 ## License 📄
 
