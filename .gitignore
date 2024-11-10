@@ -51,3 +51,6 @@ debug.log
 .vscode/
 *.swp
 *.swo
+
+# System
+.DS_STORE
