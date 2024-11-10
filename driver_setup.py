@@ -1,5 +1,6 @@
 # driver_setup.py
 
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -15,18 +16,25 @@ def setup_driver():
     chrome_options = Options()
     chrome_options.binary_location = CHROME_BINARY_PATH
     
+    # Check if running in CI environment
+    is_ci = os.environ.get('CI') == 'true'
+    
     # Stealth settings
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     chrome_options.add_argument('--disable-infobars')
     chrome_options.add_experimental_option('useAutomationExtension', False)
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     
-    # Browser settings
+    # CI-specific settings
+    if is_ci:
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-gpu')
+    
+    # Common settings
     chrome_options.add_argument('--window-size=1920,1080')
     chrome_options.add_argument('--start-maximized')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument(f'user-agent={USER_AGENT}')
 
     service = Service(CHROMEDRIVER_PATH, service_log_path=LOG_FILE)
