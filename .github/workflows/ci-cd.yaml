@@ -29,8 +29,12 @@ jobs:
         # Create directories
         mkdir -p $HOME/chrome-for-testing
         
+        # Get latest version
+        LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
+        echo "Latest Chrome version: $LATEST_VERSION"
+        
         # Download Chrome for Testing
-        curl -L "https://edgedl.me.gservices.com/chrome/mac/stable/accept_tos%3Dhttps%253A%252F%252Fwww.google.com%252Fintl%252Fen%252Fchrome%252Fterms%252F%26platform%3DMAC/chrome-mac-x64.zip" -o $HOME/chrome-for-testing/chrome.zip
+        curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/mac-x64/chrome-mac-x64.zip" -o $HOME/chrome-for-testing/chrome.zip
         
         # Extract Chrome
         unzip -q $HOME/chrome-for-testing/chrome.zip -d $HOME/chrome-for-testing/
@@ -40,19 +44,26 @@ jobs:
 
     - name: Download and install ChromeDriver
       run: |
-        # Get the latest Chrome version
-        CHROME_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
-        echo "Latest Chrome version: $CHROME_VERSION"
+        # Get the latest Chrome version from previous step
+        LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
+        echo "Installing ChromeDriver for Chrome version: $LATEST_VERSION"
         
         # Download matching ChromeDriver
-        curl -L "https://edgedl.me.gservices.com/chrome/mac/stable/accept_tos%3Dhttps%253A%252F%252Fwww.google.com%252Fintl%252Fen%252Fchrome%252Fterms%252F%26platform%3DMAC/chromedriver-mac-x64.zip" -o chromedriver.zip
+        curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/mac-x64/chromedriver-mac-x64.zip" -o chromedriver.zip
         
         # Extract ChromeDriver
         unzip -q chromedriver.zip
         
         # Make executable and move to /usr/local/bin
-        chmod +x chromedriver
-        sudo mv chromedriver /usr/local/bin/
+        chmod +x chromedriver-mac-x64/chromedriver
+        sudo mv chromedriver-mac-x64/chromedriver /usr/local/bin/
+
+    - name: Verify installations
+      run: |
+        echo "Chrome version:"
+        "$HOME/chrome-for-testing/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing" --version
+        echo "ChromeDriver version:"
+        chromedriver --version
 
     - name: Create .env file
       run: |
@@ -121,14 +132,3 @@ jobs:
       with:
         name: deploy-package
         path: deploy.zip
-
-    # Add actual deployment steps here based on your hosting platform
-    # Example for AWS Lambda:
-    # - name: Deploy to AWS Lambda
-    #   uses: appleboy/lambda-action@master
-    #   with:
-    #     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    #     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    #     aws_region: ${{ secrets.AWS_REGION }}
-    #     function_name: car-rental-price-tracker
-    #     zip_file: deploy.zip
