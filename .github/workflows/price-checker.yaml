@@ -1,0 +1,111 @@
+name: Car Rental Price Tracker
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 */6 * * *'  # Run every 6 hours
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-prices:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Download and install Chrome for Testing
+      run: |
+        mkdir -p $HOME/chrome-for-testing
+        
+        # Get latest version
+        LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
+        echo "Latest Chrome version: $LATEST_VERSION"
+        
+        # Download Chrome for Testing
+        curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/linux64/chrome-linux64.zip" -o $HOME/chrome-for-testing/chrome.zip
+        
+        # Extract Chrome
+        unzip -q $HOME/chrome-for-testing/chrome.zip -d $HOME/chrome-for-testing/
+        
+        # Make executable
+        chmod +x $HOME/chrome-for-testing/chrome-linux64/chrome
+
+    - name: Download and install ChromeDriver
+      run: |
+        # Get the latest Chrome version from previous step
+        LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
+        echo "Installing ChromeDriver for Chrome version: $LATEST_VERSION"
+        
+        # Download matching ChromeDriver
+        curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/linux64/chromedriver-linux64.zip" -o chromedriver.zip
+        
+        # Extract ChromeDriver
+        unzip -q chromedriver.zip
+        
+        # Make executable and move to /usr/local/bin
+        chmod +x chromedriver-linux64/chromedriver
+        sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
+
+    - name: Install Chrome dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libxss1 libasound2
+
+    - name: Verify installations
+      run: |
+        echo "Chrome version:"
+        $HOME/chrome-for-testing/chrome-linux64/chrome --version
+        echo "ChromeDriver version:"
+        chromedriver --version
+
+    - name: Create .env file
+      run: |
+        echo "CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-linux64/chrome" >> .env
+        echo "CHROMEDRIVER_PATH=/usr/local/bin/chromedriver" >> .env
+        echo "USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" >> .env
+        echo "PICKUP_LOCATION=LIH" >> .env
+        echo "PICKUP_DATE=04/03/2025" >> .env
+        echo "DROPOFF_DATE=04/10/2025" >> .env
+        echo "FOCUS_CATEGORY=Economy Car" >> .env
+        echo "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" >> .env
+        echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
+        echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> .env
+        echo "SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}" >> .env
+        echo "RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}" >> .env
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Create screenshots directory
+      run: mkdir -p screenshots
+
+    - name: Run price checker
+      run: |
+        # Add Chrome flags for running in CI environment
+        export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
+        python main.py
+
+    - name: Save price history
+      if: success()
+      uses: actions/upload-artifact@v3
+      with:
+        name: price-history
+        path: |
+          price_history.json
+          rental_prices.txt
+          screenshots/*.png
+
+    - name: Save screenshots on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: error-screenshots
+        path: screenshots/error_*.png
