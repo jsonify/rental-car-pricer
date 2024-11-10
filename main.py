@@ -3,6 +3,7 @@
 import time
 import random
 import traceback
+import argparse
 from datetime import datetime
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
@@ -10,10 +11,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from typing import Dict, List, Optional
 
 from booking_tracker import BookingTracker
-from driver_setup import setup_driver
+from headless_driver import setup_headless_driver, setup_visible_driver
 from human_simulation import human_like_typing, random_mouse_movement, enter_date
 from price_extractor import extract_lowest_prices
-# from email_sender import send_price_alert
 from email_module import send_price_alert
 
 def fill_search_form(driver, booking: Dict) -> bool:
@@ -129,6 +129,13 @@ def wait_for_results(driver, current_url: str, timeout: int = 60) -> bool:
         print(f"❌ Error waiting for results: {str(e)}")
         return False
 
+def parse_arguments():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description='Costco Travel Car Rental Price Monitor')
+    parser.add_argument('--headless', action='store_true', 
+                      help='Run in headless mode (no visible browser)')
+    return parser.parse_args()
+
 def get_new_booking_info() -> Dict:
     """Get information for a new booking from user input"""
     print("\n📝 Enter new booking information:")
@@ -182,7 +189,7 @@ def get_new_booking_info() -> Dict:
         "dropoff_time": "12:00 PM"
     }
 
-def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
+def process_booking(driver, booking: Dict, save_screenshots: bool = False) -> Optional[Dict[str, float]]:
     """Process a single booking and return prices"""
     try:
         print(f"\n📍 Checking prices for {booking['location']}")
@@ -198,21 +205,16 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
             random_mouse_movement(driver)
             time.sleep(random.uniform(0.5, 1.5))
         
-        # Fill the search form
+        # Fill search form
         if not fill_search_form(driver, booking):
             raise Exception("Failed to fill search form")
         
-        # Verify form fields
+        # Verify form fields before search
         print("\n🔍 Verifying form fields:")
         pickup_date_value = driver.execute_script("return document.getElementById('pickUpDateWidget').value;")
         dropoff_date_value = driver.execute_script("return document.getElementById('dropOffDateWidget').value;")
-        pickup_time_element = driver.find_element(By.ID, "pickupTimeWidget")
-        dropoff_time_element = driver.find_element(By.ID, "dropoffTimeWidget")
-        
         print(f"✓ Pickup Date: {pickup_date_value}")
         print(f"✓ Dropoff Date: {dropoff_date_value}")
-        print(f"✓ Pickup Time: {Select(pickup_time_element).first_selected_option.text}")
-        print(f"✓ Dropoff Time: {Select(dropoff_time_element).first_selected_option.text}")
         
         # Click search button
         search_button = WebDriverWait(driver, 10).until(
@@ -223,7 +225,6 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
         
         current_url = driver.current_url
         print("\n🔄 Initiating search...")
-        
         search_button.click()
         
         # Wait for results
@@ -232,12 +233,6 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
         
         print("✅ Results loaded successfully")
         
-        # Save screenshot
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        screenshot_name = f"results_{booking['location']}_{timestamp}.png"
-        driver.save_screenshot(f"screenshots/{screenshot_name}")
-        print(f"📸 Screenshot saved: {screenshot_name}")
-        
         # Extract prices
         prices = extract_lowest_prices(driver)
         return prices
@@ -245,23 +240,23 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
     except Exception as e:
         print(f"❌ Error processing booking: {str(e)}")
         traceback.print_exc()
-        
-        # Save error screenshot
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        screenshot_name = f"error_{booking['location']}_{timestamp}.png"
-        driver.save_screenshot(f"screenshots/{screenshot_name}")
-        print(f"📸 Error screenshot saved: {screenshot_name}")
-        
         return None
 
 def main():
+    # Parse command line arguments
+    args = parse_arguments()
+    
     print("\n🚗 Costco Travel Car Rental Price Tracker")
     print("=" * 50)
+    print(f"Mode: {'Headless (Automatic)' if args.headless else 'Visible (Interactive)'}")
     
     # Initialize booking tracker
     tracker = BookingTracker()
     active_bookings = tracker.get_active_bookings()
-    tracker.prompt_for_holding_prices()
+    
+    # Only prompt for holding prices in visible mode
+    if not args.headless:
+        tracker.prompt_for_holding_prices()
     
     # Display current bookings
     if not active_bookings:
@@ -273,22 +268,24 @@ def main():
             print(f"   📅 {booking['pickup_date']} - {booking['dropoff_date']}")
             print(f"   🎯 Focus: {booking['focus_category']}")
     
-    # Get user choice
-    print("\n🔄 Choose an action:")
-    print("1. Track current bookings only")
-    print("2. Add a new booking")
-    choice = input("\nChoice (default: 1): ").strip() or "1"
-    
-    # Handle new booking if requested
-    if choice == "2":
-        new_booking = get_new_booking_info()
-        booking_id = tracker.add_booking(**new_booking)
-        print(f"\n✅ Added new booking: {new_booking['location']}")
-        active_bookings = tracker.get_active_bookings()
+    # Only prompt for new bookings in visible mode
+    if not args.headless:
+        print("\n🔄 Choose an action:")
+        print("1. Track current bookings only")
+        print("2. Add a new booking")
+        choice = input("\nChoice (default: 1): ").strip() or "1"
+        
+        if choice == "2":
+            new_booking = get_new_booking_info()
+            booking_id = tracker.add_booking(**new_booking)
+            print(f"\n✅ Added new booking: {new_booking['location']}")
+            active_bookings = tracker.get_active_bookings()
     
     # Process all bookings
     if active_bookings:
-        driver = setup_driver()
+        # Setup appropriate driver based on mode
+        driver = setup_headless_driver() if args.headless else setup_visible_driver()
+        
         try:
             bookings_data = []
             
