@@ -24,14 +24,39 @@ jobs:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
 
-    - name: Install Chrome and ChromeDriver
+    - name: Download and install Chrome for Testing
       run: |
-        brew install --cask google-chrome-for-testing
-        brew install chromedriver
+        # Create directories
+        mkdir -p $HOME/chrome-for-testing
+        
+        # Download Chrome for Testing
+        curl -L "https://edgedl.me.gservices.com/chrome/mac/stable/accept_tos%3Dhttps%253A%252F%252Fwww.google.com%252Fintl%252Fen%252Fchrome%252Fterms%252F%26platform%3DMAC/chrome-mac-x64.zip" -o $HOME/chrome-for-testing/chrome.zip
+        
+        # Extract Chrome
+        unzip -q $HOME/chrome-for-testing/chrome.zip -d $HOME/chrome-for-testing/
+        
+        # Make executable
+        chmod +x $HOME/chrome-for-testing/chrome-mac-x64/Google\ Chrome\ for\ Testing.app/Contents/MacOS/Google\ Chrome\ for\ Testing
+
+    - name: Download and install ChromeDriver
+      run: |
+        # Get the latest Chrome version
+        CHROME_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
+        echo "Latest Chrome version: $CHROME_VERSION"
+        
+        # Download matching ChromeDriver
+        curl -L "https://edgedl.me.gservices.com/chrome/mac/stable/accept_tos%3Dhttps%253A%252F%252Fwww.google.com%252Fintl%252Fen%252Fchrome%252Fterms%252F%26platform%3DMAC/chromedriver-mac-x64.zip" -o chromedriver.zip
+        
+        # Extract ChromeDriver
+        unzip -q chromedriver.zip
+        
+        # Make executable and move to /usr/local/bin
+        chmod +x chromedriver
+        sudo mv chromedriver /usr/local/bin/
 
     - name: Create .env file
       run: |
-        echo "CHROME_BINARY_PATH=/Applications/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing" >> .env
+        echo "CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing" >> .env
         echo "CHROMEDRIVER_PATH=/usr/local/bin/chromedriver" >> .env
         echo "USER_AGENT=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" >> .env
         echo "PICKUP_LOCATION=LIH" >> .env
