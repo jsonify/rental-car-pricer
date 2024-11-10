@@ -233,4 +233,17 @@ body {
     padding-top: 20px;
     border-top: 2px solid #e5e7eb;
 }
+# Add to EMAIL_CSS
+.booking-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 30px;
+    margin: 30px 0;
+}
+
+@media (min-width: 768px) {
+    .booking-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
 '''

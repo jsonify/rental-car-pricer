@@ -5,183 +5,194 @@ from datetime import datetime
 from ..styles.css_styles import EMAIL_CSS
 from .formatters import format_price_change_html
 
-def get_html_template() -> str:
-    """Return base HTML template with CSS"""
-    return f'''<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style type="text/css">
-{EMAIL_CSS}
-    </style>
-</head>
-<body>%s</body>
-</html>'''
+def create_price_trend_table(price_history: List[Dict]) -> str:
+    """Create an HTML table showing price trends"""
+    if not price_history:
+        return ""
+    
+    rows = []
+    for record in price_history:
+        rows.append(f"""
+            <tr>
+                <td style="padding: 4px; border-bottom: 1px solid #e5e7eb;">{record['timestamp']}</td>
+                <td style="padding: 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${record['price']:.2f}</td>
+            </tr>
+        """)
+    
+    return f"""
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px;">
+            <tr>
+                <th style="padding: 4px; border-bottom: 2px solid #e5e7eb; text-align: left;">Time</th>
+                <th style="padding: 4px; border-bottom: 2px solid #e5e7eb; text-align: right;">Price</th>
+            </tr>
+            {''.join(rows)}
+        </table>
+    """
 
-def format_booking_section_html(booking: Dict, prices: Dict[str, float], trends: Dict) -> str:
-    """Format a single booking section in HTML"""
+def create_price_rows(prices: Dict[str, float], focus_category: str) -> str:
+    """Create HTML rows for all price categories"""
+    rows = []
+    for category, price in sorted(prices.items(), key=lambda x: x[1]):
+        background = 'background: #e0f2fe;' if category == focus_category else ''
+        rows.append(f"""
+            <div style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #e2e8f0; {background}">
+                <span>{"🎯 " if category == focus_category else ""}{category}</span>
+                <span>${price:.2f}</span>
+            </div>
+        """)
+    return ''.join(rows)
+
+def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -> str:
+    """Format a single booking card"""
     try:
         focus_category = booking['focus_category']
         holding_price = booking.get('holding_price')
         focus_trends = trends.get('focus_category', {})
+        price_history = booking.get('price_history', [])
         
-        html = [
-            '<div class="booking-card">',
-            '<div class="location-header">',
-            f'<h2 class="location-name">{booking["location"]} - {booking.get("location_full_name", "Airport")}</h2>',
-            '<div class="dates">',
-            f'🗓️ {booking["pickup_date"]} to {booking["dropoff_date"]} • 🕐 {booking["pickup_time"]} - {booking["dropoff_time"]}',
-            '</div>'
-        ]
-
-        if holding_price:
-            html.append(f'<div class="dates">💰 Holding Price: ${holding_price:.2f}</div>')
-        html.append('</div>')  # Close location-header
-
+        # Better deals section
+        better_deals_html = []
         if focus_category in prices:
             focus_price = prices[focus_category]
-            
-            # Focus category section
-            html.extend([
-                '<div class="focus-category">',
-                '<div class="focus-label">Tracked Category</div>',
-                f'<div class="focus-name">{focus_category}</div>',
-                '<div class="price-display">',
-                format_price_change_html(focus_price, focus_trends.get('previous_price'), holding_price),
-                '</div>'
-            ])
-
-            # Price statistics
-            if focus_trends:
-                html.append('<div class="price-stats">')
-                if 'lowest' in focus_trends:
-                    html.extend([
-                        '<div class="stat-box">',
-                        '<div class="stat-label">Lowest Price</div>',
-                        f'<div class="stat-value">${focus_trends["lowest"]:.2f}</div>',
-                        '</div>'
-                    ])
-                if 'highest' in focus_trends:
-                    html.extend([
-                        '<div class="stat-box">',
-                        '<div class="stat-label">Highest Price</div>',
-                        f'<div class="stat-value">${focus_trends["highest"]:.2f}</div>',
-                        '</div>'
-                    ])
-                if 'average' in focus_trends:
-                    html.extend([
-                        '<div class="stat-box">',
-                        '<div class="stat-label">Average Price</div>',
-                        f'<div class="stat-value">${focus_trends["average"]:.2f}</div>',
-                        '</div>'
-                    ])
-                html.append('</div>')  # Close price-stats
-            html.append('</div>')  # Close focus-category
-
-            # Better deals section
-            better_options = []
             for category, price in prices.items():
                 if price < focus_price and category != focus_category:
                     savings = focus_price - price
                     savings_pct = (savings / focus_price) * 100
-                    better_options.append(
-                        f'<div class="deal-option">{category}: ${price:.2f} '
-                        f'<span style="color: #059669">Save ${savings:.2f} ({savings_pct:.1f}%)</span></div>'
-                    )
+                    better_deals_html.append(f"""
+                        <div style="background: #f0f9ff; padding: 8px; margin: 4px 0; border-radius: 4px;">
+                            {category}: ${price:.2f} 
+                            <span style="color: #059669">(Save ${savings:.2f}, {savings_pct:.1f}%)</span>
+                        </div>
+                    """)
 
-            if better_options:
-                html.extend([
-                    '<div class="better-deals">',
-                    '<div class="better-deals-header">',
-                    '💰 Better Deals Available',
-                    '</div>',
-                    *better_options,
-                    '</div>'
-                ])
+        better_deals_section = ""
+        if better_deals_html:
+            better_deals_section = f"""
+                <div style="margin: 15px 0;">
+                    <div style="font-weight: bold; color: #0369a1; margin-bottom: 8px;">
+                        💰 Better Deals Available
+                    </div>
+                    {''.join(better_deals_html)}
+                </div>
+            """
 
-        # All prices section
-        html.append('<div class="price-list">')
-        for category, price in sorted(prices.items(), key=lambda x: x[1]):
-            is_focus = category == focus_category
-            row_class = 'price-row' + (' focus-row' if is_focus else '')
-            price_display = format_price_change_html(
-                price,
-                None,
-                holding_price if is_focus else None
-            )
-            html.extend([
-                f'<div class="{row_class}">',
-                f'<span class="category-name">{"🎯 " if is_focus else ""}{category}</span>',
-                f'<span class="price-info">{price_display}</span>',
-                '</div>'
-            ])
-        html.append('</div>')  # Close price-list
-        html.append('</div>')  # Close booking-card
-        
-        return '\n'.join(html)
-        
+        return f"""
+            <td style="width: 50%; padding: 20px; vertical-align: top;">
+                <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <h2 style="margin: 0 0 10px 0; color: #1a1a1a;">
+                        {booking['location']} - {booking.get('location_full_name', 'Airport')}
+                    </h2>
+                    
+                    <div style="background: #f3f4f6; padding: 8px; border-radius: 4px; margin-bottom: 10px;">
+                        📅 {booking['pickup_date']} to {booking['dropoff_date']}
+                        <br>
+                        ⏰ {booking['pickup_time']} - {booking['dropoff_time']}
+                        {f'<br>💰 Holding Price: ${holding_price:.2f}' if holding_price else ''}
+                    </div>
+                    
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; margin: 15px 0; border: 2px solid #e2e8f0;">
+                        <div style="font-size: 0.875rem; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">
+                            Tracked Category
+                        </div>
+                        <div style="font-size: 1.25rem; font-weight: bold; margin-bottom: 10px;">
+                            {focus_category}
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: bold;">
+                            ${prices.get(focus_category, 0):.2f}
+                        </div>
+                        
+                        {create_price_trend_table(price_history)}
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: #64748b;">Lowest</div>
+                                <div style="font-weight: bold;">
+                                    ${focus_trends.get('lowest', 0):.2f}
+                                </div>
+                            </div>
+                            <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: #64748b;">Average</div>
+                                <div style="font-weight: bold;">
+                                    ${focus_trends.get('average', 0):.2f}
+                                </div>
+                            </div>
+                            <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
+                                <div style="font-size: 0.75rem; color: #64748b;">Highest</div>
+                                <div style="font-weight: bold;">
+                                    ${focus_trends.get('highest', 0):.2f}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {better_deals_section}
+                    
+                    <div style="margin-top: 15px;">
+                        <div style="font-weight: bold; margin-bottom: 8px;">All Categories</div>
+                        <div style="background: #f8fafc; border-radius: 8px; overflow: hidden;">
+                            {create_price_rows(prices, focus_category)}
+                        </div>
+                    </div>
+                </div>
+            </td>
+        """
     except Exception as e:
-        print(f"Error in format_booking_section_html: {str(e)}")
+        print(f"Error in format_booking_card: {str(e)}")
         traceback.print_exc()
-        raise
+        return f"""
+            <td style="padding: 20px;">
+                <div style="color: red;">Error formatting booking card: {str(e)}</div>
+            </td>
+        """
 
 def format_email_body_html(bookings_data: List[Dict]) -> str:
     """Format the complete email body in HTML"""
     try:
-        print("Starting HTML email formatting...")
+        # Split bookings into rows of 2
+        booking_rows = []
+        for i in range(0, len(bookings_data), 2):
+            row_bookings = bookings_data[i:i+2]
+            row_html = "<tr>"
+            for booking_data in row_bookings:
+                row_html += format_booking_card(
+                    booking_data['booking'],
+                    booking_data['prices'],
+                    booking_data['trends']
+                )
+            # If odd number of bookings, add empty cell
+            if len(row_bookings) == 1:
+                row_html += "<td style='width: 50%;'></td>"
+            row_html += "</tr>"
+            booking_rows.append(row_html)
+
+        html = f"""
+        <div style="max-width: 1200px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #1a1a1a; margin-bottom: 10px;">Costco Travel Car Rental Update</h1>
+                <div style="color: #666;">
+                    Last checked: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                    <br>
+                    Tracking {len(bookings_data)} booking{'s' if len(bookings_data) != 1 else ''}
+                </div>
+            </div>
+            
+            <table style="width: 100%; border-collapse: separate; border-spacing: 15px;">
+                {''.join(booking_rows)}
+            </table>
+            
+            <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+                All prices include taxes and fees • Historical trends shown when available
+            </div>
+        </div>
+        """
         
-        # Build HTML string
-        html = []
-        
-        # Header
-        html.extend([
-            '<div class="header">',
-            '<h1>Costco Travel Car Rental Update</h1>',
-            '<div class="metadata">',
-            f'Last checked: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
-            '<br>',
-            f'Tracking {len(bookings_data)} booking{"s" if len(bookings_data) != 1 else ""}',
-            '</div>',
-            '</div>'
-        ])
-        
-        print("Header generated successfully")
-        
-        # Process each booking
-        for booking_data in bookings_data:
-            print(f"Processing booking for {booking_data['booking']['location']}")
-            try:
-                booking = booking_data['booking']
-                prices = booking_data['prices']
-                trends = booking_data['trends']
-                html.append(format_booking_section_html(booking, prices, trends))
-                print(f"Booking section generated for {booking['location']}")
-            except Exception as e:
-                print(f"Error processing booking {booking_data['booking']['location']}: {str(e)}")
-                traceback.print_exc()
-        
-        # Footer
-        html.extend([
-            '<div class="footer">',
-            '<p>All prices include taxes and fees • Historical trends shown when available</p>',
-            '</div>'
-        ])
-        
-        print("All bookings processed")
-        
-        # Get complete HTML using template
-        try:
-            template = get_html_template()
-            complete_html = template % '\n'.join(html)
-            print("Template applied successfully")
-            return complete_html
-        except Exception as e:
-            print(f"Error applying template: {str(e)}")
-            traceback.print_exc()
-            raise
+        return html
         
     except Exception as e:
         print(f"Error in format_email_body_html: {str(e)}")
         traceback.print_exc()
-        raise
+        return f"""
+        <div style="color: red; padding: 20px;">
+            An error occurred while generating the email: {str(e)}
+        </div>
+        """
