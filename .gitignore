@@ -28,10 +28,23 @@ screenshots/*
 error.png
 final_results.png
 
-# Logs and Data
+# Data Files
+*.json
+price_history.json
+rental_prices.txt
+historical_data/
+data/
+*.csv
+*.xlsx
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
 *.log
 selenium.log
-rental_prices.txt
+logs/
+debug.log
 
 # IDE
 .idea/

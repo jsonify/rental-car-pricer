@@ -5,6 +5,7 @@ import sys
 import shutil
 import platform
 import subprocess
+import json
 from pathlib import Path
 import webbrowser
 from datetime import datetime, timedelta
@@ -89,6 +90,55 @@ def check_chrome_installation():
     print("✅ ChromeDriver found")
     return chrome_path, chromedriver_path
 
+def check_existing_files():
+    """Check for existing configuration files and return their status"""
+    return {
+        "env": os.path.exists(".env"),
+        "price_history": os.path.exists("price_history.json"),
+        "price_template": os.path.exists("price_history.template.json"),
+        "screenshots_dir": os.path.exists("screenshots")
+    }
+
+def check_first_run():
+    """Check if this is the first time running the project"""
+    existing_files = check_existing_files()
+    
+    print_step("Checking existing configuration...")
+    print("\nFound these configuration items:")
+    print(f"- .env file: {'✅' if existing_files['env'] else '❌'}")
+    print(f"- price_history.json: {'✅' if existing_files['price_history'] else '❌'}")
+    print(f"- price_history.template.json: {'✅' if existing_files['price_template'] else '❌'}")
+    print(f"- screenshots directory: {'✅' if existing_files['screenshots_dir'] else '❌'}")
+    
+    if any(existing_files.values()):
+        print("\nSome configuration files already exist.")
+        choice = input("\nWould you like to:\n"
+                      "1. Start fresh (backup existing files)\n"
+                      "2. Keep existing files and only create missing ones\n"
+                      "Choose (1/2): ").strip()
+        
+        if choice == "1":
+            # Create backups directory if it doesn't exist
+            backup_dir = "setup_backups"
+            if not os.path.exists(backup_dir):
+                os.makedirs(backup_dir)
+            
+            # Backup existing files
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if existing_files['env']:
+                shutil.copy2(".env", f"{backup_dir}/.env.backup.{timestamp}")
+            if existing_files['price_history']:
+                shutil.copy2("price_history.json", f"{backup_dir}/price_history.json.backup.{timestamp}")
+            if existing_files['price_template']:
+                shutil.copy2("price_history.template.json", f"{backup_dir}/price_history.template.json.backup.{timestamp}")
+            
+            print(f"\nExisting files backed up to {backup_dir}/")
+            return "true"
+        else:
+            return "partial"
+    
+    return "true"
+
 def get_valid_date(prompt, default_date=None):
     while True:
         if default_date:
@@ -172,11 +222,6 @@ def configure_search_parameters():
     
     return airport_code, pickup_date, dropoff_date, focus_category
 
-def check_first_run():
-    print_step("Checking if this is the first time running the project...")
-    is_first_run = input("\nIs this the first time you're running this project? (y/n): ").strip().lower() == 'y'
-    return "true" if is_first_run else "false"
-
 def setup_gmail_instructions():
     print_step("Gmail App Password Setup Instructions")
     print("""
@@ -204,14 +249,79 @@ def configure_email_settings():
     
     return sender_email, app_password, recipient_email
 
+class PriceHistoryInitializer:
+    def __init__(self, airport_code, pickup_date, dropoff_date, pickup_time="12:00 PM", dropoff_time="12:00 PM"):
+        self.airport_code = airport_code
+        self.pickup_date = pickup_date
+        self.dropoff_date = dropoff_date
+        self.pickup_time = pickup_time
+        self.dropoff_time = dropoff_time
+        self.template_path = "price_history.template.json"
+        self.history_path = "price_history.json"
+
+    def create_initial_structure(self):
+        """Create the initial price history structure."""
+        current_time = datetime.now().isoformat(timespec='seconds')
+        
+        # Calculate duration
+        pickup = datetime.strptime(self.pickup_date, "%m/%d/%Y")
+        dropoff = datetime.strptime(self.dropoff_date, "%m/%d/%Y")
+        duration = (dropoff - pickup).days
+        
+        return {
+            "metadata": {
+                "last_updated": current_time,
+                "location": self.airport_code,
+                "location_full_name": f"{self.airport_code} (Kailua-Kona International Airport)",
+                "search_parameters": {
+                    "pickup_time": self.pickup_time,
+                    "dropoff_time": self.dropoff_time,
+                    "duration_days": duration
+                }
+            },
+            "price_records": [],
+            "category_stats": {
+                category: {
+                    "min_price": None,
+                    "max_price": None,
+                    "avg_price": None,
+                    "last_price": None,
+                    "price_changes": []
+                } for category in [
+                    "Economy Car",
+                    "Compact Car",
+                    "Mid-size Car",
+                    "Full-size Car",
+                    "Premium Car",
+                    "Luxury Car",
+                    "Compact SUV",
+                    "Standard SUV",
+                    "Full-size SUV",
+                    "Premium SUV",
+                    "Minivan"
+                ]
+            }
+        }
+
+    def initialize(self):
+        """Initialize both template and working files."""
+        print_step("Setting up price history tracking...")
+        
+        initial_data = self.create_initial_structure()
+        
+        # Save template file
+        with open(self.template_path, 'w', encoding='utf-8') as f:
+            json.dump(initial_data, f, indent=2)
+        print("✅ Created price history template file")
+        
+        # Create working file
+        with open(self.history_path, 'w', encoding='utf-8') as f:
+            json.dump(initial_data, f, indent=2)
+        print("✅ Created price history working file")
+
 def setup_env_file(chrome_path, chromedriver_path, airport_code, pickup_date, dropoff_date, 
                   is_first_run, focus_category, sender_email, app_password, recipient_email):
     print_step("Setting up .env file...")
-    
-    if os.path.exists('.env'):
-        backup_path = f'.env.backup.{datetime.now().strftime("%Y%m%d_%H%M%S")}'
-        shutil.copy2('.env', backup_path)
-        print(f"📦 Created backup of existing .env file: {backup_path}")
     
     env_content = f"""# Project Configuration
 IS_FIRST_RUN={is_first_run}
@@ -254,7 +364,7 @@ SEARCH_TIMEOUT=60
 def create_directories():
     print_step("Creating required directories...")
     
-    directories = ['screenshots']
+    directories = ['screenshots', 'setup_backups']
     for directory in directories:
         if not os.path.exists(directory):
             os.makedirs(directory)
@@ -271,8 +381,8 @@ def main():
     # Check and install required packages
     check_pip_packages()
     
-    # Check if first run
-    is_first_run = check_first_run()
+    # Check first run status
+    setup_mode = check_first_run()
     
     # Check Chrome installation
     chrome_path, chromedriver_path = check_chrome_installation()
@@ -283,11 +393,37 @@ def main():
     # Configure email settings
     sender_email, app_password, recipient_email = configure_email_settings()
     
+    # Initialize price history based on setup mode
+    try:
+        initializer = PriceHistoryInitializer(
+            airport_code=airport_code,
+            pickup_date=pickup_date,
+            dropoff_date=dropoff_date
+        )
+        
+        if setup_mode == "true":
+            # Full initialization
+            initializer.initialize()
+        elif setup_mode == "partial":
+            # Only create files that don't exist
+            if not os.path.exists("price_history.template.json"):
+                with open("price_history.template.json", 'w', encoding='utf-8') as f:
+                    json.dump(initializer.create_initial_structure(), f, indent=2)
+                print("✅ Created price history template file")
+            
+            if not os.path.exists("price_history.json"):
+                with open("price_history.json", 'w', encoding='utf-8') as f:
+                    json.dump(initializer.create_initial_structure(), f, indent=2)
+                print("✅ Created price history working file")
+    except Exception as e:
+        print(f"\n⚠️  Warning: Could not initialize price history: {str(e)}")
+        print("You may need to manually set up price history tracking later.")
+    
     # Create .env file
     setup_env_file(
         chrome_path, chromedriver_path, 
         airport_code, pickup_date, dropoff_date,
-        is_first_run, focus_category,
+        setup_mode, focus_category,
         sender_email, app_password, recipient_email
     )
     
@@ -302,6 +438,13 @@ Configuration Summary:
 - Dropoff Date: {dropoff_date}
 - Focus Category: {focus_category}
 - Pickup/Dropoff Time: 12:00 PM
+- Price History Tracking: {"Initialized" if setup_mode == "true" else "Skipped"}
+
+Files Created:
+- .env with your configuration
+- price_history.template.json (template file)
+- price_history.json (working file)
+- screenshots/ directory
 
 Next steps:
 1. Review the .env file and adjust any settings if needed
@@ -309,6 +452,9 @@ Next steps:
    python test_email.py
 3. If the test is successful, you can run the main script:
    python main.py
+
+Note: The price history files have been initialized with your current search
+parameters. The script will automatically update the history as it runs.
     """)
 
 if __name__ == "__main__":
