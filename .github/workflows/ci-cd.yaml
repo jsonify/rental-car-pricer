@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11']
@@ -24,52 +24,34 @@ jobs:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
 
-    - name: Download and install Chrome for Testing
+    - name: Install Chrome and ChromeDriver
       run: |
-        # Create directories
-        mkdir -p $HOME/chrome-for-testing
+        # Install Chrome
+        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/sources.list.d/google.list'
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
         
-        # Get latest version
-        LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
-        echo "Latest Chrome version: $LATEST_VERSION"
-        
-        # Download Chrome for Testing
-        curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/mac-x64/chrome-mac-x64.zip" -o $HOME/chrome-for-testing/chrome.zip
-        
-        # Extract Chrome
-        unzip -q $HOME/chrome-for-testing/chrome.zip -d $HOME/chrome-for-testing/
-        
-        # Make executable
-        chmod +x $HOME/chrome-for-testing/chrome-mac-x64/Google\ Chrome\ for\ Testing.app/Contents/MacOS/Google\ Chrome\ for\ Testing
-
-    - name: Download and install ChromeDriver
-      run: |
-        # Get the latest Chrome version from previous step
-        LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
-        echo "Installing ChromeDriver for Chrome version: $LATEST_VERSION"
-        
-        # Download matching ChromeDriver
-        curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/mac-x64/chromedriver-mac-x64.zip" -o chromedriver.zip
-        
-        # Extract ChromeDriver
-        unzip -q chromedriver.zip
-        
-        # Make executable and move to /usr/local/bin
-        chmod +x chromedriver-mac-x64/chromedriver
-        sudo mv chromedriver-mac-x64/chromedriver /usr/local/bin/
+        # Get Chrome version and install matching ChromeDriver
+        CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f 3 | cut -d '.' -f 1)
+        CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+        wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
+        unzip chromedriver_linux64.zip
+        sudo mv chromedriver /usr/local/bin/
+        sudo chmod +x /usr/local/bin/chromedriver
 
     - name: Verify installations
       run: |
         echo "Chrome version:"
-        "$HOME/chrome-for-testing/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing" --version
+        google-chrome --version
         echo "ChromeDriver version:"
         chromedriver --version
 
     - name: Create .env file
       run: |
-        echo "CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing" >> .env
+        echo "CHROME_BINARY_PATH=/usr/bin/google-chrome" >> .env
         echo "CHROMEDRIVER_PATH=/usr/local/bin/chromedriver" >> .env
-        echo "USER_AGENT=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" >> .env
+        echo "USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" >> .env
         echo "PICKUP_LOCATION=LIH" >> .env
         echo "PICKUP_DATE=04/03/2025" >> .env
         echo "DROPOFF_DATE=04/10/2025" >> .env
