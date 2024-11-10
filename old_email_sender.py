@@ -12,29 +12,53 @@ from config import (
     RECIPIENT_EMAIL
 )
 
-def format_price_change(current_price: float, previous_price: Optional[float] = None) -> str:
-    """Format price change with arrows and percentage"""
-    if previous_price is None:
-        return f"${current_price:.2f}"
-        
-    change = current_price - previous_price
-    pct_change = (change / previous_price) * 100
+def format_price_change(current_price: float, previous_price: Optional[float] = None, holding_price: Optional[float] = None) -> str:
+    """Format price change with arrows and comparison to holding price"""
+    result = []
     
-    if change > 0:
-        return f"${current_price:.2f} 🔺 +${change:.2f} (+{pct_change:.1f}%)"
-    elif change < 0:
-        return f"${current_price:.2f} 🔽 -${abs(change):.2f} ({pct_change:.1f}%)"
-    return f"${current_price:.2f} ◾️ No change"
+    # Format current price
+    result.append(f"${current_price:.2f}")
+    
+    # Compare with previous price
+    if previous_price is not None:
+        change = current_price - previous_price
+        pct_change = (change / previous_price) * 100
+        
+        if change > 0:
+            result.append(f"🔺 +${change:.2f} (+{pct_change:.1f}%)")
+        elif change < 0:
+            result.append(f"🔽 -${abs(change):.2f} ({pct_change:.1f}%)")
+        else:
+            result.append("◾️ No change")
+    
+    # Compare with holding price if available
+    if holding_price is not None:
+        holding_diff = current_price - holding_price
+        holding_pct = (holding_diff / holding_price) * 100
+        
+        if holding_diff > 0:
+            result.append(f"📈 ${holding_diff:.2f} above holding (+{holding_pct:.1f}%)")
+        elif holding_diff < 0:
+            result.append(f"📉 ${abs(holding_diff):.2f} below holding ({holding_pct:.1f}%)")
+        else:
+            result.append("📊 Same as holding price")
+    
+    return " | ".join(result)
 
 def format_booking_section(booking: Dict, prices: Dict[str, float], trends: Dict) -> str:
     """Format a single booking section with prices and trends"""
     lines = []
     focus_category = booking['focus_category']
+    holding_price = booking.get('holding_price')
     
     # Location and dates section
     lines.append(f"\n📍 {booking['location']} - {booking.get('location_full_name', 'Airport')}")
     lines.append(f"📅 {booking['pickup_date']} to {booking['dropoff_date']}")
     lines.append(f"⏰ {booking['pickup_time']} - {booking['dropoff_time']}")
+    
+    if holding_price:
+        lines.append(f"💰 Current holding price: ${holding_price:.2f}")
+    
     lines.append("-" * 50)
     
     # Focus category section
@@ -44,9 +68,13 @@ def format_booking_section(booking: Dict, prices: Dict[str, float], trends: Dict
         
         lines.append(f"\n🎯 TRACKED: {focus_category}")
         
-        # Current price with trends
+        # Current price with trends and holding comparison
         if focus_trends:
-            current_price = format_price_change(focus_price, focus_trends.get('previous_price'))
+            current_price = format_price_change(
+                focus_price,
+                focus_trends.get('previous_price'),
+                holding_price
+            )
             lines.append(f"Current Price: {current_price}")
             
             if 'lowest' in focus_trends and 'highest' in focus_trends:
@@ -56,16 +84,16 @@ def format_booking_section(booking: Dict, prices: Dict[str, float], trends: Dict
         else:
             lines.append(f"Current Price: ${focus_price:.2f}")
         
-        # Find cheaper alternatives
-        cheaper_options = []
+        # Find better deals
+        better_options = []
         for category, price in prices.items():
             if price < focus_price and category != focus_category:
                 savings = focus_price - price
-                cheaper_options.append(f"- {category}: ${price:.2f} (Save ${savings:.2f})")
+                better_options.append(f"- {category}: ${price:.2f} (Save ${savings:.2f})")
         
-        if cheaper_options:
-            lines.append("\n💰 CHEAPER ALTERNATIVES:")
-            lines.extend(cheaper_options)
+        if better_options:
+            lines.append("\n💰 BETTER DEALS AVAILABLE:")
+            lines.extend(better_options)
     
     # All prices section
     max_category_length = max(len(category) for category in prices.keys())
@@ -73,7 +101,8 @@ def format_booking_section(booking: Dict, prices: Dict[str, float], trends: Dict
     lines.append("\n📊 ALL CATEGORIES:")
     for category, price in sorted(prices.items(), key=lambda x: x[1]):
         prefix = "➡️ " if category == focus_category else "  "
-        lines.append(f"{prefix}{category:<{max_category_length}}: ${price:>8.2f}")
+        price_str = format_price_change(price, None, holding_price if category == focus_category else None)
+        lines.append(f"{prefix}{category:<{max_category_length}}: {price_str}")
     
     return "\n".join(lines)
 

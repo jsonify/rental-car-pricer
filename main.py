@@ -13,7 +13,8 @@ from booking_tracker import BookingTracker
 from driver_setup import setup_driver
 from human_simulation import human_like_typing, random_mouse_movement, enter_date
 from price_extractor import extract_lowest_prices
-from email_sender import send_price_alert
+# from email_sender import send_price_alert
+from email_module import send_price_alert
 
 def fill_search_form(driver, booking: Dict) -> bool:
     """Fill in the search form for a specific booking"""
@@ -260,6 +261,7 @@ def main():
     # Initialize booking tracker
     tracker = BookingTracker()
     active_bookings = tracker.get_active_bookings()
+    tracker.prompt_for_holding_prices()
     
     # Display current bookings
     if not active_bookings:

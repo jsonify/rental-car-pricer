@@ -15,7 +15,7 @@ class BookingTracker:
         return {
             "metadata": {
                 "last_updated": datetime.now().isoformat(),
-                "active_bookings": []  # Initialize empty active bookings list
+                "active_bookings": []
             },
             "bookings": {}
         }
@@ -61,7 +61,7 @@ class BookingTracker:
 
     def add_booking(self, location: str, pickup_date: str, dropoff_date: str, 
                    focus_category: str, pickup_time: str = "12:00 PM", 
-                   dropoff_time: str = "12:00 PM") -> str:
+                   dropoff_time: str = "12:00 PM", holding_price: float = None) -> str:
         """Add a new booking to track"""
         booking_id = f"{location}_{pickup_date}_{dropoff_date}".replace("/", "")
         
@@ -77,6 +77,7 @@ class BookingTracker:
             "pickup_time": pickup_time,
             "dropoff_time": dropoff_time,
             "focus_category": focus_category,
+            "holding_price": holding_price,  # Add holding price
             "price_history": [],
             "created_at": datetime.now().isoformat()
         }
@@ -86,6 +87,14 @@ class BookingTracker:
         
         self.save_bookings()
         return booking_id
+
+    def update_holding_price(self, booking_id: str, holding_price: float):
+        """Update the holding price for a booking"""
+        if booking_id not in self.bookings["bookings"]:
+            raise ValueError(f"Booking {booking_id} not found")
+        
+        self.bookings["bookings"][booking_id]["holding_price"] = holding_price
+        self.save_bookings()
 
     def get_active_bookings(self) -> List[Dict]:
         """Get all active bookings"""
@@ -111,22 +120,6 @@ class BookingTracker:
         })
         self.save_bookings()
 
-    def deactivate_booking(self, booking_id: str):
-        """Deactivate a booking (stop tracking it)"""
-        if booking_id in self.bookings["metadata"]["active_bookings"]:
-            self.bookings["metadata"]["active_bookings"].remove(booking_id)
-            self.save_bookings()
-
-    def _get_location_name(self, code: str) -> str:
-        """Get full name for airport code"""
-        locations = {
-            "KOA": "Kailua-Kona International Airport",
-            "HNL": "Daniel K. Inouye International Airport",
-            "OGG": "Kahului Airport",
-            "LIH": "Lihue Airport"
-        }
-        return locations.get(code, f"{code} Airport")
-
     def get_price_trends(self, booking_id: str) -> Dict:
         """Get price trends for a specific booking"""
         if booking_id not in self.bookings["bookings"]:
@@ -140,6 +133,7 @@ class BookingTracker:
             
         focus_category = booking["focus_category"]
         latest_prices = history[-1]["prices"]
+        holding_price = booking.get("holding_price")
         
         # Get previous price if available
         previous_price = None
@@ -151,6 +145,7 @@ class BookingTracker:
             "focus_category": {
                 "current": latest_prices.get(focus_category),
                 "previous_price": previous_price,
+                "holding_price": holding_price,  # Add holding price to trends
                 "lowest": float('inf'),
                 "highest": float('-inf'),
                 "average": 0,
@@ -170,3 +165,40 @@ class BookingTracker:
             trends["focus_category"]["average"] /= trends["focus_category"]["total_checks"]
         
         return trends
+
+    def _get_location_name(self, code: str) -> str:
+        """Get full name for airport code"""
+        locations = {
+            "KOA": "Kailua-Kona International Airport",
+            "HNL": "Daniel K. Inouye International Airport",
+            "OGG": "Kahului Airport",
+            "LIH": "Lihue Airport"
+        }
+        return locations.get(code, f"{code} Airport")
+
+    def prompt_for_holding_prices(self):
+        """Prompt user for holding prices for all active bookings"""
+        for booking_id in self.bookings["metadata"]["active_bookings"]:
+            booking = self.bookings["bookings"][booking_id]
+            current_holding = booking.get("holding_price")
+            
+            print(f"\n📍 {booking['location']} ({booking['pickup_date']} - {booking['dropoff_date']})")
+            print(f"🎯 Focus category: {booking['focus_category']}")
+            
+            if current_holding:
+                print(f"Current holding price: ${current_holding:.2f}")
+                update = input("Would you like to update the holding price? (y/n): ").lower()
+                if update != 'y':
+                    continue
+            
+            while True:
+                try:
+                    price_input = input(f"Enter holding price for {booking['focus_category']} (or press Enter to skip): ").strip()
+                    if not price_input:
+                        break
+                    price = float(price_input)
+                    self.update_holding_price(booking_id, price)
+                    print(f"✅ Holding price updated to ${price:.2f}")
+                    break
+                except ValueError:
+                    print("❌ Please enter a valid number")
