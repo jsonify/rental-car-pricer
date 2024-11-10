@@ -1,22 +1,18 @@
-# email_sender.py
-
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
+from typing import Dict, List, Optional
+
 from config import (
     SMTP_SERVER,
     SMTP_PORT,
     SENDER_EMAIL,
     SENDER_PASSWORD,
-    RECIPIENT_EMAIL,
-    PICKUP_LOCATION,
-    PICKUP_DATE,
-    DROPOFF_DATE,
-    FOCUS_CATEGORY
+    RECIPIENT_EMAIL
 )
 
-def format_price_change(current_price, previous_price=None):
+def format_price_change(current_price: float, previous_price: Optional[float] = None) -> str:
     """Format price change with arrows and percentage"""
     if previous_price is None:
         return f"${current_price:.2f}"
@@ -30,60 +26,101 @@ def format_price_change(current_price, previous_price=None):
         return f"${current_price:.2f} 🔽 -${abs(change):.2f} ({pct_change:.1f}%)"
     return f"${current_price:.2f} ◾️ No change"
 
-def format_email_body(prices):
-    """Format the price data into a clean email body with focus category highlighted"""
-    body = []
-    body.append("Costco Travel Car Rental Price Update")
-    body.append("=" * 50)
-    body.append(f"\nPrices as of {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    body.append(f"Location: {PICKUP_LOCATION} (Kailua-Kona International Airport)")
-    body.append(f"Dates: {PICKUP_DATE} - {DROPOFF_DATE}")
-    body.append(f"Focus Category: {FOCUS_CATEGORY}")
-    body.append("-" * 50)
+def format_booking_section(booking: Dict, prices: Dict[str, float], trends: Dict) -> str:
+    """Format a single booking section with prices and trends"""
+    lines = []
+    focus_category = booking['focus_category']
     
-    # Add focus category first with highlight
-    if FOCUS_CATEGORY in prices:
-        focus_price = prices[FOCUS_CATEGORY]
-        body.append(f"\n🎯 TRACKED CATEGORY:")
-        body.append(f"{FOCUS_CATEGORY}: ${focus_price:.2f}")
+    # Location and dates section
+    lines.append(f"\n📍 {booking['location']} - {booking.get('location_full_name', 'Airport')}")
+    lines.append(f"📅 {booking['pickup_date']} to {booking['dropoff_date']}")
+    lines.append(f"⏰ {booking['pickup_time']} - {booking['dropoff_time']}")
+    lines.append("-" * 50)
+    
+    # Focus category section
+    if focus_category in prices:
+        focus_price = prices[focus_category]
+        focus_trends = trends.get('focus_category', {})
+        
+        lines.append(f"\n🎯 TRACKED: {focus_category}")
+        
+        # Current price with trends
+        if focus_trends:
+            current_price = format_price_change(focus_price, focus_trends.get('previous_price'))
+            lines.append(f"Current Price: {current_price}")
+            
+            if 'lowest' in focus_trends and 'highest' in focus_trends:
+                lines.append(f"Historical Range: ${focus_trends['lowest']:.2f} - ${focus_trends['highest']:.2f}")
+            if 'average' in focus_trends:
+                lines.append(f"Average Price: ${focus_trends['average']:.2f}")
+        else:
+            lines.append(f"Current Price: ${focus_price:.2f}")
         
         # Find cheaper alternatives
         cheaper_options = []
         for category, price in prices.items():
-            if price < focus_price and category != FOCUS_CATEGORY:
+            if price < focus_price and category != focus_category:
                 savings = focus_price - price
                 cheaper_options.append(f"- {category}: ${price:.2f} (Save ${savings:.2f})")
         
         if cheaper_options:
-            body.append("\n💰 CHEAPER ALTERNATIVES:")
-            body.extend(cheaper_options)
-        
-        body.append("\n" + "-" * 50)
+            lines.append("\n💰 CHEAPER ALTERNATIVES:")
+            lines.extend(cheaper_options)
     
-    # Calculate the longest category name for alignment
-    max_length = max(len(category) for category in prices.keys())
+    # All prices section
+    max_category_length = max(len(category) for category in prices.keys())
     
-    # Add all prices
-    body.append("\nALL CATEGORIES:")
-    for category, price in sorted(prices.items(), key=lambda x: x[1]):  # Sort by price
-        prefix = "➡️ " if category == FOCUS_CATEGORY else "  "
-        body.append(f"{prefix}{category:<{max_length}}: ${price:>8.2f}")
+    lines.append("\n📊 ALL CATEGORIES:")
+    for category, price in sorted(prices.items(), key=lambda x: x[1]):
+        prefix = "➡️ " if category == focus_category else "  "
+        lines.append(f"{prefix}{category:<{max_category_length}}: ${price:>8.2f}")
     
-    body.append("=" * 50)
-    body.append("\n📊 Price trends and alerts will be shown once more data is collected.")
-    return "\n".join(body)
+    return "\n".join(lines)
 
-def send_price_alert(prices):
-    """Send an email with the current rental car prices"""
+def format_email_body(bookings_data: List[Dict]) -> str:
+    """Format the complete email body for multiple bookings"""
+    lines = []
+    
+    # Email header
+    lines.append("🚗 Costco Travel Car Rental Price Update")
+    lines.append("=" * 50)
+    lines.append(f"\nLast checked: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append(f"Total bookings tracked: {len(bookings_data)}")
+    lines.append("=" * 50)
+    
+    # Process each booking
+    for booking_data in bookings_data:
+        booking = booking_data['booking']
+        prices = booking_data['prices']
+        trends = booking_data['trends']
+        
+        section = format_booking_section(booking, prices, trends)
+        lines.append(section)
+        lines.append("\n" + "=" * 50)
+    
+    # Footer
+    lines.append("\n📝 Notes:")
+    lines.append("- Prices include taxes and fees")
+    lines.append("- Historical trends shown when available")
+    lines.append("- Cheaper alternatives suggested when found")
+    
+    return "\n".join(lines)
+
+def send_price_alert(bookings_data: List[Dict]) -> bool:
+    """Send an email with current rental car prices for multiple bookings"""
     try:
         # Create message
         msg = MIMEMultipart()
         msg['From'] = SENDER_EMAIL
         msg['To'] = RECIPIENT_EMAIL
-        msg['Subject'] = f"Costco Car Rental Price Alert - {FOCUS_CATEGORY} - {datetime.now().strftime('%Y-%m-%d')}"
+        
+        # Set subject with summary
+        locations = [data['booking']['location'] for data in bookings_data]
+        subject = f"Costco Car Rental Update - {', '.join(locations)} - {datetime.now().strftime('%Y-%m-%d')}"
+        msg['Subject'] = subject
         
         # Add body
-        body = format_email_body(prices)
+        body = format_email_body(bookings_data)
         msg.attach(MIMEText(body, 'plain'))
         
         # Send email

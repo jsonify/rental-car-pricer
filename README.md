@@ -1,17 +1,19 @@
 # Costco Travel Car Rental Price Tracker 🚗
 
-An automated tool that tracks rental car prices on Costco Travel, featuring email notifications, price history tracking, and focus category monitoring. Built with Python and Selenium, this tool helps you monitor price changes and find the best deals for your preferred vehicle type.
+An automated tool that tracks rental car prices on Costco Travel, featuring email notifications, focus category tracking, and support for multiple bookings. Built with Python and Selenium, this tool helps you monitor price changes and find the best deals for your preferred vehicle types across multiple rentals.
 
 ## Features ✨
 
 - 🤖 Automated price checking using Selenium WebDriver
-- 📧 Email notifications with price updates
+- 📧 Consolidated email notifications for all tracked bookings
+- 🎯 Focus category tracking for each booking
+- 💰 Cheaper alternatives suggestions per booking
 - 📊 Price history tracking with JSON storage
-- 🎯 Focus category tracking for your preferred vehicle type
-- 💰 Cheaper alternatives suggestions
-- 🔄 Price change notifications
+- 🔄 Price change notifications with trends
 - 🕒 Configurable search parameters
 - 🔒 Secure credential management using environment variables
+- 📚 Multiple bookings support
+- 🖼️ Screenshot capture for verification
 
 ## Prerequisites 📋
 
@@ -52,285 +54,130 @@ The setup script will guide you through:
 
 - Validating your Python environment
 - Locating Chrome and ChromeDriver
-- Configuring search parameters
+- Configuring your first booking
 - Setting up email notifications
-- Initializing price history tracking
 - Creating necessary directories
-
-## Configuration ⚙️
-
-The setup script will help you configure:
-
-### Search Parameters:
-
-- Airport location (three-letter code)
-- Pickup and dropoff dates
-- Focus category (vehicle type to track)
-- Pickup and dropoff times
-
-### Email Settings:
-
-- SMTP server details (Gmail)
-- Sender email
-- App password (for Gmail)
-- Recipient email
-
-### Browser Settings:
-
-- Chrome binary path
-- ChromeDriver path
-- Timeout values
-
-## File Structure 📁
-
-```
-rental-car-pricer/
-│
-├── config.py           # Configuration and environment variables
-├── driver_setup.py     # Selenium WebDriver configuration
-├── email_sender.py     # Email notification handling
-├── human_simulation.py # Human-like behavior simulation
-├── main.py            # Main script orchestration
-├── price_extractor.py # Price extraction and analysis
-├── setup.py           # Project setup and configuration
-├── test_email.py      # Email configuration testing
-│
-├── price_history.json        # Working price history file
-├── price_history.template.json # Template for price history
-│
-├── screenshots/        # Directory for debug screenshots
-├── setup_backups/      # Directory for configuration backups
-└── .env               # Environment variables
-```
 
 ## Usage 🚀
 
-### Initial Setup 🎯
+### Initial Setup
 
-1. Run the setup script:
+When you first run `setup.py`, you'll be guided through creating your first booking:
 
 ```bash
 python3 setup.py
+
+Costco Travel Car Rental Price Tracker Setup
+==============================================
+Let's set up your first car rental booking to track...
+
+Enter the three-letter airport code (e.g., KOA for Kona): LIH
+Enter pickup date (MM/DD/YYYY): 04/03/2025
+Enter dropoff date (MM/DD/YYYY): 04/10/2025
+Select your preferred category (1-11): 4
+
+✅ First booking created successfully!
+📍 Location: LIH
+📅 Dates: 04/03/2025 to 04/10/2025
+🚗 Category: Full-size Car
 ```
 
-The setup script guides you through:
+### Managing Bookings
 
-- Verifying Python (3.7+) and required packages
-- Setting up Chrome and ChromeDriver paths
-- Configuring your search parameters
-- Setting up email notifications
-- Initializing price history tracking
-- Creating necessary directories and files
-
-### Setup Options 🔄
-
-When running setup.py, you'll have two main options:
-
-1. **Start Fresh** (Option 1):
-
-   - Backs up all existing configuration files
-   - Creates new .env file
-   - Reinitializes price history
-   - Resets all settings
-
-   ```bash
-   # Example backup created:
-   setup_backups/
-   ├── .env.backup.20241109_161200
-   ├── price_history.json.backup.20241109_161200
-   └── price_history.template.json.backup.20241109_161200
-   ```
-
-2. **Update Existing** (Option 2):
-   - Keeps existing configuration
-   - Only creates missing files
-   - Preserves price history
-   - Allows selective updates
-
-### Configuration Examples 📝
-
-1. **Basic Hawaii Setup**:
-
-```
-Airport: KOA
-Pickup Date: 04/03/2025
-Dropoff Date: 04/10/2025
-Focus Category: Economy Car
-Email: your.email@gmail.com
-```
-
-2. **Extended SUV Rental**:
-
-```
-Airport: OGG
-Pickup Date: 05/15/2025
-Dropoff Date: 05/30/2025
-Focus Category: Standard SUV
-Email: your.email@gmail.com
-```
-
-3. **Short-term Premium**:
-
-```
-Airport: HNL
-Pickup Date: 03/20/2025
-Dropoff Date: 03/23/2025
-Focus Category: Premium Car
-Email: your.email@gmail.com
-```
-
-### Setup Troubleshooting 🔧
-
-1. **Chrome/ChromeDriver Issues**:
-
-   ```
-   ❌ Chrome for Testing and/or ChromeDriver not found
-   ```
-
-   Solution:
-
-   - Download Chrome for Testing from provided link
-   - Ensure ChromeDriver matches Chrome version
-   - Enter full paths when prompted
-
-   ```bash
-   # Example paths:
-   /Users/username/Downloads/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing
-   /Users/username/Downloads/chromedriver-mac-x64/chromedriver
-   ```
-
-2. **Permission Issues**:
-
-   ```
-   ❌ Permission denied: '.env'
-   ```
-
-   Solution:
-
-   ```bash
-   # Check file permissions
-   ls -la
-   # Fix permissions if needed
-   chmod 644 .env
-   ```
-
-3. **Python Package Issues**:
-
-   ```
-   ❌ selenium is missing
-   ```
-
-   Solution:
-
-   ```bash
-   pip3 install selenium python-dotenv
-   # or
-   pip3 install -r requirements.txt
-   ```
-
-4. **Price History Initialization Fails**:
-   ```
-   ⚠️ Warning: Could not initialize price history
-   ```
-   Solution:
-   ```bash
-   # Remove existing files and try again
-   rm price_history.json price_history.template.json
-   python3 setup.py
-   ```
-
-### Daily Usage 📅
-
-After setup is complete:
-
-1. Test email configuration:
-
-```bash
-python3 test_email.py
-```
-
-2. Run price checker:
+Run the main script to check prices or add new bookings:
 
 ```bash
 python3 main.py
+
+🚗 Costco Travel Car Rental Price Tracker
+==================================================
+📋 Current active bookings:
+
+1. 📍 LIH
+   📅 04/03/2025 - 04/10/2025
+   🎯 Focus: Full-size Car
+
+🔄 Choose an action:
+1. Track current bookings only
+2. Add a new booking
 ```
 
-### Updating Configuration ⚙️
+### Adding More Bookings
 
-To modify your setup:
-
-1. **Complete Reset**:
+Select option 2 when running main.py to add additional bookings:
 
 ```bash
-python3 setup.py
-# Choose Option 1: Start fresh
+Choice: 2
+
+📝 Enter new booking information:
+
+Enter airport code (e.g., KOA): KOA
+Enter pickup date (MM/DD/YYYY): 05/15/2025
+Enter dropoff date (MM/DD/YYYY): 05/22/2025
+Select category number: 7
+
+✅ Added new booking: KOA
 ```
 
-2. **Partial Update**:
+### Tracking Multiple Bookings
 
-```bash
-python3 setup.py
-# Choose Option 2: Keep existing files
+When you run the script to check prices (option 1):
+
+- Processes all active bookings sequentially
+- Takes screenshots of results for each booking
+- Updates price history for each booking
+- Sends a single consolidated email with all results
+
+### Email Notifications 📬
+
+You'll receive a single email containing:
+
+- Price updates for all tracked bookings
+- Focus category prices and trends for each booking
+- Cheaper alternatives for each booking
+- Historical price data when available
+- Price change alerts
+
+Example email format:
+
 ```
+🚗 Costco Travel Car Rental Price Update
+==================================================
+Last checked: 2024-11-10 00:15:23
+Total bookings tracked: 2
+==================================================
 
-3. **Manual Updates**:
+📍 LIH - Lihue Airport
+📅 04/03/2025 to 04/10/2025
+⏰ 12:00 PM - 12:00 PM
+--------------------------------------------------
 
-- Edit .env file directly for minor changes
-- Run setup.py for major changes
+🎯 TRACKED: Full-size Car
+Current Price: $282.16 🔽 -$5.83 (-2.1%)
+Historical Range: $282.16 - $295.99
+Average Price: $289.08
 
-### Best Practices 🌟
+💰 CHEAPER ALTERNATIVES:
+- Economy Car: $275.42 (Save $6.74)
+- Compact Car: $278.99 (Save $3.17)
 
-1. **Before First Run**:
+📊 ALL CATEGORIES:
+[Price list for LIH]
+==================================================
 
-   - Download latest Chrome for Testing
-   - Set up Gmail App Password
-   - Check Python version
-   - Clear any old config files
-
-2. **Regular Maintenance**:
-
-   - Keep Chrome and ChromeDriver updated
-   - Monitor price_history.json file size
-   - Check setup_backups directory periodically
-   - Review email notifications settings
-
-3. **Troubleshooting Workflow**:
-   - Check selenium.log first
-   - Review screenshots directory
-   - Verify price_history.json structure
-   - Test email configuration separately
+📍 KOA - Kailua-Kona International Airport
+[Details for second booking...]
+==================================================
+```
 
 ## Price History Tracking 📈
 
-The tool maintains a detailed price history in JSON format, tracking:
+The tool maintains a JSON file (`price_history.json`) containing:
 
-- Historical prices for all vehicle categories
-- Price trends and changes
-- Minimum, maximum, and average prices
+- Historical prices for all bookings
+- Price trends per booking
 - Focus category performance
-
-The history file is excluded from version control to keep your price data private. A template file is provided for reference.
-
-## Email Notifications 📬
-
-You'll receive emails containing:
-
-- Current prices for all vehicle categories
-- Highlighted focus category with price changes
-- Cheaper alternatives to your focus category
-- Price trends and historical data
-- Potential savings opportunities
-
-## Gmail Setup 📨
-
-To use Gmail for notifications:
-
-1. Enable 2-Step Verification on your Google Account
-2. Generate an App Password:
-   - Go to Google Account settings
-   - Search for "App Passwords"
-   - Select "Mail" and your device
-   - Use the generated password in your configuration
+- Booking metadata
 
 ## Troubleshooting 🔍
 
@@ -338,23 +185,37 @@ To use Gmail for notifications:
 
 1. **ChromeDriver Version Mismatch**:
 
-   - Ensure ChromeDriver version matches your Chrome version
-   - Download the correct version from the official site
+```bash
+# Check Chrome version
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --version
 
-2. **Email Authentication Errors**:
+# Download matching ChromeDriver
+```
 
-   - Verify your Gmail App Password is correct
-   - Ensure 2-Step Verification is enabled
+2. **Location Selection Issues**:
 
-3. **Price History Issues**:
-   - Run setup.py with option 1 to start fresh
-   - Check file permissions in the project directory
+```
+❌ Error: Could not find exact location match
+⚠️ Trying partial match...
+✅ Location selected successfully
+```
 
 ### Debug Tools:
 
 - Check `selenium.log` for WebDriver logs
-- Review screenshots in `screenshots/` directory
+- Review screenshots in `screenshots/` directory:
+  - `results_[LOCATION]_[TIMESTAMP].png` for successful searches
+  - `error_[LOCATION]_[TIMESTAMP].png` for failed attempts
 - Verify `price_history.json` for tracking data
+
+## Maintenance 🛠️
+
+Regular maintenance tasks:
+
+1. Keep Chrome and ChromeDriver versions in sync
+2. Monitor price_history.json file size
+3. Review screenshot directory periodically
+4. Update Gmail App Password if needed
 
 ## Contributing 🤝
 
@@ -364,8 +225,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 - Never commit your `.env` file
 - Keep your Gmail App Password secure
-- Don't share your configuration files
-- Price history files contain personal search data
+- Don't share your price history files
+- Regularly review app permissions
 
 ## License 📄
 
