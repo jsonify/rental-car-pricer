@@ -1,0 +1,47 @@
+{
+    "metadata": {
+      "last_updated": "2024-11-09T16:12:00",
+      "location": "KOA",
+      "location_full_name": "Kailua-Kona International Airport",
+      "search_parameters": {
+        "pickup_time": "12:00 PM",
+        "dropoff_time": "12:00 PM",
+        "duration_days": 7
+      }
+    },
+    "price_records": [
+      {
+        "timestamp": "2024-11-09T16:12:00",
+        "search_dates": {
+          "pickup": "2025-04-03",
+          "dropoff": "2025-04-10"
+        },
+        "prices": {
+          "Economy Car": 472.06,
+          "Compact Car": 485.32,
+          "Full-size Car": 523.45,
+          "Compact SUV": 567.89
+        },
+        "lowest_price": {
+          "category": "Economy Car",
+          "price": 472.06
+        }
+      }
+    ],
+    "category_stats": {
+      "Economy Car": {
+        "min_price": 472.06,
+        "max_price": 472.06,
+        "avg_price": 472.06,
+        "last_price": 472.06,
+        "price_changes": []
+      },
+      "Compact Car": {
+        "min_price": 485.32,
+        "max_price": 485.32,
+        "avg_price": 485.32,
+        "last_price": 485.32,
+        "price_changes": []
+      }
+    }
+  }

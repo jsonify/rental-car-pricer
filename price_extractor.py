@@ -2,9 +2,60 @@
 
 from datetime import datetime
 from selenium.webdriver.common.by import By
-from config import PRICES_FILE, PICKUP_LOCATION, PICKUP_DATE, DROPOFF_DATE
+from typing import Dict, Tuple
+from price_history import PriceHistory
+from config import (
+    PRICES_FILE,
+    PICKUP_LOCATION,
+    PICKUP_DATE,
+    DROPOFF_DATE,
+    FOCUS_CATEGORY
+)
 
-def extract_lowest_prices(driver):
+def format_price_change(change: float, percentage: float) -> str:
+    """Format price change with symbols and colors"""
+    if change > 0:
+        return f"🔺 +${change:.2f} (+{percentage:.1f}%)"
+    elif change < 0:
+        return f"🔽 -${abs(change):.2f} ({percentage:.1f}%)"
+    return "◾️ No change"
+
+def format_price_comparison(comparison: dict) -> str:
+    """Format price comparison for output"""
+    output = []
+    focus_category = comparison['focus_category']
+    
+    output.append(f"\n{'='*60}")
+    output.append(f"Price Update: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    output.append(f"Location: {PICKUP_LOCATION}")
+    output.append(f"Dates: {PICKUP_DATE} - {DROPOFF_DATE}")
+    output.append(f"Focus Category: {focus_category}")
+    output.append('-' * 60)
+    
+    if comparison['is_first_record']:
+        output.append("\nInitial price check (no previous data for comparison):")
+        for category, price in comparison['current_prices'].items():
+            prefix = "➡️ " if category == focus_category else "  "
+            output.append(f"{prefix}{category:<15}: ${price:>8.2f}")
+    else:
+        output.append("\nPrice Changes:")
+        for category, price in comparison['current_prices'].items():
+            prefix = "➡️ " if category == focus_category else "  "
+            change_info = comparison['changes'].get(category, None)
+            
+            if change_info:
+                change_str = format_price_change(
+                    change_info['price_change'],
+                    change_info['percentage_change']
+                )
+                output.append(f"{prefix}{category:<15}: ${price:>8.2f} {change_str}")
+            else:
+                output.append(f"{prefix}{category:<15}: ${price:>8.2f} (New category)")
+    
+    output.append('=' * 60)
+    return '\n'.join(output)
+
+def extract_lowest_prices(driver) -> Tuple[Dict[str, float], str]:
     """Extract and save lowest prices for each car category"""
     print("\nExtracting lowest prices...")
     
@@ -30,25 +81,44 @@ def extract_lowest_prices(driver):
         except Exception as e:
             continue
     
-    save_prices_to_file(lowest_prices)
-    return lowest_prices
-
-def save_prices_to_file(prices):
-    """Save prices to file with timestamp, location, and dates"""
-    with open(PRICES_FILE, 'a') as f:
-        f.write(f"\n{'='*50}")
-        f.write(f"\nPrices as of {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        f.write(f"\nLocation: {PICKUP_LOCATION} (Kailua-Kona International Airport)")
-        f.write(f"\nDates: {PICKUP_DATE} - {DROPOFF_DATE}")
-        f.write(f"\n{'-'*50}\n")
-        
-        # Calculate the longest category name for alignment
-        max_length = max(len(category) for category in prices.keys())
-        
-        for category, price in prices.items():
-            # Right-align prices while left-aligning categories
-            f.write(f"{category:<{max_length}}: ${price:>8.2f}\n")
-            
-        f.write(f"{'='*50}\n")
+    # Create price history record
+    price_history = PriceHistory()
+    comparison = price_history.add_price_record(
+        location=PICKUP_LOCATION,
+        pickup_date=PICKUP_DATE,
+        dropoff_date=DROPOFF_DATE,
+        prices=lowest_prices,
+        focus_category=FOCUS_CATEGORY
+    )
     
-    print(f"Prices saved to {PRICES_FILE}")
+    # Format and save the output
+    output = format_price_comparison(comparison)
+    with open(PRICES_FILE, 'a') as f:
+        f.write(output)
+    
+    print(f"\nPrices saved to {PRICES_FILE}")
+    return lowest_prices, output
+
+def get_tracking_summary(prices: Dict[str, float], focus_category: str) -> str:
+    """Generate a summary focusing on the tracked category"""
+    summary = []
+    current_price = prices.get(focus_category)
+    
+    if current_price:
+        summary.append(f"\nTracking Summary for {focus_category}")
+        summary.append(f"Current Price: ${current_price:.2f}")
+        
+        # Add comparison with other categories
+        cheaper_options = []
+        for category, price in prices.items():
+            if price < current_price and category != focus_category:
+                savings = current_price - price
+                cheaper_options.append(
+                    f"- {category}: ${price:.2f} (Save ${savings:.2f})"
+                )
+        
+        if cheaper_options:
+            summary.append("\nCheaper alternatives available:")
+            summary.extend(cheaper_options)
+    
+    return '\n'.join(summary)

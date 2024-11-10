@@ -1,1 +1,40 @@
-/__pycache__
+# Environment Files
+.env
+.env.*
+*.env
+.env.backup*
+.env.save*
+.env.[0-9]*
+.env.20*
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Python Environment
+venv/
+env/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Screenshots and Images
+screenshots/
+screenshots/*
+*.png
+error.png
+final_results.png
+
+# Logs and Data
+*.log
+selenium.log
+rental_prices.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

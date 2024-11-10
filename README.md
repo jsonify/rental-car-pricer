@@ -1,165 +1,188 @@
-# Costco Travel Car Rental Price Tracker
-A modular Python application that automates checking car rental prices on Costco Travel, using Selenium WebDriver with anti-detection measures.
+# Costco Travel Car Rental Price Tracker 🚗
 
-## Project Structure
-The application is split into five Python files:
+An automated tool that tracks rental car prices on Costco Travel, featuring email notifications and focus category tracking. Built with Python and Selenium, this tool helps you monitor price changes and find the best deals for your preferred vehicle type.
+
+## Features ✨
+
+- 🤖 Automated price checking using Selenium WebDriver
+- 📧 Email notifications with price updates
+- 🎯 Focus category tracking for your preferred vehicle type
+- 💰 Cheaper alternatives suggestions
+- 📊 Price history tracking
+- 🔄 Price change notifications
+- 🕒 Configurable search parameters
+- 🔒 Secure credential management using environment variables
+
+## Prerequisites 📋
+
+Before you begin, ensure you have the following installed:
+
+- Python 3.7 or higher
+- Google Chrome for Testing
+- ChromeDriver (matching your Chrome version)
+- pip (Python package installer)
+
+## Installation 🔧
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/costco-car-rental-tracker.git
+cd costco-car-rental-tracker
+```
+
+2. Install required Python packages:
+```bash
+pip3 install selenium python-dotenv
+```
+
+3. Download required Chrome components:
+   - [Google Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/)
+   - [ChromeDriver](https://chromedriver.chromium.org/downloads) (make sure it matches your Chrome version)
+
+4. Run the setup script:
+```bash
+python3 setup.py
+```
+
+The setup script will guide you through:
+- Validating your Python environment
+- Locating Chrome and ChromeDriver
+- Configuring search parameters
+- Setting up email notifications
+- Creating necessary directories
+
+## Configuration ⚙️
+
+The setup script will create a `.env` file with your configuration. You can also manually configure the following:
+
+### Search Parameters:
+- Airport location (three-letter code)
+- Pickup and dropoff dates
+- Focus category (vehicle type to track)
+- Pickup and dropoff times
+
+### Email Settings:
+- SMTP server details
+- Sender email (Gmail)
+- App password (for Gmail)
+- Recipient email
+
+### Browser Settings:
+- Chrome binary path
+- ChromeDriver path
+- Timeout values
+
+## Usage 🚀
+
+1. Test the email configuration:
+```bash
+python3 test_email.py
+```
+
+2. Run the price checker:
+```bash
+python3 main.py
+```
+
+The script will:
+1. Navigate to Costco Travel
+2. Enter your search parameters
+3. Extract current prices
+4. Send an email with:
+   - Focus category price and changes
+   - Cheaper alternatives
+   - Complete price list
+   - Price trends (when available)
+
+## Email Notifications 📬
+
+You'll receive emails containing:
+- Current prices for all vehicle categories
+- Highlighted focus category with price changes
+- Cheaper alternatives to your focus category
+- Price trends and historical data
+- Potential savings opportunities
+
+## Project Structure 📁
 
 ```
 rental-car-pricer/
 │
-├── config.py           # Configuration settings
+├── config.py           # Configuration and environment variables
 ├── driver_setup.py     # Selenium WebDriver configuration
+├── email_sender.py     # Email notification handling
 ├── human_simulation.py # Human-like behavior simulation
-├── price_extractor.py  # Price extraction and saving
 ├── main.py            # Main script orchestration
-└── screenshots/        # Directory for saved screenshots
+├── price_extractor.py # Price extraction and analysis
+├── price_history.py   # Historical price tracking
+├── setup.py           # Project setup and configuration
+├── test_email.py      # Email configuration testing
+│
+├── screenshots/        # Directory for debug screenshots
+└── .env               # Environment variables (created by setup.py)
 ```
 
-## Configuration (config.py)
-Contains all configurable parameters and constants:
+## Price History Setup
 
-- Chrome paths
-- Search parameters (dates, location, times)
-- File paths
-- Timeout settings
+To initialize price tracking:
+1. Copy `price_history.template.json` to `price_history.json`
+2. The script will automatically update the history file with new prices
 
-Key settings to modify:
-```python
-PICKUP_LOCATION = "KOA"
-PICKUP_DATE = "04/03/2025"
-DROPOFF_DATE = "04/10/2025"
-PICKUP_TIME = "12:00 PM"
-DROPOFF_TIME = "12:00 PM"
-```
+Note: `price_history.json` is not tracked in the repository to avoid conflicts and keep your price history private.
 
-## Components
+## Gmail Setup 📨
 
-### Driver Setup (driver_setup.py)
-Handles Chrome WebDriver initialization with anti-bot detection measures:
-- Stealth settings
-- Browser configurations
-- User agent spoofing
-- WebDriver property removal
+To use Gmail for notifications:
 
-### Human Simulation (human_simulation.py)
-Provides functions that mimic human behavior:
-- Random typing delays
-- Mouse movements
-- Natural form filling
-- Randomized waiting periods
+1. Enable 2-Step Verification on your Google Account
+2. Generate an App Password:
+   - Go to Google Account settings
+   - Search for "App Passwords"
+   - Select "Mail" and your device
+   - Use the generated password in your configuration
 
-### Price Extractor (price_extractor.py)
-Manages price data collection and storage:
-- Extracts lowest prices for each car category
-- Saves formatted results with timestamps
-- Includes location and date information
-- Generates aligned, readable output
+## Troubleshooting 🔍
 
-### Main Script (main.py)
-Orchestrates the entire process:
-1. Initializes WebDriver
-2. Navigates to Costco Travel
-3. Fills search form
-4. Handles search execution
-5. Extracts prices
-6. Saves results
+### Common Issues:
 
-## Output Format
-Results are saved in 'rental_prices.txt' with the following format:
+1. **ChromeDriver Version Mismatch**:
+   - Ensure ChromeDriver version matches your Chrome version
+   - Download the correct version from the official site
 
-```
-==================================================
-Prices as of 2024-11-09 10:30:15
-Location: KOA (Kailua-Kona International Airport)
-Dates: 04/03/2025 - 04/10/2025
---------------------------------------------------
-Economy Car         : $  472.06
-Compact Car        : $  485.32
-Full-size Car      : $  523.45
-Compact SUV        : $  567.89
-==================================================
-```
+2. **Email Authentication Errors**:
+   - Verify your Gmail App Password is correct
+   - Ensure 2-Step Verification is enabled
 
-## Requirements
-- Python 3.x
+3. **Selenium Errors**:
+   - Check Chrome and ChromeDriver paths in `.env`
+   - Verify the browser is not being controlled by another instance
+
+### Debug Tools:
+
+- Check `selenium.log` for WebDriver logs
+- Review screenshots in `screenshots/` directory
+- Verify `rental_prices.txt` for price history
+
+## Contributing 🤝
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Security Notes 🔐
+
+- Never commit your `.env` file
+- Keep your Gmail App Password secure
+- Don't share your configuration files
+
+## License 📄
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments 🙏
+
 - Selenium WebDriver
-- Google Chrome for Testing
-- ChromeDriver matching Chrome version
+- Python community
+- Costco Travel
 
-## Setup Instructions
+## Disclaimer ⚠️
 
-1. Install Python dependencies:
-```bash
-pip install selenium
-```
-
-2. Download required Chrome components:
-- Google Chrome for Testing
-- ChromeDriver matching your Chrome version
-
-3. Update paths in config.py:
-```python
-CHROME_BINARY_PATH = "/path/to/chrome"
-CHROMEDRIVER_PATH = "/path/to/chromedriver"
-```
-
-4. Create screenshots directory:
-```bash
-mkdir screenshots
-```
-
-## Usage
-
-1. Update search parameters in config.py as needed
-
-2. Run the script:
-```bash
-python main.py
-```
-
-## Features
-- Anti-bot detection measures
-- Human-like behavior simulation
-- Modular, maintainable code structure
-- Detailed logging and error handling
-- Screenshot capture for debugging
-- Formatted price output
-- Configurable parameters
-- Automatic retries for reliability
-
-## Error Handling
-The script includes comprehensive error handling:
-- Screenshots on errors
-- Detailed error logging
-- Retry mechanisms for common failures
-- Graceful browser cleanup
-
-## Debugging
-- Check selenium.log for WebDriver logs
-- Review screenshots in screenshots/ directory
-- Monitor console output for progress
-- Verify rental_prices.txt for results
-
-## Limitations
-- Subject to website changes
-- Dependent on network conditions
-- May require ChromeDriver updates
-- Could be detected as automated
-
-## Best Practices
-1. Don't run too frequently to avoid detection
-2. Regularly update Chrome and ChromeDriver
-3. Monitor for website changes
-4. Back up price history regularly
-5. Review screenshots for any issues
-6. Keep components updated independently
-
-## Maintenance
-Regular maintenance tasks:
-1. Update Chrome components
-2. Check for website changes
-3. Verify selector validity
-4. Monitor anti-bot measures
-5. Review error logs
-6. Update configuration as needed
-
+This tool is for personal use only. Be mindful of Costco Travel's terms of service and use the tool responsibly.

@@ -19,6 +19,7 @@ from config import (
 from driver_setup import setup_driver
 from human_simulation import human_like_typing, random_mouse_movement, enter_date
 from price_extractor import extract_lowest_prices
+from email_sender import send_price_alert
 
 def check_costco_prices():
     driver = setup_driver()
@@ -139,8 +140,12 @@ def check_costco_prices():
         time.sleep(5)
         driver.save_screenshot("final_results.png")
         
-        # Extract prices
-        prices = extract_lowest_prices(driver)
+        # Extract prices and get output
+        prices, formatted_output = extract_lowest_prices(driver)
+        
+        # Send email alert with the prices
+        if prices:
+            send_price_alert(prices)
         
     except Exception as e:
         print(f"An error occurred: {str(e)}")
