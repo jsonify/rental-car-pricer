@@ -2,7 +2,7 @@ name: Car Rental Price Tracker
 
 on:
   schedule:
-    - cron: '10 * * * *'  # Run daily at midnight UTC
+    - cron: '*/10 * * * *'  # Run daily at midnight UTC
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
