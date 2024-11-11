@@ -56,47 +56,49 @@ jobs:
     - name: Create screenshots directory
       run: mkdir -p screenshots
 
-    - name: Initialize price history
+    - name: Debug price_history.json
       run: |
-        cat << EOF > price_history.json
-        {
-          "metadata": {
-            "last_updated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-            "active_bookings": ["LIH_04032025_04102025"]
-          },
-          "bookings": {
-            "LIH_04032025_04102025": {
-              "location": "LIH",
-              "location_full_name": "Lihue Airport",
-              "pickup_date": "04/03/2025",
-              "dropoff_date": "04/10/2025",
-              "pickup_time": "12:00 PM",
-              "dropoff_time": "12:00 PM",
-              "focus_category": "Economy Car",
-              "price_history": [],
-              "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-            }
-          }
-        }
-        EOF
+        if [ -f "price_history.json" ]; then
+          echo "Current price_history.json content:"
+          cat price_history.json
+        else
+          echo "price_history.json not found in repository"
+        fi
 
     - name: Set up environment
       run: |
+        # Read focus category from price_history.json if it exists
+        FOCUS_CATEGORY="Full-size Car"  # Default value
+        if [ -f "price_history.json" ]; then
+          # Extract first focus_category using jq if available
+          if command -v jq >/dev/null 2>&1; then
+            FOCUS_CATEGORY=$(jq -r '.bookings[].focus_category' price_history.json | head -n1)
+          fi
+        fi
+
         cat << EOF > .env
         CI=true
         CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-linux64/chrome
         CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
         USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
-        PICKUP_LOCATION=LIH
-        PICKUP_DATE=04/03/2025
-        DROPOFF_DATE=04/10/2025
-        FOCUS_CATEGORY=Economy Car
         SMTP_SERVER=${{ secrets.SMTP_SERVER }}
         SMTP_PORT=${{ secrets.SMTP_PORT }}
         SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
         SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}
         RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
         EOF
+
+    - name: Install jq
+      run: sudo apt-get install -y jq
+
+    - name: Verify environment and files
+      run: |
+        echo "Environment setup complete. Verifying files..."
+        ls -la
+        echo "price_history.json contents:"
+        cat price_history.json
+        echo "Environment variables (excluding secrets):"
+        grep -v "PASSWORD" .env || true
 
     - name: Run price checker
       run: |

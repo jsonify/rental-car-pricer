@@ -1,0 +1,1116 @@
+{
+  "metadata": {
+    "last_updated": "2024-11-10T19:13:26.360415",
+    "active_bookings": [
+      "LIH_04032025_04102025",
+      "KOA_04102025_04142025"
+    ]
+  },
+  "bookings": {
+    "LIH_04032025_04102025": {
+      "location": "LIH",
+      "pickup_date": "04/03/2025",
+      "dropoff_date": "04/10/2025",
+      "focus_category": "Full-size Car",
+      "pickup_time": "12:00 PM",
+      "dropoff_time": "12:00 PM",
+      "location_full_name": "LIH Airport",
+      "price_history": [
+        {
+          "timestamp": "2024-11-10T00:10:18.345155",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 513.97,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Intermediate SUV": 890.7900000000001,
+            "Standard SUV": 988.86,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 1146.1599999999999,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 944.68,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T00:12:52.127720",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 513.97,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Intermediate SUV": 890.7900000000001,
+            "Standard SUV": 988.86,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 1146.1599999999999,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 944.68,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T00:32:16.878139",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 513.97,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Intermediate SUV": 890.7900000000001,
+            "Standard SUV": 988.86,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 1146.1599999999999,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 944.68,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:02:14.672818",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 513.97,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Intermediate SUV": 890.7900000000001,
+            "Standard SUV": 988.86,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 1146.1599999999999,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 944.68,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:11:31.045986",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:16:24.321518",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:26:33.201062",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:31:42.021543",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:43:09.638226",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T02:02:24.509735",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T02:09:26.873529",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T02:15:20.818523",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T08:29:47.428922",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T11:39:35.202244",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T11:41:40.762228",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T11:53:49.214919",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T12:32:57.467410",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        },
+        {
+          "timestamp": "2024-11-10T19:12:50.569243",
+          "prices": {
+            "Economy Car": 517.1899999999999,
+            "Compact Car": 491.40000000000003,
+            "Intermediate Car": 489.79,
+            "Standard Car": 512.25,
+            "Full-size Car": 512.0699999999999,
+            "Premium Car": 589.54,
+            "Compact SUV": 767.02,
+            "Intermediate SUV": 767.07,
+            "Standard SUV": 900.58,
+            "Standard Elite SUV": 1035.3,
+            "Full-size SUV": 972.0,
+            "Mini Van": 674.13,
+            "Jeep Wrangler 4 door": 566.87,
+            "Standard Convertible": 834.06,
+            "Standard Sporty Car": 532.55,
+            "Premium SUV": 2302.71,
+            "Luxury SUV": 1214.39,
+            "Large Luxury SUV": 1374.73,
+            "Luxury Car": 1770.5900000000001,
+            "Full-size Pickup": 657.42,
+            "Full-size Van": 1616.57,
+            "Electric Car": 416.95
+          },
+          "lowest_price": {
+            "category": "Electric Car",
+            "price": 416.95
+          }
+        }
+      ],
+      "created_at": "2024-11-10T00:05:00.366223",
+      "holding_price": 516.5
+    },
+    "KOA_04102025_04142025": {
+      "location": "KOA",
+      "location_full_name": "Kailua-Kona International Airport",
+      "pickup_date": "04/10/2025",
+      "dropoff_date": "04/14/2025",
+      "pickup_time": "12:00 PM",
+      "dropoff_time": "12:00 PM",
+      "focus_category": "Full-size Car",
+      "price_history": [
+        {
+          "timestamp": "2024-11-10T00:13:28.953152",
+          "prices": {
+            "Economy Car": 293.42,
+            "Compact Car": 292.59000000000003,
+            "Intermediate Car": 285.42,
+            "Standard Car": 282.99,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Intermediate SUV": 323.12,
+            "Standard SUV": 352.77,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 475.60999999999996,
+            "Mini Van": 382.5,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Full-size Pickup": 350.0
+          },
+          "lowest_price": {
+            "category": "Full-size Car",
+            "price": 282.16
+          }
+        },
+        {
+          "timestamp": "2024-11-10T00:32:53.472366",
+          "prices": {
+            "Economy Car": 293.42,
+            "Compact Car": 292.59000000000003,
+            "Intermediate Car": 285.42,
+            "Standard Car": 282.99,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Intermediate SUV": 323.12,
+            "Standard SUV": 352.77,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 475.60999999999996,
+            "Mini Van": 382.5,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Full-size Pickup": 350.0
+          },
+          "lowest_price": {
+            "category": "Full-size Car",
+            "price": 282.16
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:02:54.901471",
+          "prices": {
+            "Economy Car": 293.42,
+            "Compact Car": 292.59000000000003,
+            "Intermediate Car": 285.42,
+            "Standard Car": 282.99,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Intermediate SUV": 323.12,
+            "Standard SUV": 352.77,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 475.60999999999996,
+            "Mini Van": 382.5,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Full-size Pickup": 350.0
+          },
+          "lowest_price": {
+            "category": "Full-size Car",
+            "price": 282.16
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:12:09.200714",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:17:00.168194",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:27:10.323324",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:32:20.422690",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T01:43:46.199414",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T02:03:02.536517",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T02:10:05.919521",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T02:15:59.676741",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T08:30:28.828268",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T11:40:13.159490",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T11:42:18.874599",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T11:54:29.015052",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T12:33:37.918982",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        },
+        {
+          "timestamp": "2024-11-10T19:13:26.360335",
+          "prices": {
+            "Economy Car": 281.53,
+            "Compact Car": 277.69,
+            "Intermediate Car": 277.89,
+            "Standard Car": 276.74,
+            "Full-size Car": 282.16,
+            "Premium Car": 289.69,
+            "Compact SUV": 287.5899999999999,
+            "Intermediate SUV": 300.05,
+            "Standard SUV": 350.8,
+            "Standard Elite SUV": 389.8,
+            "Full-size SUV": 473.41,
+            "Mini Van": 367.59,
+            "Jeep Wrangler 2 door": 394.0,
+            "Jeep Wrangler 4 door": 441.59999999999997,
+            "Standard Convertible": 337.90999999999997,
+            "Standard Sporty Car": 357.19,
+            "Premium SUV": 556.54,
+            "Luxury SUV": 549.12,
+            "Large Luxury SUV": 556.5,
+            "Luxury Car": 1450.81,
+            "Midsize Pickup": 357.06999999999994,
+            "Full-size Pickup": 350.0,
+            "Full-size Van": 896.27
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 276.74
+          }
+        }
+      ],
+      "created_at": "2024-11-10T00:12:09.308258",
+      "holding_price": 266.6
+    }
+  }
+}

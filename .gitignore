@@ -29,8 +29,6 @@ error.png
 final_results.png
 
 # Data Files
-*.json
-price_history.json
 rental_prices.txt
 historical_data/
 data/
