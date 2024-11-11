@@ -56,31 +56,32 @@ jobs:
     - name: Create screenshots directory
       run: mkdir -p screenshots
 
+    - name: Initialize price history
+      run: |
+        cat << EOF > price_history.json
+        {
+          "metadata": {
+            "last_updated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "active_bookings": ["LIH_04032025_04102025"]
+          },
+          "bookings": {
+            "LIH_04032025_04102025": {
+              "location": "LIH",
+              "location_full_name": "Lihue Airport",
+              "pickup_date": "04/03/2025",
+              "dropoff_date": "04/10/2025",
+              "pickup_time": "12:00 PM",
+              "dropoff_time": "12:00 PM",
+              "focus_category": "Economy Car",
+              "price_history": [],
+              "created_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            }
+          }
+        }
+        EOF
+
     - name: Set up environment
       run: |
-        # First verify secrets exist
-        if [ -z "${{ secrets.SMTP_SERVER }}" ]; then
-          echo "❌ SMTP_SERVER secret is not set"
-          exit 1
-        fi
-        if [ -z "${{ secrets.SMTP_PORT }}" ]; then
-          echo "❌ SMTP_PORT secret is not set"
-          exit 1
-        fi
-        if [ -z "${{ secrets.SENDER_EMAIL }}" ]; then
-          echo "❌ SENDER_EMAIL secret is not set"
-          exit 1
-        fi
-        if [ -z "${{ secrets.SENDER_PASSWORD }}" ]; then
-          echo "❌ SENDER_PASSWORD secret is not set"
-          exit 1
-        fi
-        if [ -z "${{ secrets.RECIPIENT_EMAIL }}" ]; then
-          echo "❌ RECIPIENT_EMAIL secret is not set"
-          exit 1
-        fi
-
-        # Create .env file
         cat << EOF > .env
         CI=true
         CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-linux64/chrome
@@ -97,60 +98,10 @@ jobs:
         RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
         EOF
 
-    - name: Verify email configuration
-      run: |
-        python << 'EOL'
-        import os
-        from dotenv import load_dotenv
-        import smtplib
-        from email.mime.text import MIMEText
-
-        def verify_smtp():
-            # Load environment variables from .env file
-            load_dotenv()
-            
-            print("\n📧 Verifying email configuration...")
-            
-            # Get and verify all required variables
-            required_vars = ['SMTP_SERVER', 'SMTP_PORT', 'SENDER_EMAIL', 'SENDER_PASSWORD', 'RECIPIENT_EMAIL']
-            for var in required_vars:
-                value = os.getenv(var)
-                if not value:
-                    raise ValueError(f"{var} is not set")
-                if var != 'SENDER_PASSWORD':  # Don't print the password
-                    print(f"{var}: {value}")
-
-            smtp_server = os.getenv('SMTP_SERVER')
-            smtp_port = int(os.getenv('SMTP_PORT'))  # Convert to int after verifying it exists
-            sender_email = os.getenv('SENDER_EMAIL')
-            sender_password = os.getenv('SENDER_PASSWORD')
-            recipient_email = os.getenv('RECIPIENT_EMAIL')
-
-            try:
-                print(f"\nConnecting to {smtp_server}:{smtp_port}...")
-                with smtplib.SMTP(smtp_server, smtp_port) as server:
-                    server.starttls()
-                    print("Starting TLS connection...")
-                    server.login(sender_email, sender_password)
-                    print("✅ SMTP login successful!")
-                    
-                    # Send a test message
-                    msg = MIMEText("SMTP Configuration test successful")
-                    msg['Subject'] = 'SMTP Test - Car Rental Price Tracker'
-                    msg['From'] = sender_email
-                    msg['To'] = recipient_email
-                    server.send_message(msg)
-                    print("✅ Test email sent successfully!")
-                    return True
-            except Exception as e:
-                print(f"❌ SMTP verification failed: {str(e)}")
-                raise
-
-        verify_smtp()
-        EOL
-
     - name: Run price checker
       run: |
+        echo "Starting price checker in automated mode..."
+        # Set Chrome options for headless execution
         export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
         python main.py
 
