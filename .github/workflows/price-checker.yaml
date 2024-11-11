@@ -19,20 +19,28 @@ jobs:
 
     - name: Download and install Chrome for Testing
       run: |
-        mkdir -p $HOME/chrome-for-testing
+        # Create Chrome directory
+        sudo mkdir -p /opt/chrome
         
         # Get latest version
         LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
         echo "Latest Chrome version: $LATEST_VERSION"
         
         # Download Chrome for Testing
-        curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/linux64/chrome-linux64.zip" -o $HOME/chrome-for-testing/chrome.zip
+        curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/linux64/chrome-linux64.zip" -o chrome.zip
         
-        # Extract Chrome
-        unzip -q $HOME/chrome-for-testing/chrome.zip -d $HOME/chrome-for-testing/
+        # Extract Chrome to /opt/chrome
+        sudo unzip -q chrome.zip -d /opt/chrome/
         
-        # Make executable
-        chmod +x $HOME/chrome-for-testing/chrome-linux64/chrome
+        # Make executable and create symlink
+        sudo chmod +x /opt/chrome/chrome-linux64/chrome
+        sudo ln -sf /opt/chrome/chrome-linux64/chrome /usr/bin/chrome
+        
+        # Verify installation
+        echo "Chrome binary location:"
+        ls -l /opt/chrome/chrome-linux64/chrome
+        echo "Chrome version:"
+        /opt/chrome/chrome-linux64/chrome --version
 
     - name: Download and install ChromeDriver
       run: |
@@ -40,8 +48,14 @@ jobs:
         echo "Installing ChromeDriver for Chrome version: $LATEST_VERSION"
         curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/linux64/chromedriver-linux64.zip" -o chromedriver.zip
         unzip -q chromedriver.zip
-        chmod +x chromedriver-linux64/chromedriver
-        sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
+        sudo chmod +x chromedriver-linux64/chromedriver
+        sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
+        
+        # Verify installation
+        echo "ChromeDriver location:"
+        which chromedriver
+        echo "ChromeDriver version:"
+        chromedriver --version
 
     - name: Install Chrome dependencies
       run: |
@@ -62,7 +76,6 @@ jobs:
     - name: Extract environment variables
       id: vars
       run: |
-        # Extract values and set them as step outputs
         echo "LOCATION=$(jq -r '.bookings | to_entries | .[0].value.location' price_history.json)" >> $GITHUB_ENV
         echo "PICKUP_DATE=$(jq -r '.bookings | to_entries | .[0].value.pickup_date' price_history.json)" >> $GITHUB_ENV
         echo "DROPOFF_DATE=$(jq -r '.bookings | to_entries | .[0].value.dropoff_date' price_history.json)" >> $GITHUB_ENV
@@ -72,8 +85,8 @@ jobs:
       run: |
         cat << EOF > .env
         CI=true
-        CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-linux64/chrome
-        CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
+        CHROME_BINARY_PATH=/opt/chrome/chrome-linux64/chrome
+        CHROMEDRIVER_PATH=/usr/bin/chromedriver
         USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
         PICKUP_LOCATION=${{ env.LOCATION }}
         PICKUP_DATE=${{ env.PICKUP_DATE }}
@@ -88,6 +101,11 @@ jobs:
         
         echo "Environment file created. Verifying contents (excluding secrets):"
         grep -v "PASSWORD" .env || true
+        
+        # Verify Chrome and ChromeDriver paths
+        echo "Verifying Chrome and ChromeDriver installations:"
+        ls -l /opt/chrome/chrome-linux64/chrome
+        ls -l /usr/bin/chromedriver
 
     - name: Verify environment setup
       run: |
@@ -103,8 +121,8 @@ jobs:
     - name: Run price checker
       env:
         CI: true
-        CHROME_BINARY_PATH: ${{ env.HOME }}/chrome-for-testing/chrome-linux64/chrome
-        CHROMEDRIVER_PATH: /usr/local/bin/chromedriver
+        CHROME_BINARY_PATH: /opt/chrome/chrome-linux64/chrome
+        CHROMEDRIVER_PATH: /usr/bin/chromedriver
         USER_AGENT: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
         PICKUP_LOCATION: ${{ env.LOCATION }}
         PICKUP_DATE: ${{ env.PICKUP_DATE }}
@@ -117,9 +135,11 @@ jobs:
         RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
       run: |
         echo "Starting price checker in automated mode..."
-        echo "Environment verification before running:"
-        echo "FOCUS_CATEGORY: $FOCUS_CATEGORY"
-        echo "PICKUP_LOCATION: $PICKUP_LOCATION"
+        echo "Verifying paths before running:"
+        echo "CHROME_BINARY_PATH: $CHROME_BINARY_PATH"
+        echo "CHROMEDRIVER_PATH: $CHROMEDRIVER_PATH"
+        ls -l $CHROME_BINARY_PATH
+        ls -l $CHROMEDRIVER_PATH
         
         # Set Chrome options for headless execution
         export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
