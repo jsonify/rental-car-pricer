@@ -59,68 +59,54 @@ jobs:
     - name: Install jq
       run: sudo apt-get install -y jq
 
-    - name: Set up and verify environment
+    - name: Extract environment variables
+      id: vars
       run: |
-        echo "Current directory contents:"
-        ls -la
+        # Extract values and set them as step outputs
+        echo "LOCATION=$(jq -r '.bookings | to_entries | .[0].value.location' price_history.json)" >> $GITHUB_ENV
+        echo "PICKUP_DATE=$(jq -r '.bookings | to_entries | .[0].value.pickup_date' price_history.json)" >> $GITHUB_ENV
+        echo "DROPOFF_DATE=$(jq -r '.bookings | to_entries | .[0].value.dropoff_date' price_history.json)" >> $GITHUB_ENV
+        echo "FOCUS_CATEGORY=$(jq -r '.bookings | to_entries | .[0].value.focus_category' price_history.json)" >> $GITHUB_ENV
+
+    - name: Set up environment file
+      run: |
+        cat << EOF > .env
+        CI=true
+        CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-linux64/chrome
+        CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
+        USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
+        PICKUP_LOCATION=${{ env.LOCATION }}
+        PICKUP_DATE=${{ env.PICKUP_DATE }}
+        DROPOFF_DATE=${{ env.DROPOFF_DATE }}
+        FOCUS_CATEGORY=${{ env.FOCUS_CATEGORY }}
+        SMTP_SERVER=${{ secrets.SMTP_SERVER }}
+        SMTP_PORT=${{ secrets.SMTP_PORT }}
+        SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
+        SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}
+        RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
+        EOF
+        
+        echo "Environment file created. Verifying contents (excluding secrets):"
+        grep -v "PASSWORD" .env || true
+
+    - name: Verify environment setup
+      run: |
+        echo "Verifying environment variables:"
+        echo "PICKUP_LOCATION: ${{ env.LOCATION }}"
+        echo "PICKUP_DATE: ${{ env.PICKUP_DATE }}"
+        echo "DROPOFF_DATE: ${{ env.DROPOFF_DATE }}"
+        echo "FOCUS_CATEGORY: ${{ env.FOCUS_CATEGORY }}"
         
         echo "Content of price_history.json:"
         cat price_history.json
-        
-        # Extract values from price_history.json
-        FIRST_BOOKING=$(jq -r '.bookings | to_entries | .[0].value' price_history.json)
-        
-        # Export all required environment variables
-        export CI=true
-        export CHROME_BINARY_PATH="$HOME/chrome-for-testing/chrome-linux64/chrome"
-        export CHROMEDRIVER_PATH="/usr/local/bin/chromedriver"
-        export USER_AGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-        export PICKUP_LOCATION=$(echo $FIRST_BOOKING | jq -r '.location')
-        export PICKUP_DATE=$(echo $FIRST_BOOKING | jq -r '.pickup_date')
-        export DROPOFF_DATE=$(echo $FIRST_BOOKING | jq -r '.dropoff_date')
-        export FOCUS_CATEGORY=$(echo $FIRST_BOOKING | jq -r '.focus_category')
-        export SMTP_SERVER="${{ secrets.SMTP_SERVER }}"
-        export SMTP_PORT="${{ secrets.SMTP_PORT }}"
-        export SENDER_EMAIL="${{ secrets.SENDER_EMAIL }}"
-        export SENDER_PASSWORD="${{ secrets.SENDER_PASSWORD }}"
-        export RECIPIENT_EMAIL="${{ secrets.RECIPIENT_EMAIL }}"
-        
-        # Write variables to .env file as backup
-        env | grep -v "PASSWORD" > .env
-        
-        echo "Verifying environment variables:"
-        echo "PICKUP_LOCATION: $PICKUP_LOCATION"
-        echo "PICKUP_DATE: $PICKUP_DATE"
-        echo "DROPOFF_DATE: $DROPOFF_DATE"
-        echo "FOCUS_CATEGORY: $FOCUS_CATEGORY"
-        echo "CHROME_BINARY_PATH: $CHROME_BINARY_PATH"
-        echo "CHROMEDRIVER_PATH: $CHROMEDRIVER_PATH"
-        
-        # Verify python environment variables
-        echo "Verifying Python can read environment variables:"
-        python3 << 'EOF'
-import os
-print("\nPython environment verification:")
-required_vars = [
-    'PICKUP_LOCATION',
-    'PICKUP_DATE',
-    'DROPOFF_DATE',
-    'FOCUS_CATEGORY',
-    'CHROME_BINARY_PATH',
-    'CHROMEDRIVER_PATH'
-]
-for var in required_vars:
-    value = os.getenv(var)
-    print(f"{var}: {value}")
-EOF
 
     - name: Run price checker
       env:
         CI: true
-        CHROME_BINARY_PATH: ${{ env.CHROME_BINARY_PATH }}
-        CHROMEDRIVER_PATH: ${{ env.CHROMEDRIVER_PATH }}
-        USER_AGENT: ${{ env.USER_AGENT }}
-        PICKUP_LOCATION: ${{ env.PICKUP_LOCATION }}
+        CHROME_BINARY_PATH: ${{ env.HOME }}/chrome-for-testing/chrome-linux64/chrome
+        CHROMEDRIVER_PATH: /usr/local/bin/chromedriver
+        USER_AGENT: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
+        PICKUP_LOCATION: ${{ env.LOCATION }}
         PICKUP_DATE: ${{ env.PICKUP_DATE }}
         DROPOFF_DATE: ${{ env.DROPOFF_DATE }}
         FOCUS_CATEGORY: ${{ env.FOCUS_CATEGORY }}
@@ -130,7 +116,8 @@ EOF
         SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
         RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
       run: |
-        echo "Environment variables for price checker:"
+        echo "Starting price checker in automated mode..."
+        echo "Environment verification before running:"
         echo "FOCUS_CATEGORY: $FOCUS_CATEGORY"
         echo "PICKUP_LOCATION: $PICKUP_LOCATION"
         
