@@ -1,8 +1,6 @@
 name: Car Rental Price Tracker
 
 on:
-  push:
-    branches: [ main ]
   schedule:
     - cron: '0 */6 * * *'  # Run every 6 hours
   workflow_dispatch:  # Allow manual trigger
@@ -64,8 +62,17 @@ jobs:
         echo "ChromeDriver version:"
         chromedriver --version
 
-    - name: Create .env file
+    - name: Install Python dependencies
       run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Create screenshots directory
+      run: mkdir -p screenshots
+
+    - name: Set up environment
+      run: |
+        echo "CI=true" >> $GITHUB_ENV
         echo "CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-linux64/chrome" >> .env
         echo "CHROMEDRIVER_PATH=/usr/local/bin/chromedriver" >> .env
         echo "USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" >> .env
@@ -79,13 +86,38 @@ jobs:
         echo "SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}" >> .env
         echo "RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}" >> .env
 
-    - name: Install dependencies
+    - name: Verify email configuration
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        python << 'EOL'
+        import os
+        import smtplib
+        from email.mime.text import MIMEText
 
-    - name: Create screenshots directory
-      run: mkdir -p screenshots
+        def verify_smtp():
+            print("\n📧 Verifying email configuration...")
+            smtp_server = os.getenv('SMTP_SERVER')
+            smtp_port = int(os.getenv('SMTP_PORT'))
+            sender_email = os.getenv('SENDER_EMAIL')
+            sender_password = os.getenv('SENDER_PASSWORD')
+            recipient_email = os.getenv('RECIPIENT_EMAIL')
+
+            print(f"SMTP Server: {smtp_server}")
+            print(f"SMTP Port: {smtp_port}")
+            print(f"Sender: {sender_email}")
+            print(f"Recipient: {recipient_email}")
+
+            try:
+                with smtplib.SMTP(smtp_server, smtp_port) as server:
+                    server.starttls()
+                    server.login(sender_email, sender_password)
+                    print("✅ SMTP connection successful!")
+                    return True
+            except Exception as e:
+                print(f"❌ SMTP verification failed: {str(e)}")
+                raise
+
+        verify_smtp()
+        EOL
 
     - name: Run price checker
       run: |
@@ -94,18 +126,16 @@ jobs:
         python main.py
 
     - name: Save price history
-      if: success()
+      if: success() || failure()  # Run even if price checker fails
       uses: actions/upload-artifact@v3
       with:
-        name: price-history
+        name: price-history-${{ github.run_id }}
         path: |
           price_history.json
           rental_prices.txt
           screenshots/*.png
+          .env  # Include for debugging, remove in production
 
-    - name: Save screenshots on failure
-      if: failure()
-      uses: actions/upload-artifact@v3
-      with:
-        name: error-screenshots
-        path: screenshots/error_*.png
+    - name: Clean up sensitive files
+      if: always()
+      run: rm -f .env
