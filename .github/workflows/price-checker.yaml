@@ -56,48 +56,55 @@ jobs:
     - name: Create screenshots directory
       run: mkdir -p screenshots
 
-    - name: Debug price_history.json
-      run: |
-        if [ -f "price_history.json" ]; then
-          echo "Current price_history.json content:"
-          cat price_history.json
-        else
-          echo "price_history.json not found in repository"
-        fi
+    - name: Install jq
+      run: sudo apt-get install -y jq
 
     - name: Set up environment
       run: |
-        # Read focus category from price_history.json if it exists
-        FOCUS_CATEGORY="Full-size Car"  # Default value
-        if [ -f "price_history.json" ]; then
-          # Extract first focus_category using jq if available
-          if command -v jq >/dev/null 2>&1; then
-            FOCUS_CATEGORY=$(jq -r '.bookings[].focus_category' price_history.json | head -n1)
-          fi
-        fi
+        # Extract values from the first booking in price_history.json
+        FIRST_BOOKING=$(jq -r '
+          .bookings 
+          | to_entries 
+          | .[0].value 
+          | {
+            location: .location,
+            pickup_date: .pickup_date,
+            dropoff_date: .dropoff_date,
+            focus_category: .focus_category
+          }
+        ' price_history.json)
+        
+        # Extract individual values
+        LOCATION=$(echo $FIRST_BOOKING | jq -r '.location')
+        PICKUP_DATE=$(echo $FIRST_BOOKING | jq -r '.pickup_date')
+        DROPOFF_DATE=$(echo $FIRST_BOOKING | jq -r '.dropoff_date')
+        FOCUS_CATEGORY=$(echo $FIRST_BOOKING | jq -r '.focus_category')
+        
+        echo "Extracted values from price_history.json:"
+        echo "Location: $LOCATION"
+        echo "Pickup Date: $PICKUP_DATE"
+        echo "Dropoff Date: $DROPOFF_DATE"
+        echo "Focus Category: $FOCUS_CATEGORY"
 
+        # Create .env file with all required variables
         cat << EOF > .env
         CI=true
         CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-linux64/chrome
         CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
         USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
+        PICKUP_LOCATION=$LOCATION
+        PICKUP_DATE=$PICKUP_DATE
+        DROPOFF_DATE=$DROPOFF_DATE
+        FOCUS_CATEGORY=$FOCUS_CATEGORY
         SMTP_SERVER=${{ secrets.SMTP_SERVER }}
         SMTP_PORT=${{ secrets.SMTP_PORT }}
         SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
         SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}
         RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
         EOF
-
-    - name: Install jq
-      run: sudo apt-get install -y jq
-
-    - name: Verify environment and files
-      run: |
-        echo "Environment setup complete. Verifying files..."
-        ls -la
-        echo "price_history.json contents:"
-        cat price_history.json
-        echo "Environment variables (excluding secrets):"
+        
+        echo "Created .env file with required variables"
+        echo "Environment file contents (excluding secrets):"
         grep -v "PASSWORD" .env || true
 
     - name: Run price checker
