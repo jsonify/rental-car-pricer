@@ -1,0 +1,138 @@
+name: Test Email Configuration
+
+on:
+  workflow_dispatch:
+    inputs:
+      recipient_override:
+        description: 'Optional: Override recipient email for testing'
+        required: false
+        type: string
+
+jobs:
+  test-email:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install python-dotenv
+
+    - name: Create test script
+      run: |
+        cat > test_email.py << 'EOL'
+        import os
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from datetime import datetime
+
+        def test_smtp_connection():
+            """Test SMTP connection and send a test email"""
+            # Get configuration from environment
+            smtp_server = os.environ['SMTP_SERVER']
+            smtp_port = int(os.environ['SMTP_PORT'])
+            sender_email = os.environ['SENDER_EMAIL']
+            sender_password = os.environ['SENDER_PASSWORD']
+            recipient_email = os.environ.get('RECIPIENT_OVERRIDE') or os.environ['RECIPIENT_EMAIL']
+
+            print("\n📧 Email Configuration:")
+            print(f"SMTP Server: {smtp_server}")
+            print(f"SMTP Port: {smtp_port}")
+            print(f"Sender: {sender_email}")
+            print(f"Recipient: {recipient_email}")
+
+            try:
+                # Create message
+                msg = MIMEMultipart('alternative')
+                msg['Subject'] = f'Car Rental Price Tracker - Email Test ({datetime.now().strftime("%Y-%m-%d %H:%M:%S")})'
+                msg['From'] = sender_email
+                msg['To'] = recipient_email
+
+                # Create both plain text and HTML versions
+                text_content = f"""
+                This is a test email from the Car Rental Price Tracker.
+                
+                Configuration:
+                - SMTP Server: {smtp_server}
+                - SMTP Port: {smtp_port}
+                - Sender: {sender_email}
+                - Recipient: {recipient_email}
+                
+                If you received this email, your email configuration is working correctly!
+                
+                Time: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                """
+
+                html_content = f"""
+                <html>
+                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h1 style="color: #2563eb;">Car Rental Price Tracker</h1>
+                    <h2>Email Configuration Test</h2>
+                    
+                    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <p>This is a test email to verify your email configuration.</p>
+                        
+                        <h3>Configuration Details:</h3>
+                        <ul>
+                            <li><strong>SMTP Server:</strong> {smtp_server}</li>
+                            <li><strong>SMTP Port:</strong> {smtp_port}</li>
+                            <li><strong>Sender:</strong> {sender_email}</li>
+                            <li><strong>Recipient:</strong> {recipient_email}</li>
+                        </ul>
+                        
+                        <p style="color: #059669; font-weight: bold;">
+                            ✅ If you received this email, your configuration is working correctly!
+                        </p>
+                    </div>
+                    
+                    <div style="color: #6b7280; font-size: 0.875rem; margin-top: 20px;">
+                        Sent at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                    </div>
+                </body>
+                </html>
+                """
+
+                # Attach both versions
+                msg.attach(MIMEText(text_content, 'plain'))
+                msg.attach(MIMEText(html_content, 'html'))
+
+                print("\n🔄 Connecting to SMTP server...")
+                with smtplib.SMTP(smtp_server, smtp_port) as server:
+                    server.starttls()
+                    print("🔒 Starting TLS connection...")
+                    
+                    server.login(sender_email, sender_password)
+                    print("✅ Login successful")
+                    
+                    server.send_message(msg)
+                    print("📨 Test email sent successfully!")
+                    return True
+
+            except Exception as e:
+                print(f"\n❌ Error: {str(e)}")
+                raise
+
+        if __name__ == "__main__":
+            test_smtp_connection()
+        EOL
+
+    - name: Set up environment
+      run: |
+        echo "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" >> $GITHUB_ENV
+        echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> $GITHUB_ENV
+        echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> $GITHUB_ENV
+        echo "SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}" >> $GITHUB_ENV
+        echo "RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}" >> $GITHUB_ENV
+        if [ "${{ inputs.recipient_override }}" != "" ]; then
+          echo "RECIPIENT_OVERRIDE=${{ inputs.recipient_override }}" >> $GITHUB_ENV
+        fi
+
+    - name: Run email test
+      run: python test_email.py
