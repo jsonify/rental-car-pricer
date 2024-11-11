@@ -36,17 +36,10 @@ jobs:
 
     - name: Download and install ChromeDriver
       run: |
-        # Get the latest Chrome version from previous step
         LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
         echo "Installing ChromeDriver for Chrome version: $LATEST_VERSION"
-        
-        # Download matching ChromeDriver
         curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/linux64/chromedriver-linux64.zip" -o chromedriver.zip
-        
-        # Extract ChromeDriver
         unzip -q chromedriver.zip
-        
-        # Make executable and move to /usr/local/bin
         chmod +x chromedriver-linux64/chromedriver
         sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
 
@@ -54,13 +47,6 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libxss1 libasound2
-
-    - name: Verify installations
-      run: |
-        echo "Chrome version:"
-        $HOME/chrome-for-testing/chrome-linux64/chrome --version
-        echo "ChromeDriver version:"
-        chromedriver --version
 
     - name: Install Python dependencies
       run: |
@@ -72,45 +58,89 @@ jobs:
 
     - name: Set up environment
       run: |
-        echo "CI=true" >> $GITHUB_ENV
-        echo "CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-linux64/chrome" >> .env
-        echo "CHROMEDRIVER_PATH=/usr/local/bin/chromedriver" >> .env
-        echo "USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36" >> .env
-        echo "PICKUP_LOCATION=LIH" >> .env
-        echo "PICKUP_DATE=04/03/2025" >> .env
-        echo "DROPOFF_DATE=04/10/2025" >> .env
-        echo "FOCUS_CATEGORY=Economy Car" >> .env
-        echo "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" >> .env
-        echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
-        echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> .env
-        echo "SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}" >> .env
-        echo "RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}" >> .env
+        # First verify secrets exist
+        if [ -z "${{ secrets.SMTP_SERVER }}" ]; then
+          echo "❌ SMTP_SERVER secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.SMTP_PORT }}" ]; then
+          echo "❌ SMTP_PORT secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.SENDER_EMAIL }}" ]; then
+          echo "❌ SENDER_EMAIL secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.SENDER_PASSWORD }}" ]; then
+          echo "❌ SENDER_PASSWORD secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.RECIPIENT_EMAIL }}" ]; then
+          echo "❌ RECIPIENT_EMAIL secret is not set"
+          exit 1
+        fi
+
+        # Create .env file
+        cat << EOF > .env
+        CI=true
+        CHROME_BINARY_PATH=$HOME/chrome-for-testing/chrome-linux64/chrome
+        CHROMEDRIVER_PATH=/usr/local/bin/chromedriver
+        USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
+        PICKUP_LOCATION=LIH
+        PICKUP_DATE=04/03/2025
+        DROPOFF_DATE=04/10/2025
+        FOCUS_CATEGORY=Economy Car
+        SMTP_SERVER=${{ secrets.SMTP_SERVER }}
+        SMTP_PORT=${{ secrets.SMTP_PORT }}
+        SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
+        SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}
+        RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
+        EOF
 
     - name: Verify email configuration
       run: |
         python << 'EOL'
         import os
+        from dotenv import load_dotenv
         import smtplib
         from email.mime.text import MIMEText
 
         def verify_smtp():
+            # Load environment variables from .env file
+            load_dotenv()
+            
             print("\n📧 Verifying email configuration...")
+            
+            # Get and verify all required variables
+            required_vars = ['SMTP_SERVER', 'SMTP_PORT', 'SENDER_EMAIL', 'SENDER_PASSWORD', 'RECIPIENT_EMAIL']
+            for var in required_vars:
+                value = os.getenv(var)
+                if not value:
+                    raise ValueError(f"{var} is not set")
+                if var != 'SENDER_PASSWORD':  # Don't print the password
+                    print(f"{var}: {value}")
+
             smtp_server = os.getenv('SMTP_SERVER')
-            smtp_port = int(os.getenv('SMTP_PORT'))
+            smtp_port = int(os.getenv('SMTP_PORT'))  # Convert to int after verifying it exists
             sender_email = os.getenv('SENDER_EMAIL')
             sender_password = os.getenv('SENDER_PASSWORD')
             recipient_email = os.getenv('RECIPIENT_EMAIL')
 
-            print(f"SMTP Server: {smtp_server}")
-            print(f"SMTP Port: {smtp_port}")
-            print(f"Sender: {sender_email}")
-            print(f"Recipient: {recipient_email}")
-
             try:
+                print(f"\nConnecting to {smtp_server}:{smtp_port}...")
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     server.starttls()
+                    print("Starting TLS connection...")
                     server.login(sender_email, sender_password)
-                    print("✅ SMTP connection successful!")
+                    print("✅ SMTP login successful!")
+                    
+                    # Send a test message
+                    msg = MIMEText("SMTP Configuration test successful")
+                    msg['Subject'] = 'SMTP Test - Car Rental Price Tracker'
+                    msg['From'] = sender_email
+                    msg['To'] = recipient_email
+                    server.send_message(msg)
+                    print("✅ Test email sent successfully!")
                     return True
             except Exception as e:
                 print(f"❌ SMTP verification failed: {str(e)}")
@@ -121,12 +151,11 @@ jobs:
 
     - name: Run price checker
       run: |
-        # Add Chrome flags for running in CI environment
         export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
         python main.py
 
     - name: Save price history
-      if: success() || failure()  # Run even if price checker fails
+      if: success() || failure()
       uses: actions/upload-artifact@v3
       with:
         name: price-history-${{ github.run_id }}
@@ -134,7 +163,6 @@ jobs:
           price_history.json
           rental_prices.txt
           screenshots/*.png
-          .env  # Include for debugging, remove in production
 
     - name: Clean up sensitive files
       if: always()
