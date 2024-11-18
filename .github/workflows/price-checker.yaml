@@ -5,11 +5,11 @@ on:
     - cron: '0 14 * * 1'  # Run every Monday at 6 AM PST (14:00 UTC)
   workflow_dispatch:
     inputs:
-      holding_price:
-        description: 'Current holding price (e.g., 299.99)'
+      holding_prices:
+        description: 'JSON string of booking IDs and holding prices, e.g., {"LIH_04032025_04102025": "299.99", "KOA_05012025_05082025": "399.99"}'
         required: false
         type: string
-        default: ''
+        default: '{}'
 
 jobs:
   check-prices:
@@ -79,31 +79,65 @@ jobs:
     - name: Install jq
       run: sudo apt-get install -y jq
 
-    - name: Extract environment variables and update price history
-      id: vars
+    - name: List current bookings
+      id: list_bookings
       run: |
-        # Extract basic booking info
-        echo "LOCATION=$(jq -r '.bookings | to_entries | .[0].value.location' price_history.json)" >> $GITHUB_ENV
-        echo "PICKUP_DATE=$(jq -r '.bookings | to_entries | .[0].value.pickup_date' price_history.json)" >> $GITHUB_ENV
-        echo "DROPOFF_DATE=$(jq -r '.bookings | to_entries | .[0].value.dropoff_date' price_history.json)" >> $GITHUB_ENV
-        echo "FOCUS_CATEGORY=$(jq -r '.bookings | to_entries | .[0].value.focus_category' price_history.json)" >> $GITHUB_ENV
+        echo "Current bookings in price_history.json:"
+        jq -r '.bookings | to_entries[] | "\(.key): Location=\(.value.location), Dates=\(.value.pickup_date)-\(.value.dropoff_date), Current Holding Price=\(.value.holding_price)"' price_history.json
+
+    - name: Update holding prices
+      id: update_prices
+      run: |
+        if [ "${{ github.event.inputs.holding_prices }}" != "{}" ]; then
+          echo "Updating holding prices..."
+          
+          # Create a temporary Python script to update the JSON
+          cat << 'EOF' > update_prices.py
+        import json
+        import sys
         
-        # Update holding price if provided via workflow_dispatch
-        if [ "${{ github.event.inputs.holding_price }}" != "" ]; then
-          echo "Updating holding price to ${{ github.event.inputs.holding_price }}"
-          BOOKING_ID="${{ env.LOCATION }}_${{ env.PICKUP_DATE }}_${{ env.DROPOFF_DATE }}"
-          BOOKING_ID=$(echo $BOOKING_ID | sed 's/\///g')  # Remove forward slashes
+        # Load the current price history
+        with open('price_history.json', 'r') as f:
+            price_history = json.load(f)
+        
+        # Load the new holding prices
+        new_prices = json.loads(sys.argv[1])
+        
+        # Update each booking's holding price
+        updates_made = False
+        for booking_id, new_price in new_prices.items():
+            if booking_id in price_history['bookings']:
+                try:
+                    price_history['bookings'][booking_id]['holding_price'] = float(new_price)
+                    print(f"✅ Updated {booking_id} holding price to ${new_price}")
+                    updates_made = True
+                except ValueError:
+                    print(f"❌ Invalid price format for {booking_id}: {new_price}")
+            else:
+                print(f"❌ Booking ID not found: {booking_id}")
+        
+        if updates_made:
+            # Save the updated price history
+            with open('price_history.json', 'w') as f:
+                json.dump(price_history, f, indent=2)
+            print("\nUpdated price_history.json successfully")
+        EOF
+        
+          # Run the Python script with the holding prices JSON
+          python update_prices.py '${{ github.event.inputs.holding_prices }}'
           
-          # Create a temporary file with the updated JSON
-          jq --arg booking_id "$BOOKING_ID" \
-             --arg price "${{ github.event.inputs.holding_price }}" \
-             '.bookings[$booking_id].holding_price = ($price | tonumber)' \
-             price_history.json > temp.json && mv temp.json price_history.json
-          
-          echo "✅ Updated holding price in price_history.json"
-          echo "Updated booking details:"
-          jq ".bookings[\"$BOOKING_ID\"]" price_history.json
+          echo "Current bookings after updates:"
+          jq -r '.bookings | to_entries[] | "\(.key): Location=\(.value.location), Dates=\(.value.pickup_date)-\(.value.dropoff_date), Updated Holding Price=\(.value.holding_price)"' price_history.json
+        else
+          echo "No holding price updates provided"
         fi
+
+    - name: Extract environment variables
+      run: |
+        # Extract all booking locations to check
+        jq -r '.bookings | to_entries[] | .value.location' price_history.json > locations.txt
+        echo "Found the following locations to check:"
+        cat locations.txt
 
     - name: Set up environment file
       run: |
@@ -112,10 +146,6 @@ jobs:
         CHROME_BINARY_PATH=/opt/chrome/chrome-linux64/chrome
         CHROMEDRIVER_PATH=/usr/bin/chromedriver
         USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
-        PICKUP_LOCATION=${{ env.LOCATION }}
-        PICKUP_DATE=${{ env.PICKUP_DATE }}
-        DROPOFF_DATE=${{ env.DROPOFF_DATE }}
-        FOCUS_CATEGORY=${{ env.FOCUS_CATEGORY }}
         SMTP_SERVER=${{ secrets.SMTP_SERVER }}
         SMTP_PORT=${{ secrets.SMTP_PORT }}
         SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
@@ -132,10 +162,6 @@ jobs:
         CHROME_BINARY_PATH: /opt/chrome/chrome-linux64/chrome
         CHROMEDRIVER_PATH: /usr/bin/chromedriver
         USER_AGENT: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
-        PICKUP_LOCATION: ${{ env.LOCATION }}
-        PICKUP_DATE: ${{ env.PICKUP_DATE }}
-        DROPOFF_DATE: ${{ env.DROPOFF_DATE }}
-        FOCUS_CATEGORY: ${{ env.FOCUS_CATEGORY }}
         SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
         SMTP_PORT: ${{ secrets.SMTP_PORT }}
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
@@ -158,4 +184,4 @@ jobs:
 
     - name: Clean up sensitive files
       if: always()
-      run: rm -f .env
+      run: rm -f .env update_prices.py
