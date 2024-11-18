@@ -4,6 +4,7 @@ import time
 import random
 import traceback
 import os
+import argparse
 from datetime import datetime
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
@@ -357,15 +358,28 @@ def automated_mode():
     run_price_checks(tracker, active_bookings)
 
 def main():
-    """Main function that decides whether to run in interactive or automated mode"""
+    """Main function that handles command line arguments and execution mode"""
     try:
-        # Check if running in CI environment
+        # Set up argument parser
+        parser = argparse.ArgumentParser(description='Costco Travel Car Rental Price Tracker')
+        parser.add_argument('-i', '--interactive', 
+                          action='store_true',
+                          help='Run in interactive mode')
+        args = parser.parse_args()
+
+        # Check execution mode
         is_ci = os.environ.get('CI') == 'true'
         
-        if is_ci:
+        if args.interactive:
+            print("\n🔄 Running in interactive mode...")
+            interactive_mode()
+        elif is_ci:
+            print("\n🤖 Running in CI automated mode...")
             automated_mode()
         else:
-            interactive_mode()
+            print("\n🤖 Running in automated mode...")
+            print("Tip: Use -i or --interactive flag for interactive mode")
+            automated_mode()
             
     except KeyboardInterrupt:
         print("\n\n⚠️ Process interrupted by user")
