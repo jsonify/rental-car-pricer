@@ -5,11 +5,22 @@ on:
     - cron: '0 14 * * 1'  # Run every Monday at 6 AM PST (14:00 UTC)
   workflow_dispatch:
     inputs:
-      holding_prices:
-        description: 'JSON string of booking IDs and holding prices, e.g., {"LIH_04032025_04102025": "299.99", "KOA_05012025_05082025": "399.99"}'
+      update_holding_prices:
+        description: 'Do you want to update any holding prices?'
+        type: boolean
+        default: false
+      booking_1_price:
+        description: 'New holding price for Booking 1 (leave empty to keep current)'
         required: false
         type: string
-        default: '{}'
+      booking_2_price:
+        description: 'New holding price for Booking 2 (leave empty to keep current)'
+        required: false
+        type: string
+      booking_3_price:
+        description: 'New holding price for Booking 3 (leave empty to keep current)'
+        required: false
+        type: string
 
 jobs:
   check-prices:
@@ -68,69 +79,118 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libxss1 libasound2
 
-    - name: Install Python dependencies
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        sudo apt-get update
+        sudo apt-get install -y jq
 
     - name: Create screenshots directory
       run: mkdir -p screenshots
 
-    - name: Install jq
-      run: sudo apt-get install -y jq
-
-    - name: List current bookings
-      id: list_bookings
+    - name: Process bookings and holding prices
+      id: process_bookings
       run: |
-        echo "Current bookings in price_history.json:"
-        jq -r '.bookings | to_entries[] | "\(.key): Location=\(.value.location), Dates=\(.value.pickup_date)-\(.value.dropoff_date), Current Holding Price=\(.value.holding_price)"' price_history.json
+        # Create a Python script to handle the bookings and prices
+        cat << 'EOF' > process_bookings.py
+        import json
+        import os
+        
+        def format_price(price):
+            try:
+                return f"${float(price):.2f}"
+            except:
+                return "N/A"
+        
+        # Load current price history
+        with open('price_history.json', 'r') as f:
+            price_history = json.load(f)
+        
+        # Get all bookings
+        bookings = price_history.get('bookings', {})
+        
+        # Create a mapping file for booking IDs to input numbers
+        booking_map = {}
+        print("\n=== Current Bookings ===")
+        print("{:<5} {:<15} {:<20} {:<25} {:<15}".format(
+            "Num", "Location", "Dates", "Category", "Current Price"
+        ))
+        print("-" * 80)
+        
+        for i, (booking_id, booking) in enumerate(bookings.items(), 1):
+            booking_map[f"booking_{i}"] = booking_id
+            print("{:<5} {:<15} {:<20} {:<25} {:<15}".format(
+                f"[{i}]",
+                booking['location'],
+                f"{booking['pickup_date']} to {booking['dropoff_date']}",
+                booking['focus_category'],
+                format_price(booking.get('holding_price', 'N/A'))
+            ))
+        
+        # Save the mapping for other steps
+        with open('booking_map.json', 'w') as f:
+            json.dump(booking_map, f, indent=2)
+        
+        # Set output for GitHub Actions
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f"booking_count={len(bookings)}\n")
+        EOF
+        
+        # Run the Python script
+        python process_bookings.py
 
     - name: Update holding prices
-      id: update_prices
+      if: github.event.inputs.update_holding_prices == 'true'
       run: |
-        if [ "${{ github.event.inputs.holding_prices }}" != "{}" ]; then
-          echo "Updating holding prices..."
-          
-          # Create a temporary Python script to update the JSON
-          cat << 'EOF' > update_prices.py
+        # Create Python script to update prices
+        cat << 'EOF' > update_prices.py
         import json
-        import sys
+        import os
+        
+        # Load the booking map
+        with open('booking_map.json', 'r') as f:
+            booking_map = json.load(f)
         
         # Load the current price history
         with open('price_history.json', 'r') as f:
             price_history = json.load(f)
         
-        # Load the new holding prices
-        new_prices = json.loads(sys.argv[1])
-        
-        # Update each booking's holding price
+        # Process each booking input
         updates_made = False
-        for booking_id, new_price in new_prices.items():
-            if booking_id in price_history['bookings']:
+        for i in range(1, len(booking_map) + 1):
+            input_price = os.getenv(f'BOOKING_{i}_PRICE', '').strip()
+            if input_price:
+                booking_id = booking_map[f'booking_{i}']
                 try:
-                    price_history['bookings'][booking_id]['holding_price'] = float(new_price)
-                    print(f"✅ Updated {booking_id} holding price to ${new_price}")
+                    new_price = float(input_price)
+                    price_history['bookings'][booking_id]['holding_price'] = new_price
+                    print(f"✅ Updated Booking {i} ({booking_id}) holding price to ${new_price:.2f}")
                     updates_made = True
                 except ValueError:
-                    print(f"❌ Invalid price format for {booking_id}: {new_price}")
-            else:
-                print(f"❌ Booking ID not found: {booking_id}")
+                    print(f"❌ Invalid price format for Booking {i}: {input_price}")
         
         if updates_made:
             # Save the updated price history
             with open('price_history.json', 'w') as f:
                 json.dump(price_history, f, indent=2)
-            print("\nUpdated price_history.json successfully")
+            print("\nSuccessfully updated price_history.json")
+        else:
+            print("\nNo price updates were made")
         EOF
         
-          # Run the Python script with the holding prices JSON
-          python update_prices.py '${{ github.event.inputs.holding_prices }}'
-          
-          echo "Current bookings after updates:"
-          jq -r '.bookings | to_entries[] | "\(.key): Location=\(.value.location), Dates=\(.value.pickup_date)-\(.value.dropoff_date), Updated Holding Price=\(.value.holding_price)"' price_history.json
-        else
-          echo "No holding price updates provided"
-        fi
+        # Set environment variables for the prices
+        export BOOKING_1_PRICE="${{ github.event.inputs.booking_1_price }}"
+        export BOOKING_2_PRICE="${{ github.event.inputs.booking_2_price }}"
+        export BOOKING_3_PRICE="${{ github.event.inputs.booking_3_price }}"
+        
+        # Run the update script
+        python update_prices.py
+        
+        # Show updated prices
+        echo "\nCurrent booking prices after updates:"
+        jq -r '.bookings | to_entries[] | "\(.value.location) (\(.value.pickup_date) to \(.value.dropoff_date)): $\(.value.holding_price)"' price_history.json
+
 
     - name: Extract environment variables
       run: |
