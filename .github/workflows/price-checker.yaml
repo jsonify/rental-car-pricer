@@ -3,7 +3,13 @@ name: Car Rental Price Tracker
 on:
   schedule:
     - cron: '0 14 * * 1'  # Run every Monday at 6 AM PST (14:00 UTC)
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      holding_price:
+        description: 'Current holding price (e.g., 299.99)'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   check-prices:
@@ -73,13 +79,31 @@ jobs:
     - name: Install jq
       run: sudo apt-get install -y jq
 
-    - name: Extract environment variables
+    - name: Extract environment variables and update price history
       id: vars
       run: |
+        # Extract basic booking info
         echo "LOCATION=$(jq -r '.bookings | to_entries | .[0].value.location' price_history.json)" >> $GITHUB_ENV
         echo "PICKUP_DATE=$(jq -r '.bookings | to_entries | .[0].value.pickup_date' price_history.json)" >> $GITHUB_ENV
         echo "DROPOFF_DATE=$(jq -r '.bookings | to_entries | .[0].value.dropoff_date' price_history.json)" >> $GITHUB_ENV
         echo "FOCUS_CATEGORY=$(jq -r '.bookings | to_entries | .[0].value.focus_category' price_history.json)" >> $GITHUB_ENV
+        
+        # Update holding price if provided via workflow_dispatch
+        if [ "${{ github.event.inputs.holding_price }}" != "" ]; then
+          echo "Updating holding price to ${{ github.event.inputs.holding_price }}"
+          BOOKING_ID="${{ env.LOCATION }}_${{ env.PICKUP_DATE }}_${{ env.DROPOFF_DATE }}"
+          BOOKING_ID=$(echo $BOOKING_ID | sed 's/\///g')  # Remove forward slashes
+          
+          # Create a temporary file with the updated JSON
+          jq --arg booking_id "$BOOKING_ID" \
+             --arg price "${{ github.event.inputs.holding_price }}" \
+             '.bookings[$booking_id].holding_price = ($price | tonumber)' \
+             price_history.json > temp.json && mv temp.json price_history.json
+          
+          echo "✅ Updated holding price in price_history.json"
+          echo "Updated booking details:"
+          jq ".bookings[\"$BOOKING_ID\"]" price_history.json
+        fi
 
     - name: Set up environment file
       run: |
@@ -101,22 +125,6 @@ jobs:
         
         echo "Environment file created. Verifying contents (excluding secrets):"
         grep -v "PASSWORD" .env || true
-        
-        # Verify Chrome and ChromeDriver paths
-        echo "Verifying Chrome and ChromeDriver installations:"
-        ls -l /opt/chrome/chrome-linux64/chrome
-        ls -l /usr/bin/chromedriver
-
-    - name: Verify environment setup
-      run: |
-        echo "Verifying environment variables:"
-        echo "PICKUP_LOCATION: ${{ env.LOCATION }}"
-        echo "PICKUP_DATE: ${{ env.PICKUP_DATE }}"
-        echo "DROPOFF_DATE: ${{ env.DROPOFF_DATE }}"
-        echo "FOCUS_CATEGORY: ${{ env.FOCUS_CATEGORY }}"
-        
-        echo "Content of price_history.json:"
-        cat price_history.json
 
     - name: Run price checker
       env:
@@ -135,13 +143,6 @@ jobs:
         RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
       run: |
         echo "Starting price checker in automated mode..."
-        echo "Verifying paths before running:"
-        echo "CHROME_BINARY_PATH: $CHROME_BINARY_PATH"
-        echo "CHROMEDRIVER_PATH: $CHROMEDRIVER_PATH"
-        ls -l $CHROME_BINARY_PATH
-        ls -l $CHROMEDRIVER_PATH
-        
-        # Set Chrome options for headless execution
         export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
         python main.py
 
