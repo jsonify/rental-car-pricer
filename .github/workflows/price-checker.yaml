@@ -5,10 +5,49 @@ on:
     - cron: '0 14 * * 1'  # Run every Monday at 6 AM PST (14:00 UTC)
   workflow_dispatch:
     inputs:
-      update_holding_prices:
-        description: 'Do you want to update any holding prices?'
-        type: boolean
-        default: false
+      action:
+        description: 'Action to perform'
+        type: choice
+        options:
+          - check-prices
+          - add-booking
+          - update-holding-prices
+        required: true
+        default: 'check-prices'
+      # Add booking inputs
+      new_booking_location:
+        description: 'Airport code (e.g., KOA) - Required for add-booking'
+        required: false
+        type: string
+      new_booking_pickup_date:
+        description: 'Pickup date (MM/DD/YYYY) - Required for add-booking'
+        required: false
+        type: string
+      new_booking_dropoff_date:
+        description: 'Dropoff date (MM/DD/YYYY) - Required for add-booking'
+        required: false
+        type: string
+      new_booking_category:
+        description: 'Vehicle category - Required for add-booking'
+        type: choice
+        required: false
+        options:
+          - Economy Car
+          - Compact Car
+          - Mid-size Car
+          - Full-size Car
+          - Premium Car
+          - Luxury Car
+          - Compact SUV
+          - Standard SUV
+          - Full-size SUV
+          - Premium SUV
+          - Minivan
+      new_booking_holding_price:
+        description: 'Initial holding price (optional)'
+        required: false
+        type: string
+      # Holding price update inputs
       booking_1_price:
         description: 'New holding price for Booking 1 (leave empty to keep current)'
         required: false
@@ -23,7 +62,7 @@ on:
         type: string
 
 jobs:
-  check-prices:
+  manage-bookings:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -89,6 +128,105 @@ jobs:
     - name: Create screenshots directory
       run: mkdir -p screenshots
 
+    - name: Add new booking
+      if: github.event.inputs.action == 'add-booking'
+      run: |
+        # Create Python script to add new booking
+        cat << 'EOF' > add_booking.py
+        import json
+        import os
+        from datetime import datetime
+
+        def validate_date(date_str):
+            try:
+                return bool(datetime.strptime(date_str, "%m/%d/%Y"))
+            except ValueError:
+                return False
+
+        def add_booking(location, pickup_date, dropoff_date, category, holding_price=None):
+            # Load existing price history
+            try:
+                with open('price_history.json', 'r') as f:
+                    price_history = json.load(f)
+            except FileNotFoundError:
+                price_history = {
+                    "metadata": {
+                        "last_updated": datetime.now().isoformat(),
+                        "active_bookings": []
+                    },
+                    "bookings": {}
+                }
+
+            # Validate inputs
+            if not location or len(location) != 3 or not location.isalpha():
+                raise ValueError("Invalid airport code")
+            if not validate_date(pickup_date) or not validate_date(dropoff_date):
+                raise ValueError("Invalid date format")
+
+            # Generate booking ID
+            booking_id = f"{location}_{pickup_date}_{dropoff_date}".replace("/", "")
+
+            # Create new booking
+            new_booking = {
+                "location": location,
+                "location_full_name": f"{location} Airport",
+                "pickup_date": pickup_date,
+                "dropoff_date": dropoff_date,
+                "pickup_time": "12:00 PM",
+                "dropoff_time": "12:00 PM",
+                "focus_category": category,
+                "price_history": [],
+                "created_at": datetime.now().isoformat()
+            }
+
+            # Add holding price if provided
+            if holding_price:
+                try:
+                    new_booking["holding_price"] = float(holding_price)
+                except ValueError:
+                    print(f"Warning: Invalid holding price format: {holding_price}")
+
+            # Add to price history
+            price_history["bookings"][booking_id] = new_booking
+            if booking_id not in price_history["metadata"]["active_bookings"]:
+                price_history["metadata"]["active_bookings"].append(booking_id)
+
+            # Save updated price history
+            with open('price_history.json', 'w') as f:
+                json.dump(price_history, f, indent=2)
+
+            return booking_id
+
+        # Get inputs from environment variables
+        location = os.environ.get('NEW_BOOKING_LOCATION', '').strip().upper()
+        pickup_date = os.environ.get('NEW_BOOKING_PICKUP_DATE', '').strip()
+        dropoff_date = os.environ.get('NEW_BOOKING_DROPOFF_DATE', '').strip()
+        category = os.environ.get('NEW_BOOKING_CATEGORY', '').strip()
+        holding_price = os.environ.get('NEW_BOOKING_HOLDING_PRICE', '').strip()
+
+        try:
+            booking_id = add_booking(location, pickup_date, dropoff_date, category, holding_price)
+            print(f"✅ Successfully added new booking: {booking_id}")
+            print("\nBooking details:")
+            print(f"Location: {location}")
+            print(f"Dates: {pickup_date} to {dropoff_date}")
+            print(f"Category: {category}")
+            if holding_price:
+                print(f"Holding price: ${float(holding_price):.2f}")
+        except Exception as e:
+            print(f"❌ Error adding booking: {str(e)}")
+            exit(1)
+        EOF
+
+        # Set environment variables and run the script
+        export NEW_BOOKING_LOCATION="${{ github.event.inputs.new_booking_location }}"
+        export NEW_BOOKING_PICKUP_DATE="${{ github.event.inputs.new_booking_pickup_date }}"
+        export NEW_BOOKING_DROPOFF_DATE="${{ github.event.inputs.new_booking_dropoff_date }}"
+        export NEW_BOOKING_CATEGORY="${{ github.event.inputs.new_booking_category }}"
+        export NEW_BOOKING_HOLDING_PRICE="${{ github.event.inputs.new_booking_holding_price }}"
+
+        python add_booking.py
+
     - name: Process bookings and holding prices
       id: process_bookings
       run: |
@@ -152,7 +290,7 @@ jobs:
         python process_bookings.py
 
     - name: Update holding prices
-      if: github.event.inputs.update_holding_prices == 'true'
+      if: github.event.inputs.action == 'update-holding-prices'
       run: |
         # Create Python script to update prices
         cat << 'EOF' > update_prices.py
@@ -203,6 +341,7 @@ jobs:
         jq -r '.bookings | to_entries[] | "\(.value.location) (\(.value.pickup_date) to \(.value.dropoff_date)): $\(.value.holding_price)"' price_history.json
 
     - name: Run price checker
+      if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
       env:
         CI: true
         CHROME_BINARY_PATH: /opt/chrome/chrome-linux64/chrome
@@ -243,6 +382,12 @@ jobs:
         export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
         python main.py
 
+    - name: Show current bookings
+      if: success()
+      run: |
+        echo "Current bookings in price_history.json:"
+        jq -r '.bookings | to_entries[] | "\(.value.location) (\(.value.pickup_date) to \(.value.dropoff_date)): \(.value.focus_category)"' price_history.json
+
     - name: Save price history
       if: success() || failure()
       uses: actions/upload-artifact@v3
@@ -253,6 +398,15 @@ jobs:
           rental_prices.txt
           screenshots/*.png
 
+    - name: Push changes if booking added or prices updated
+      if: (github.event.inputs.action == 'add-booking' || github.event.inputs.action == 'update-holding-prices') && success()
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+        git add price_history.json
+        git commit -m "Update price history via workflow dispatch: ${{ github.event.inputs.action }}"
+        git push
+
     - name: Clean up sensitive files
       if: always()
       run: |
@@ -260,3 +414,4 @@ jobs:
         rm -f update_prices.py
         rm -f process_bookings.py
         rm -f booking_map.json
+        rm -f add_booking.py

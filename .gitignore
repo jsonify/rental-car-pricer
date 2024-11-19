@@ -30,6 +30,7 @@ final_results.png
 
 # Data Files
 rental_prices.txt
+price_history.backup*
 historical_data/
 data/
 *.csv
