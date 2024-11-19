@@ -3,7 +3,8 @@
     "last_updated": "2024-11-18T17:02:14.006671",
     "active_bookings": [
       "LIH_04032025_04102025",
-      "KOA_04102025_04142025"
+      "KOA_04102025_04142025",
+      "SAN_11272024_11282024"
     ]
   },
   "bookings": {
@@ -150,6 +151,18 @@
       ],
       "created_at": "2024-11-10T00:12:09.308258",
       "holding_price": 266.6
+    },
+    "SAN_11272024_11282024": {
+      "location": "SAN",
+      "location_full_name": "SAN Airport",
+      "pickup_date": "11/27/2024",
+      "dropoff_date": "11/28/2024",
+      "pickup_time": "12:00 PM",
+      "dropoff_time": "12:00 PM",
+      "focus_category": "Full-size Car",
+      "price_history": [],
+      "created_at": "2024-11-19T15:41:02.494189",
+      "holding_price": 80.18
     }
   }
 }
