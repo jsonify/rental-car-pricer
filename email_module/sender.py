@@ -1,4 +1,3 @@
-# email_module/sender.py
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -8,8 +7,14 @@ import traceback
 import ssl
 import os
 from dotenv import load_dotenv
-from .templates.formatters import format_email_body_text
-from .templates.html_template import format_email_body_html
+
+# Import email formatting functions
+try:
+    from templates.formatters import format_email_body_text
+    from templates.html_template import format_email_body_html
+except ImportError:
+    from .templates.formatters import format_email_body_text
+    from .templates.html_template import format_email_body_html
 
 # Load environment variables
 load_dotenv()
