@@ -79,7 +79,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libxss1 libasound2
 
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
@@ -131,6 +131,23 @@ jobs:
         # Save the mapping for other steps
         with open('booking_map.json', 'w') as f:
             json.dump(booking_map, f, indent=2)
+        
+        # Write first booking details to env file for compatibility
+        if bookings:
+            first_booking = next(iter(bookings.values()))
+            with open('.env', 'w') as f:
+                f.write(f"""
+                    CI=true
+                    CHROME_BINARY_PATH=/opt/chrome/chrome-linux64/chrome
+                    CHROMEDRIVER_PATH=/usr/bin/chromedriver
+                    USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
+                    PICKUP_LOCATION={first_booking['location']}
+                    PICKUP_DATE={first_booking['pickup_date']}
+                    DROPOFF_DATE={first_booking['dropoff_date']}
+                    FOCUS_CATEGORY={first_booking['focus_category']}
+                    PICKUP_TIME={first_booking.get('pickup_time', '12:00 PM')}
+                    DROPOFF_TIME={first_booking.get('dropoff_time', '12:00 PM')}
+                """.strip())
         
         # Set output for GitHub Actions
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -191,56 +208,6 @@ jobs:
         echo "\nCurrent booking prices after updates:"
         jq -r '.bookings | to_entries[] | "\(.value.location) (\(.value.pickup_date) to \(.value.dropoff_date)): $\(.value.holding_price)"' price_history.json
 
-    - name: Extract environment variables and setup env file
-      run: |
-        # Create Python script to extract variables from first booking
-        cat << 'EOF' > setup_env.py
-        import json
-        
-        # Load price history
-        with open('price_history.json', 'r') as f:
-            data = json.load(f)
-        
-        # Get first booking (for backward compatibility)
-        first_booking = next(iter(data['bookings'].values()))
-        
-        # Create env file content
-        env_content = f"""
-        CI=true
-        CHROME_BINARY_PATH=/opt/chrome/chrome-linux64/chrome
-        CHROMEDRIVER_PATH=/usr/bin/chromedriver
-        USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
-        
-        # Booking details
-        PICKUP_LOCATION={first_booking['location']}
-        PICKUP_DATE={first_booking['pickup_date']}
-        DROPOFF_DATE={first_booking['dropoff_date']}
-        PICKUP_TIME={first_booking.get('pickup_time', '12:00 PM')}
-        DROPOFF_TIME={first_booking.get('dropoff_time', '12:00 PM')}
-        FOCUS_CATEGORY={first_booking['focus_category']}
-        
-        # Email settings
-        SMTP_SERVER=${{ secrets.SMTP_SERVER }}
-        SMTP_PORT=${{ secrets.SMTP_PORT }}
-        SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
-        SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}
-        RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
-        """
-        
-        # Write to .env file
-        with open('.env', 'w') as f:
-            f.write(env_content.strip())
-        
-        # Print verification (excluding secrets)
-        print("\nEnvironment variables set:")
-        for line in env_content.strip().split('\n'):
-            if not any(secret in line.lower() for secret in ['password', 'secret']):
-                print(line)
-        EOF
-        
-        # Run the script to create .env file
-        python setup_env.py
-
     - name: Run price checker
       env:
         CI: true
@@ -252,8 +219,19 @@ jobs:
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
         SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
         RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        FOCUS_CATEGORY: ${{ env.FOCUS_CATEGORY }}
+        PICKUP_LOCATION: ${{ env.PICKUP_LOCATION }}
+        PICKUP_DATE: ${{ env.PICKUP_DATE }}
+        DROPOFF_DATE: ${{ env.DROPOFF_DATE }}
+        PICKUP_TIME: ${{ env.PICKUP_TIME }}
+        DROPOFF_TIME: ${{ env.DROPOFF_TIME }}
       run: |
         echo "Starting price checker in automated mode..."
+        echo "Environment variables:"
+        echo "FOCUS_CATEGORY: $FOCUS_CATEGORY"
+        echo "PICKUP_LOCATION: $PICKUP_LOCATION"
+        echo "PICKUP_DATE: $PICKUP_DATE"
+        echo "DROPOFF_DATE: $DROPOFF_DATE"
         export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
         python main.py
 
@@ -269,4 +247,8 @@ jobs:
 
     - name: Clean up sensitive files
       if: always()
-      run: rm -f .env update_prices.py
+      run: |
+        rm -f .env
+        rm -f update_prices.py
+        rm -f process_bookings.py
+        rm -f booking_map.json
