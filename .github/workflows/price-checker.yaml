@@ -400,9 +400,12 @@ jobs:
 
     - name: Push changes if booking added or prices updated
       if: (github.event.inputs.action == 'add-booking' || github.event.inputs.action == 'update-holding-prices') && success()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
       run: |
         git config --global user.name "GitHub Actions Bot"
         git config --global user.email "actions@github.com"
+        git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
         git add price_history.json
         git commit -m "Update price history via workflow dispatch: ${{ github.event.inputs.action }}"
         git push
