@@ -1,8 +1,8 @@
 # booking_tracker.py
 
+from datetime import datetime
 import json
 import os
-from datetime import datetime
 from typing import Dict, List, Optional
 
 class BookingTracker:
@@ -77,7 +77,7 @@ class BookingTracker:
             "pickup_time": pickup_time,
             "dropoff_time": dropoff_time,
             "focus_category": focus_category,
-            "holding_price": holding_price,  # Add holding price
+            "holding_price": holding_price,
             "price_history": [],
             "created_at": datetime.now().isoformat()
         }
@@ -87,6 +87,57 @@ class BookingTracker:
         
         self.save_bookings()
         return booking_id
+
+    def delete_booking(self, booking_id: str) -> bool:
+        """Delete a specific booking by ID"""
+        if booking_id not in self.bookings["bookings"]:
+            raise ValueError(f"Booking {booking_id} not found")
+            
+        # Remove from active bookings
+        if booking_id in self.bookings["metadata"]["active_bookings"]:
+            self.bookings["metadata"]["active_bookings"].remove(booking_id)
+        
+        # Remove booking data
+        del self.bookings["bookings"][booking_id]
+        self.save_bookings()
+        return True
+
+    def cleanup_expired_bookings(self) -> List[str]:
+        """Remove bookings whose dropoff date has passed"""
+        current_date = datetime.now()
+        deleted_bookings = []
+        
+        for booking_id, booking in list(self.bookings["bookings"].items()):
+            dropoff_date = datetime.strptime(booking["dropoff_date"], "%m/%d/%Y")
+            if dropoff_date < current_date:
+                self.delete_booking(booking_id)
+                deleted_bookings.append(booking_id)
+        
+        return deleted_bookings
+
+    def get_booking_choice(self) -> str:
+        """Interactive prompt for selecting a booking to delete"""
+        active_bookings = self.get_active_bookings()
+        
+        if not active_bookings:
+            raise ValueError("No active bookings found")
+        
+        print("\n📋 Select booking to delete:")
+        for i, booking in enumerate(active_bookings, 1):
+            print(f"\n{i}. 📍 {booking['location']}")
+            print(f"   📅 {booking['pickup_date']} - {booking['dropoff_date']}")
+            print(f"   🎯 Focus: {booking['focus_category']}")
+        
+        while True:
+            try:
+                choice = int(input("\nEnter booking number: ").strip())
+                if 1 <= choice <= len(active_bookings):
+                    booking = active_bookings[choice - 1]
+                    booking_id = f"{booking['location']}_{booking['pickup_date']}_{booking['dropoff_date']}".replace("/", "")
+                    return booking_id
+            except ValueError:
+                pass
+            print(f"❌ Please enter a number between 1 and {len(active_bookings)}")
 
     def update_holding_price(self, booking_id: str, holding_price: float):
         """Update the holding price for a booking"""
@@ -145,7 +196,7 @@ class BookingTracker:
             "focus_category": {
                 "current": latest_prices.get(focus_category),
                 "previous_price": previous_price,
-                "holding_price": holding_price,  # Add holding price to trends
+                "holding_price": holding_price,
                 "lowest": float('inf'),
                 "highest": float('-inf'),
                 "average": 0,

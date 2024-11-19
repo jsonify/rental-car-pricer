@@ -11,7 +11,7 @@ from config import (
     LOG_FILE
 )
 
-def setup_driver():
+def setup_driver(headless=False):
     """Configure and return a Chrome WebDriver with stealth settings"""
     chrome_options = Options()
     chrome_options.binary_location = CHROME_BINARY_PATH
@@ -25,8 +25,8 @@ def setup_driver():
     chrome_options.add_experimental_option('useAutomationExtension', False)
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     
-    # CI-specific settings
-    if is_ci:
+    # Headless mode for CI or when requested
+    if is_ci or headless:
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')

@@ -251,7 +251,13 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
 
 def run_price_checks(tracker, active_bookings):
     """Run price checks for all active bookings"""
-    driver = setup_driver()
+    driver = setup_driver(headless=True)
+    # Clean up expired bookings
+    deleted_bookings = tracker.cleanup_expired_bookings()
+    if deleted_bookings:
+        print("\n🧹 Cleaned up expired bookings:")
+        for booking_id in deleted_bookings:
+            print(f"  - {booking_id}")
     try:
         bookings_data = []
         
@@ -320,8 +326,9 @@ def interactive_mode():
     print("\n🔄 Choose an action:")
     print("1. Track current bookings")
     print("2. Add a new booking")
-    print("3. Update holding prices")
-    print("4. Exit")
+    print("3. Delete a booking")  # Add to menu options
+    print("4. Update holding prices")
+    print("5. Exit")
     
     choice = input("\nChoice (default: 1): ").strip() or "1"
     
@@ -331,9 +338,17 @@ def interactive_mode():
         print(f"\n✅ Added new booking: {new_booking['location']}")
         active_bookings = tracker.get_active_bookings()
     elif choice == "3":
-        tracker.prompt_for_holding_prices()
+        try:
+            booking_id = tracker.get_booking_choice()
+            if tracker.delete_booking(booking_id):
+                print(f"\n✅ Booking deleted successfully")
+        except ValueError as e:
+            print(f"\n❌ Error: {str(e)}")
         return
     elif choice == "4":
+        tracker.prompt_for_holding_prices()
+        return
+    elif choice == "5":
         print("\n👋 Goodbye!")
         return
     

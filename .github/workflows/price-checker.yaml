@@ -12,6 +12,7 @@ on:
           - check-prices
           - add-booking
           - update-holding-prices
+          - delete-booking 
         required: true
         default: 'check-prices'
       # Add booking inputs
@@ -58,6 +59,10 @@ on:
         type: string
       booking_3_price:
         description: 'New holding price for Booking 3 (leave empty to keep current)'
+        required: false
+        type: string
+      booking_to_delete:
+        description: 'Booking number to delete (1-3)'
         required: false
         type: string
 
@@ -387,7 +392,52 @@ jobs:
       run: |
         echo "Current bookings in price_history.json:"
         jq -r '.bookings | to_entries[] | "\(.value.location) (\(.value.pickup_date) to \(.value.dropoff_date)): \(.value.focus_category)"' price_history.json
-
+    - name: Delete booking
+      if: github.event.inputs.action == 'delete-booking'
+      run: |
+        # Create Python script to delete booking
+        cat << 'EOF' > delete_booking.py
+        import json
+        import os
+        
+        # Load the booking map
+        with open('booking_map.json', 'r') as f:
+            booking_map = json.load(f)
+        
+        # Load current price history
+        with open('price_history.json', 'r') as f:
+            price_history = json.load(f)
+        
+        booking_num = os.environ.get('BOOKING_TO_DELETE', '').strip()
+        if not booking_num:
+            print("❌ No booking number provided")
+            exit(1)
+        
+        booking_key = f'booking_{booking_num}'
+        if booking_key not in booking_map:
+            print(f"❌ Invalid booking number: {booking_num}")
+            exit(1)
+        
+        booking_id = booking_map[booking_key]
+        
+        # Delete booking
+        if booking_id in price_history['metadata']['active_bookings']:
+            price_history['metadata']['active_bookings'].remove(booking_id)
+        
+        if booking_id in price_history['bookings']:
+            del price_history['bookings'][booking_id]
+            
+            # Save updated price history
+            with open('price_history.json', 'w') as f:
+                json.dump(price_history, f, indent=2)
+            print(f"✅ Successfully deleted booking {booking_num}")
+        else:
+            print(f"❌ Booking {booking_id} not found")
+            exit(1)
+        EOF
+        
+        export BOOKING_TO_DELETE="${{ github.event.inputs.booking_to_delete }}"
+        python delete_booking.py
     - name: Save price history
       if: success() || failure()
       uses: actions/upload-artifact@v3

@@ -71,7 +71,8 @@ def format_email_body_text(bookings_data: List[Dict]) -> str:
         lines.append(f"📅 {booking['pickup_date']} to {booking['dropoff_date']}")
         lines.append(f"⏰ {booking['pickup_time']} - {booking['dropoff_time']}")
         
-        if 'holding_price' in booking:
+        # Only add holding price if it exists and is not None
+        if booking.get('holding_price') is not None:
             lines.append(f"💰 Holding price: ${booking['holding_price']:.2f}")
         
         lines.append("-" * 50)
