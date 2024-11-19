@@ -15,21 +15,20 @@ on:
           - delete-booking 
         required: true
         default: 'check-prices'
-      # Add booking inputs
       new_booking_location:
-        description: 'Airport code (e.g., KOA) - Required for add-booking'
+        description: 'Airport code (e.g., KOA)'
         required: false
         type: string
       new_booking_pickup_date:
-        description: 'Pickup date (MM/DD/YYYY) - Required for add-booking'
+        description: 'Pickup date (MM/DD/YYYY)'
         required: false
         type: string
       new_booking_dropoff_date:
-        description: 'Dropoff date (MM/DD/YYYY) - Required for add-booking'
+        description: 'Dropoff date (MM/DD/YYYY)'
         required: false
         type: string
       new_booking_category:
-        description: 'Vehicle category - Required for add-booking'
+        description: 'Vehicle category'
         type: choice
         required: false
         options:
@@ -48,17 +47,16 @@ on:
         description: 'Initial holding price (optional)'
         required: false
         type: string
-      # Holding price update inputs
       booking_1_price:
-        description: 'New holding price for Booking 1 (leave empty to keep current)'
+        description: 'New holding price for Booking 1'
         required: false
         type: string
       booking_2_price:
-        description: 'New holding price for Booking 2 (leave empty to keep current)'
+        description: 'New holding price for Booking 2'
         required: false
         type: string
       booking_3_price:
-        description: 'New holding price for Booking 3 (leave empty to keep current)'
+        description: 'New holding price for Booking 3'
         required: false
         type: string
       booking_to_delete:
@@ -71,6 +69,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -78,7 +79,14 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
 
-    - name: Download and install Chrome for Testing
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install python-dotenv selenium webdriver_manager
+
+    - name: Setup Chrome and ChromeDriver
+      if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
       run: |
         # Create Chrome directory
         sudo mkdir -p /opt/chrome
@@ -89,58 +97,40 @@ jobs:
         
         # Download Chrome for Testing
         curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/linux64/chrome-linux64.zip" -o chrome.zip
-        
-        # Extract Chrome to /opt/chrome
         sudo unzip -q chrome.zip -d /opt/chrome/
-        
-        # Make executable and create symlink
         sudo chmod +x /opt/chrome/chrome-linux64/chrome
         sudo ln -sf /opt/chrome/chrome-linux64/chrome /usr/bin/chrome
         
-        # Verify installation
-        echo "Chrome binary location:"
-        ls -l /opt/chrome/chrome-linux64/chrome
-        echo "Chrome version:"
-        /opt/chrome/chrome-linux64/chrome --version
-
-    - name: Download and install ChromeDriver
-      run: |
-        LATEST_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE)
-        echo "Installing ChromeDriver for Chrome version: $LATEST_VERSION"
+        # Download ChromeDriver
         curl -L "https://storage.googleapis.com/chrome-for-testing-public/${LATEST_VERSION}/linux64/chromedriver-linux64.zip" -o chromedriver.zip
         unzip -q chromedriver.zip
         sudo chmod +x chromedriver-linux64/chromedriver
         sudo mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
         
-        # Verify installation
-        echo "ChromeDriver location:"
-        which chromedriver
-        echo "ChromeDriver version:"
-        chromedriver --version
-
-    - name: Install Chrome dependencies
-      run: |
+        # Install Chrome dependencies
         sudo apt-get update
         sudo apt-get install -y libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libxss1 libasound2
-
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        sudo apt-get update
-        sudo apt-get install -y jq
-
-    - name: Create screenshots directory
-      run: mkdir -p screenshots
+        
+        # Verify installations
+        echo "Chrome version:"
+        /usr/bin/chrome --version
+        echo "ChromeDriver version:"
+        /usr/bin/chromedriver --version
 
     - name: Add new booking
       if: github.event.inputs.action == 'add-booking'
+      env:
+        NEW_BOOKING_LOCATION: ${{ github.event.inputs.new_booking_location }}
+        NEW_BOOKING_PICKUP_DATE: ${{ github.event.inputs.new_booking_pickup_date }}
+        NEW_BOOKING_DROPOFF_DATE: ${{ github.event.inputs.new_booking_dropoff_date }}
+        NEW_BOOKING_CATEGORY: ${{ github.event.inputs.new_booking_category }}
+        NEW_BOOKING_HOLDING_PRICE: ${{ github.event.inputs.new_booking_holding_price }}
       run: |
-        # Create Python script to add new booking
-        cat << 'EOF' > add_booking.py
+        python - <<EOF
         import json
         import os
         from datetime import datetime
+        import sys
 
         def validate_date(date_str):
             try:
@@ -148,12 +138,45 @@ jobs:
             except ValueError:
                 return False
 
-        def add_booking(location, pickup_date, dropoff_date, category, holding_price=None):
-            # Load existing price history
+        def add_booking():
+            # Get environment variables
+            location = os.environ.get('NEW_BOOKING_LOCATION', '').strip().upper()
+            pickup_date = os.environ.get('NEW_BOOKING_PICKUP_DATE', '').strip()
+            dropoff_date = os.environ.get('NEW_BOOKING_DROPOFF_DATE', '').strip()
+            category = os.environ.get('NEW_BOOKING_CATEGORY', '').strip()
+            holding_price = os.environ.get('NEW_BOOKING_HOLDING_PRICE', '').strip()
+
+            print(f"Adding new booking with parameters:")
+            print(f"Location: {location}")
+            print(f"Pickup: {pickup_date}")
+            print(f"Dropoff: {dropoff_date}")
+            print(f"Category: {category}")
+            print(f"Holding Price: {holding_price}")
+
+            # Validate inputs
+            if not location or len(location) != 3 or not location.isalpha():
+                print(f"❌ Invalid airport code: {location}")
+                return False
+                
+            if not validate_date(pickup_date):
+                print(f"❌ Invalid pickup date: {pickup_date}")
+                return False
+                
+            if not validate_date(dropoff_date):
+                print(f"❌ Invalid dropoff date: {dropoff_date}")
+                return False
+
+            if not category:
+                print("❌ Category is required")
+                return False
+
+            # Load or create price history
             try:
                 with open('price_history.json', 'r') as f:
                     price_history = json.load(f)
+                    print("Successfully loaded existing price_history.json")
             except FileNotFoundError:
+                print("Creating new price_history.json")
                 price_history = {
                     "metadata": {
                         "last_updated": datetime.now().isoformat(),
@@ -162,13 +185,7 @@ jobs:
                     "bookings": {}
                 }
 
-            # Validate inputs
-            if not location or len(location) != 3 or not location.isalpha():
-                raise ValueError("Invalid airport code")
-            if not validate_date(pickup_date) or not validate_date(dropoff_date):
-                raise ValueError("Invalid date format")
-
-            # Generate booking ID
+            # Create booking ID
             booking_id = f"{location}_{pickup_date}_{dropoff_date}".replace("/", "")
 
             # Create new booking
@@ -184,7 +201,6 @@ jobs:
                 "created_at": datetime.now().isoformat()
             }
 
-            # Add holding price if provided
             if holding_price:
                 try:
                     new_booking["holding_price"] = float(holding_price)
@@ -193,163 +209,93 @@ jobs:
 
             # Add to price history
             price_history["bookings"][booking_id] = new_booking
+            if "active_bookings" not in price_history["metadata"]:
+                price_history["metadata"]["active_bookings"] = []
             if booking_id not in price_history["metadata"]["active_bookings"]:
                 price_history["metadata"]["active_bookings"].append(booking_id)
 
             # Save updated price history
-            with open('price_history.json', 'w') as f:
-                json.dump(price_history, f, indent=2)
+            try:
+                with open('price_history.json', 'w') as f:
+                    json.dump(price_history, f, indent=2)
+                print("Successfully saved updated price_history.json")
+            except Exception as e:
+                print(f"❌ Error saving price_history.json: {str(e)}")
+                return False
 
-            return booking_id
-
-        # Get inputs from environment variables
-        location = os.environ.get('NEW_BOOKING_LOCATION', '').strip().upper()
-        pickup_date = os.environ.get('NEW_BOOKING_PICKUP_DATE', '').strip()
-        dropoff_date = os.environ.get('NEW_BOOKING_DROPOFF_DATE', '').strip()
-        category = os.environ.get('NEW_BOOKING_CATEGORY', '').strip()
-        holding_price = os.environ.get('NEW_BOOKING_HOLDING_PRICE', '').strip()
-
-        try:
-            booking_id = add_booking(location, pickup_date, dropoff_date, category, holding_price)
             print(f"✅ Successfully added new booking: {booking_id}")
-            print("\nBooking details:")
             print(f"Location: {location}")
             print(f"Dates: {pickup_date} to {dropoff_date}")
             print(f"Category: {category}")
             if holding_price:
                 print(f"Holding price: ${float(holding_price):.2f}")
-        except Exception as e:
-            print(f"❌ Error adding booking: {str(e)}")
-            exit(1)
+            return True
+
+        if not add_booking():
+            sys.exit(1)
         EOF
-
-        # Set environment variables and run the script
-        export NEW_BOOKING_LOCATION="${{ github.event.inputs.new_booking_location }}"
-        export NEW_BOOKING_PICKUP_DATE="${{ github.event.inputs.new_booking_pickup_date }}"
-        export NEW_BOOKING_DROPOFF_DATE="${{ github.event.inputs.new_booking_dropoff_date }}"
-        export NEW_BOOKING_CATEGORY="${{ github.event.inputs.new_booking_category }}"
-        export NEW_BOOKING_HOLDING_PRICE="${{ github.event.inputs.new_booking_holding_price }}"
-
-        python add_booking.py
-
-    - name: Process bookings and holding prices
-      id: process_bookings
-      run: |
-        # Create a Python script to handle the bookings and prices
-        cat << 'EOF' > process_bookings.py
-        import json
-        import os
-        
-        def format_price(price):
-            try:
-                return f"${float(price):.2f}"
-            except:
-                return "N/A"
-        
-        # Load current price history
-        with open('price_history.json', 'r') as f:
-            price_history = json.load(f)
-        
-        # Get all bookings
-        bookings = price_history.get('bookings', {})
-        
-        # Create a mapping file for booking IDs to input numbers
-        booking_map = {}
-        print("\n=== Current Bookings ===")
-        print("{:<5} {:<15} {:<20} {:<25} {:<15}".format(
-            "Num", "Location", "Dates", "Category", "Current Price"
-        ))
-        print("-" * 80)
-        
-        for i, (booking_id, booking) in enumerate(bookings.items(), 1):
-            booking_map[f"booking_{i}"] = booking_id
-            print("{:<5} {:<15} {:<20} {:<25} {:<15}".format(
-                f"[{i}]",
-                booking['location'],
-                f"{booking['pickup_date']} to {booking['dropoff_date']}",
-                booking['focus_category'],
-                format_price(booking.get('holding_price', 'N/A'))
-            ))
-        
-        # Save the mapping for other steps
-        with open('booking_map.json', 'w') as f:
-            json.dump(booking_map, f, indent=2)
-        
-        # Write first booking details to GITHUB_ENV
-        if bookings:
-            first_booking = next(iter(bookings.values()))
-            with open(os.environ['GITHUB_ENV'], 'a') as f:
-                f.write(f"PICKUP_LOCATION={first_booking['location']}\n")
-                f.write(f"PICKUP_DATE={first_booking['pickup_date']}\n")
-                f.write(f"DROPOFF_DATE={first_booking['dropoff_date']}\n")
-                f.write(f"FOCUS_CATEGORY={first_booking['focus_category']}\n")
-                f.write(f"PICKUP_TIME={first_booking.get('pickup_time', '12:00 PM')}\n")
-                f.write(f"DROPOFF_TIME={first_booking.get('dropoff_time', '12:00 PM')}\n")
-        
-        # Set output for GitHub Actions
-        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-            f.write(f"booking_count={len(bookings)}\n")
-        EOF
-        
-        # Run the Python script
-        python process_bookings.py
 
     - name: Update holding prices
       if: github.event.inputs.action == 'update-holding-prices'
+      env:
+        BOOKING_1_PRICE: ${{ github.event.inputs.booking_1_price }}
+        BOOKING_2_PRICE: ${{ github.event.inputs.booking_2_price }}
+        BOOKING_3_PRICE: ${{ github.event.inputs.booking_3_price }}
       run: |
-        # Create Python script to update prices
-        cat << 'EOF' > update_prices.py
+        python - <<EOF
         import json
         import os
-        
-        # Load the booking map
-        with open('booking_map.json', 'r') as f:
-            booking_map = json.load(f)
-        
-        # Load the current price history
-        with open('price_history.json', 'r') as f:
-            price_history = json.load(f)
-        
-        # Process each booking input
-        updates_made = False
-        for i in range(1, len(booking_map) + 1):
-            input_price = os.getenv(f'BOOKING_{i}_PRICE', '').strip()
-            if input_price:
-                booking_id = booking_map[f'booking_{i}']
-                try:
-                    new_price = float(input_price)
-                    price_history['bookings'][booking_id]['holding_price'] = new_price
-                    print(f"✅ Updated Booking {i} ({booking_id}) holding price to ${new_price:.2f}")
-                    updates_made = True
-                except ValueError:
-                    print(f"❌ Invalid price format for Booking {i}: {input_price}")
-        
-        if updates_made:
-            # Save the updated price history
-            with open('price_history.json', 'w') as f:
-                json.dump(price_history, f, indent=2)
-            print("\nSuccessfully updated price_history.json")
-        else:
-            print("\nNo price updates were made")
+        from datetime import datetime
+
+        try:
+            # Load price history
+            with open('price_history.json', 'r') as f:
+                price_history = json.load(f)
+
+            # Get list of booking IDs
+            booking_ids = list(price_history['bookings'].keys())
+
+            # Process each booking price
+            updates_made = False
+            for i, booking_id in enumerate(booking_ids[:3], 1):
+                price_str = os.environ.get(f'BOOKING_{i}_PRICE', '').strip()
+                if price_str:
+                    try:
+                        new_price = float(price_str)
+                        price_history['bookings'][booking_id]['holding_price'] = new_price
+                        print(f"✅ Updated Booking {i} holding price to ${new_price:.2f}")
+                        updates_made = True
+                    except ValueError:
+                        print(f"❌ Invalid price format for Booking {i}: {price_str}")
+
+            if updates_made:
+                # Update last_updated timestamp
+                price_history['metadata']['last_updated'] = datetime.now().isoformat()
+                
+                # Save updated price history
+                with open('price_history.json', 'w') as f:
+                    json.dump(price_history, f, indent=2)
+                print("✅ Successfully saved updated price history")
+            else:
+                print("ℹ️ No price updates were made")
+
+        except Exception as e:
+            print(f"❌ Error updating prices: {str(e)}")
+            exit(1)
         EOF
-        
-        # Set environment variables for the prices
-        export BOOKING_1_PRICE="${{ github.event.inputs.booking_1_price }}"
-        export BOOKING_2_PRICE="${{ github.event.inputs.booking_2_price }}"
-        export BOOKING_3_PRICE="${{ github.event.inputs.booking_3_price }}"
-        
-        # Run the update script
-        python update_prices.py
-        
-        # Show updated prices
-        echo "\nCurrent booking prices after updates:"
-        jq -r '.bookings | to_entries[] | "\(.value.location) (\(.value.pickup_date) to \(.value.dropoff_date)): $\(.value.holding_price)"' price_history.json
+
+    - name: Delete booking
+      if: github.event.inputs.action == 'delete-booking'
+      env:
+        BOOKING_TO_DELETE: ${{ github.event.inputs.booking_to_delete }}
+      run: |
+        python delete_booking_cli.py
 
     - name: Run price checker
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
       env:
         CI: true
-        CHROME_BINARY_PATH: /opt/chrome/chrome-linux64/chrome
+        CHROME_BINARY_PATH: /usr/bin/chrome
         CHROMEDRIVER_PATH: /usr/bin/chromedriver
         USER_AGENT: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36
         SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
@@ -358,54 +304,35 @@ jobs:
         SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
         RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
       run: |
-        echo "Starting price checker in automated mode..."
-        echo "Environment variables:"
-        echo "SMTP_SERVER: $SMTP_SERVER"
-        echo "SMTP_PORT: $SMTP_PORT"
-        echo "SENDER_EMAIL: $SENDER_EMAIL"
-        echo "RECIPIENT_EMAIL: $RECIPIENT_EMAIL"
+        # Create screenshots directory
+        mkdir -p screenshots
         
         # Create .env file
-        cat << EOF > .env
+        cat > .env << EOL
         CI=true
-        CHROME_BINARY_PATH=/opt/chrome/chrome-linux64/chrome
+        CHROME_BINARY_PATH=/usr/bin/chrome
         CHROMEDRIVER_PATH=/usr/bin/chromedriver
         USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36
-        PICKUP_LOCATION=$PICKUP_LOCATION
-        PICKUP_DATE=$PICKUP_DATE
-        DROPOFF_DATE=$DROPOFF_DATE
-        FOCUS_CATEGORY=$FOCUS_CATEGORY
-        PICKUP_TIME=$PICKUP_TIME
-        DROPOFF_TIME=$DROPOFF_TIME
-        SMTP_SERVER=$SMTP_SERVER
-        SMTP_PORT=$SMTP_PORT
-        SENDER_EMAIL=$SENDER_EMAIL
-        SENDER_PASSWORD=$SENDER_PASSWORD
-        RECIPIENT_EMAIL=$RECIPIENT_EMAIL
-        EOF
+        SMTP_SERVER=${{ secrets.SMTP_SERVER }}
+        SMTP_PORT=${{ secrets.SMTP_PORT }}
+        SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
+        SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}
+        RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
+        EOL
         
-        # Install Chrome dependencies
-        sudo apt-get update
-        sudo apt-get install -y libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libxss1 libasound2
-        
-        # Run the price checker
+        # Run price checker
         python main.py
-    - name: Delete booking
-      if: github.event.inputs.action == 'delete-booking'
+
+    - name: Commit and push changes
+      if: github.event.inputs.action == 'add-booking' || github.event.inputs.action == 'update-holding-prices' || github.event.inputs.action == 'delete-booking'
       run: |
-        export BOOKING_TO_DELETE="${{ github.event.inputs.booking_to_delete }}"
-        python delete_booking_cli.py
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
         
-        if [ $? -eq 0 ]; then
-          echo "Booking deletion successful"
-          
-          # Commit changes
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "actions@github.com"
-          git add price_history.json
-          git commit -m "Delete booking ${BOOKING_TO_DELETE} via workflow"
-          git push origin ${GITHUB_REF}
+        if git diff --quiet price_history.json; then
+          echo "No changes to commit"
         else
-          echo "::error::Booking deletion failed"
-          exit 1
+          git add price_history.json
+          git commit -m "Update price history via workflow"
+          git push origin HEAD:${{ github.ref }}
         fi
