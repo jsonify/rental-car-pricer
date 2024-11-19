@@ -6,6 +6,18 @@ from typing import Dict, List
 import smtplib
 import traceback
 import ssl
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Get email configuration
+SMTP_SERVER = os.getenv('SMTP_SERVER')
+SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
+SENDER_EMAIL = os.getenv('SENDER_EMAIL')
+SENDER_PASSWORD = os.getenv('SENDER_PASSWORD')
+RECIPIENT_EMAIL = os.getenv('RECIPIENT_EMAIL')
 
 def send_price_alert(bookings_data: List[Dict]) -> bool:
     """Send an HTML email with current rental car prices"""
@@ -15,6 +27,9 @@ def send_price_alert(bookings_data: List[Dict]) -> bool:
         print(f"SMTP Port: {SMTP_PORT}")
         print(f"Sender: {SENDER_EMAIL}")
         print(f"Recipient: {RECIPIENT_EMAIL}")
+        
+        if not all([SMTP_SERVER, SMTP_PORT, SENDER_EMAIL, SENDER_PASSWORD, RECIPIENT_EMAIL]):
+            raise ValueError("Missing required email configuration. Check environment variables.")
         
         msg = MIMEMultipart('alternative')
         msg['From'] = SENDER_EMAIL
