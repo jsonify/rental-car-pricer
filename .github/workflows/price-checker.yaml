@@ -390,3 +390,22 @@ jobs:
         
         # Run the price checker
         python main.py
+    - name: Delete booking
+      if: github.event.inputs.action == 'delete-booking'
+      run: |
+        export BOOKING_TO_DELETE="${{ github.event.inputs.booking_to_delete }}"
+        python delete_booking_cli.py
+        
+        if [ $? -eq 0 ]; then
+          echo "Booking deletion successful"
+          
+          # Commit changes
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add price_history.json
+          git commit -m "Delete booking ${BOOKING_TO_DELETE} via workflow"
+          git push origin ${GITHUB_REF}
+        else
+          echo "::error::Booking deletion failed"
+          exit 1
+        fi
