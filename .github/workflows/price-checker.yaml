@@ -191,29 +191,55 @@ jobs:
         echo "\nCurrent booking prices after updates:"
         jq -r '.bookings | to_entries[] | "\(.value.location) (\(.value.pickup_date) to \(.value.dropoff_date)): $\(.value.holding_price)"' price_history.json
 
-    - name: Extract environment variables
+    - name: Extract environment variables and setup env file
       run: |
-        # Extract all booking locations to check
-        jq -r '.bookings | to_entries[] | .value.location' price_history.json > locations.txt
-        echo "Found the following locations to check:"
-        cat locations.txt
-
-    - name: Set up environment file
-      run: |
-        cat << EOF > .env
+        # Create Python script to extract variables from first booking
+        cat << 'EOF' > setup_env.py
+        import json
+        
+        # Load price history
+        with open('price_history.json', 'r') as f:
+            data = json.load(f)
+        
+        # Get first booking (for backward compatibility)
+        first_booking = next(iter(data['bookings'].values()))
+        
+        # Create env file content
+        env_content = f"""
         CI=true
         CHROME_BINARY_PATH=/opt/chrome/chrome-linux64/chrome
         CHROMEDRIVER_PATH=/usr/bin/chromedriver
         USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
+        
+        # Booking details
+        PICKUP_LOCATION={first_booking['location']}
+        PICKUP_DATE={first_booking['pickup_date']}
+        DROPOFF_DATE={first_booking['dropoff_date']}
+        PICKUP_TIME={first_booking.get('pickup_time', '12:00 PM')}
+        DROPOFF_TIME={first_booking.get('dropoff_time', '12:00 PM')}
+        FOCUS_CATEGORY={first_booking['focus_category']}
+        
+        # Email settings
         SMTP_SERVER=${{ secrets.SMTP_SERVER }}
         SMTP_PORT=${{ secrets.SMTP_PORT }}
         SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
         SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}
         RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
+        """
+        
+        # Write to .env file
+        with open('.env', 'w') as f:
+            f.write(env_content.strip())
+        
+        # Print verification (excluding secrets)
+        print("\nEnvironment variables set:")
+        for line in env_content.strip().split('\n'):
+            if not any(secret in line.lower() for secret in ['password', 'secret']):
+                print(line)
         EOF
         
-        echo "Environment file created. Verifying contents (excluding secrets):"
-        grep -v "PASSWORD" .env || true
+        # Run the script to create .env file
+        python setup_env.py
 
     - name: Run price checker
       env:
