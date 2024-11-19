@@ -8,6 +8,8 @@ import traceback
 import ssl
 import os
 from dotenv import load_dotenv
+from .templates.formatters import format_email_body_text
+from .templates.html_template import format_email_body_html
 
 # Load environment variables
 load_dotenv()
