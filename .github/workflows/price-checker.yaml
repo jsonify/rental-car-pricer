@@ -116,7 +116,6 @@ jobs:
         /usr/bin/chrome --version
         echo "ChromeDriver version:"
         /usr/bin/chromedriver --version
-
     - name: Add new booking
       if: github.event.inputs.action == 'add-booking'
       env:
@@ -126,7 +125,7 @@ jobs:
         NEW_BOOKING_CATEGORY: ${{ github.event.inputs.new_booking_category }}
         NEW_BOOKING_HOLDING_PRICE: ${{ github.event.inputs.new_booking_holding_price }}
       run: |
-        python - <<EOF
+        python - << 'EOL'
         import json
         import os
         from datetime import datetime
@@ -227,13 +226,6 @@ jobs:
             print(f"Location: {location}")
             print(f"Dates: {pickup_date} to {dropoff_date}")
             print(f"Category: {category}")
-            if holding_price:
-                print(f"Holding price: ${float(holding_price):.2f}")
-            return True
-
-        if not add_booking():
-            sys.exit(1)
-        EOF
 
     - name: Update holding prices
       if: github.event.inputs.action == 'update-holding-prices'
