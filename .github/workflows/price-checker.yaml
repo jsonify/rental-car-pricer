@@ -368,3 +368,25 @@ jobs:
         # Create .env file
         cat << EOF > .env
         CI=true
+        CHROME_BINARY_PATH=/opt/chrome/chrome-linux64/chrome
+        CHROMEDRIVER_PATH=/usr/bin/chromedriver
+        USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36
+        PICKUP_LOCATION=$PICKUP_LOCATION
+        PICKUP_DATE=$PICKUP_DATE
+        DROPOFF_DATE=$DROPOFF_DATE
+        FOCUS_CATEGORY=$FOCUS_CATEGORY
+        PICKUP_TIME=$PICKUP_TIME
+        DROPOFF_TIME=$DROPOFF_TIME
+        SMTP_SERVER=$SMTP_SERVER
+        SMTP_PORT=$SMTP_PORT
+        SENDER_EMAIL=$SENDER_EMAIL
+        SENDER_PASSWORD=$SENDER_PASSWORD
+        RECIPIENT_EMAIL=$RECIPIENT_EMAIL
+        EOF
+        
+        # Install Chrome dependencies
+        sudo apt-get update
+        sudo apt-get install -y libnss3 libgdk-pixbuf2.0-0 libgtk-3-0 libxss1 libasound2
+        
+        # Run the price checker
+        python main.py
