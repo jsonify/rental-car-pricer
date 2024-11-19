@@ -132,22 +132,16 @@ jobs:
         with open('booking_map.json', 'w') as f:
             json.dump(booking_map, f, indent=2)
         
-        # Write first booking details to env file for compatibility
+        # Write first booking details to GITHUB_ENV
         if bookings:
             first_booking = next(iter(bookings.values()))
-            with open('.env', 'w') as f:
-                f.write(f"""
-                    CI=true
-                    CHROME_BINARY_PATH=/opt/chrome/chrome-linux64/chrome
-                    CHROMEDRIVER_PATH=/usr/bin/chromedriver
-                    USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
-                    PICKUP_LOCATION={first_booking['location']}
-                    PICKUP_DATE={first_booking['pickup_date']}
-                    DROPOFF_DATE={first_booking['dropoff_date']}
-                    FOCUS_CATEGORY={first_booking['focus_category']}
-                    PICKUP_TIME={first_booking.get('pickup_time', '12:00 PM')}
-                    DROPOFF_TIME={first_booking.get('dropoff_time', '12:00 PM')}
-                """.strip())
+            with open(os.environ['GITHUB_ENV'], 'a') as f:
+                f.write(f"PICKUP_LOCATION={first_booking['location']}\n")
+                f.write(f"PICKUP_DATE={first_booking['pickup_date']}\n")
+                f.write(f"DROPOFF_DATE={first_booking['dropoff_date']}\n")
+                f.write(f"FOCUS_CATEGORY={first_booking['focus_category']}\n")
+                f.write(f"PICKUP_TIME={first_booking.get('pickup_time', '12:00 PM')}\n")
+                f.write(f"DROPOFF_TIME={first_booking.get('dropoff_time', '12:00 PM')}\n")
         
         # Set output for GitHub Actions
         with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
@@ -219,12 +213,6 @@ jobs:
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
         SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
         RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
-        FOCUS_CATEGORY: ${{ env.FOCUS_CATEGORY }}
-        PICKUP_LOCATION: ${{ env.PICKUP_LOCATION }}
-        PICKUP_DATE: ${{ env.PICKUP_DATE }}
-        DROPOFF_DATE: ${{ env.DROPOFF_DATE }}
-        PICKUP_TIME: ${{ env.PICKUP_TIME }}
-        DROPOFF_TIME: ${{ env.DROPOFF_TIME }}
       run: |
         echo "Starting price checker in automated mode..."
         echo "Environment variables:"
@@ -232,6 +220,26 @@ jobs:
         echo "PICKUP_LOCATION: $PICKUP_LOCATION"
         echo "PICKUP_DATE: $PICKUP_DATE"
         echo "DROPOFF_DATE: $DROPOFF_DATE"
+        
+        # Create .env file for the price checker
+        cat << EOF > .env
+        CI=true
+        CHROME_BINARY_PATH=/opt/chrome/chrome-linux64/chrome
+        CHROMEDRIVER_PATH=/usr/bin/chromedriver
+        USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36
+        PICKUP_LOCATION=$PICKUP_LOCATION
+        PICKUP_DATE=$PICKUP_DATE
+        DROPOFF_DATE=$DROPOFF_DATE
+        FOCUS_CATEGORY=$FOCUS_CATEGORY
+        PICKUP_TIME=$PICKUP_TIME
+        DROPOFF_TIME=$DROPOFF_TIME
+        SMTP_SERVER=${{ secrets.SMTP_SERVER }}
+        SMTP_PORT=${{ secrets.SMTP_PORT }}
+        SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
+        SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}
+        RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
+        EOF
+        
         export CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu"
         python main.py
 
