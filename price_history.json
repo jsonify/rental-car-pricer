@@ -275,54 +275,6 @@
       ],
       "created_at": "2024-11-10T00:12:09.308258",
       "holding_price": 266.6
-    },
-    "SAN_11292024_11302024": {
-      "location": "SAN",
-      "location_full_name": "SAN Airport",
-      "pickup_date": "11/29/2024",
-      "dropoff_date": "11/30/2024",
-      "pickup_time": "12:00 PM",
-      "dropoff_time": "12:00 PM",
-      "focus_category": "Full-size Car",
-      "holding_price": null,
-      "price_history": [
-        {
-          "timestamp": "2024-11-19T08:51:03.483715",
-          "prices": {
-            "Economy Car": 57.63,
-            "Compact Car": 56.42999999999999,
-            "Intermediate Car": 58.97,
-            "Standard Car": 65.06,
-            "Full-size Car": 65.72,
-            "Premium Car": 68.32,
-            "Compact SUV": 67.08,
-            "Intermediate SUV": 67.01,
-            "Standard SUV": 72.9,
-            "Standard Elite SUV": 83.15,
-            "Full-size SUV": 283.35,
-            "Premium Crossover": 96.97,
-            "Mini Van": 277.66,
-            "Jeep Wrangler 4 door": 77.97,
-            "Standard Convertible": 130.62,
-            "Standard Sporty Car": 90.27,
-            "Specialty SUV": 147.2,
-            "Premium SUV": 302.25,
-            "Luxury SUV": 131.63,
-            "Large Luxury SUV": 184.66000000000003,
-            "Luxury Car": 80.87,
-            "Midsize Pickup": 75.54,
-            "Full-size Pickup": 80.3,
-            "Full-size Van": 150.17000000000002,
-            "Electric Car": 70.9,
-            "Hybrid Car": 89.92
-          },
-          "lowest_price": {
-            "category": "Compact Car",
-            "price": 56.42999999999999
-          }
-        }
-      ],
-      "created_at": "2024-11-19T08:49:07.541369"
     }
   }
 }
