@@ -9,60 +9,21 @@ on:
         description: 'Do you want to update any holding prices?'
         type: boolean
         default: false
-        required: true
+      booking_1_price:
+        description: 'New holding price for Booking 1 (leave empty to keep current)'
+        required: false
+        type: string
+      booking_2_price:
+        description: 'New holding price for Booking 2 (leave empty to keep current)'
+        required: false
+        type: string
+      booking_3_price:
+        description: 'New holding price for Booking 3 (leave empty to keep current)'
+        required: false
+        type: string
 
 jobs:
-  initialize:
-    runs-on: ubuntu-latest
-    outputs:
-      input_fields: ${{ steps.generate_inputs.outputs.fields }}
-      booking_count: ${{ steps.generate_inputs.outputs.booking_count }}
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Generate dynamic inputs
-        id: generate_inputs
-        run: |
-          # Create Python script to generate inputs
-          cat << 'EOF' > generate_inputs.py
-          import json
-          import os
-          
-          def format_booking_label(booking):
-              return f"{booking['location']} {booking['focus_category']} ({booking['pickup_date']} - {booking['dropoff_date']})"
-          
-          # Load price history
-          with open('price_history.json', 'r') as f:
-              price_history = json.load(f)
-          
-          # Generate input fields for each active booking
-          input_fields = {}
-          for booking_id, booking in price_history.get('bookings', {}).items():
-              field_name = f"holding_price_{booking_id}"
-              label = format_booking_label(booking)
-              current_price = booking.get('holding_price', 'N/A')
-              description = f"Update holding price for {label} (current: ${current_price:.2f})" if isinstance(current_price, (int, float)) else f"Update holding price for {label} (current: {current_price})"
-              
-              input_fields[field_name] = {
-                  "description": description,
-                  "required": False,
-                  "type": "string"
-              }
-          
-          # Save the mapping for later use
-          with open('input_mapping.json', 'w') as f:
-              json.dump(input_fields, f, indent=2)
-          
-          # Output the fields in GitHub Actions format
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f"fields={json.dumps(input_fields)}\n")
-              f.write(f"booking_count={len(input_fields)}\n")
-          EOF
-          
-          python generate_inputs.py
-
   check-prices:
-    needs: initialize
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -128,12 +89,13 @@ jobs:
     - name: Create screenshots directory
       run: mkdir -p screenshots
 
-    - name: Display current bookings
+    - name: Process bookings and holding prices
+      id: process_bookings
       run: |
-        # Create Python script to display bookings
-        cat << 'EOF' > display_bookings.py
+        # Create a Python script to handle the bookings and prices
+        cat << 'EOF' > process_bookings.py
         import json
-        from datetime import datetime
+        import os
         
         def format_price(price):
             try:
@@ -145,24 +107,38 @@ jobs:
         with open('price_history.json', 'r') as f:
             price_history = json.load(f)
         
-        # Display bookings in a formatted table
-        print("\n=== Current Bookings ===")
-        print("{:<20} {:<15} {:<20} {:<15} {:<15}".format(
-            "Location", "Category", "Dates", "Current Price", "Last Updated"
-        ))
-        print("-" * 85)
+        # Get all bookings
+        bookings = price_history.get('bookings', {})
         
-        for booking_id, booking in price_history.get('bookings', {}).items():
-            print("{:<20} {:<15} {:<20} {:<15} {:<15}".format(
+        # Create a mapping file for booking IDs to input numbers
+        booking_map = {}
+        print("\n=== Current Bookings ===")
+        print("{:<5} {:<15} {:<20} {:<25} {:<15}".format(
+            "Num", "Location", "Dates", "Category", "Current Price"
+        ))
+        print("-" * 80)
+        
+        for i, (booking_id, booking) in enumerate(bookings.items(), 1):
+            booking_map[f"booking_{i}"] = booking_id
+            print("{:<5} {:<15} {:<20} {:<25} {:<15}".format(
+                f"[{i}]",
                 booking['location'],
+                f"{booking['pickup_date']} to {booking['dropoff_date']}",
                 booking['focus_category'],
-                f"{booking['pickup_date']} to\n{booking['dropoff_date']}",
-                format_price(booking.get('holding_price', 'N/A')),
-                datetime.now().strftime('%Y-%m-%d')
+                format_price(booking.get('holding_price', 'N/A'))
             ))
+        
+        # Save the mapping for other steps
+        with open('booking_map.json', 'w') as f:
+            json.dump(booking_map, f, indent=2)
+        
+        # Set output for GitHub Actions
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+            f.write(f"booking_count={len(bookings)}\n")
         EOF
         
-        python display_bookings.py
+        # Run the Python script
+        python process_bookings.py
 
     - name: Update holding prices
       if: github.event.inputs.update_holding_prices == 'true'
@@ -172,30 +148,27 @@ jobs:
         import json
         import os
         
+        # Load the booking map
+        with open('booking_map.json', 'r') as f:
+            booking_map = json.load(f)
+        
         # Load the current price history
         with open('price_history.json', 'r') as f:
             price_history = json.load(f)
         
-        # Track updates
+        # Process each booking input
         updates_made = False
-        
-        # Process each booking
-        for booking_id, booking in price_history['bookings'].items():
-            env_var = f"HOLDING_PRICE_{booking_id}"
-            new_price = os.getenv(env_var, '').strip()
-            
-            if new_price:
+        for i in range(1, len(booking_map) + 1):
+            input_price = os.getenv(f'BOOKING_{i}_PRICE', '').strip()
+            if input_price:
+                booking_id = booking_map[f'booking_{i}']
                 try:
-                    new_price_float = float(new_price)
-                    old_price = booking.get('holding_price')
-                    price_history['bookings'][booking_id]['holding_price'] = new_price_float
-                    
-                    print(f"✅ Updated {booking['location']} {booking['focus_category']}:")
-                    print(f"   Old price: {format_price(old_price)}")
-                    print(f"   New price: ${new_price_float:.2f}")
+                    new_price = float(input_price)
+                    price_history['bookings'][booking_id]['holding_price'] = new_price
+                    print(f"✅ Updated Booking {i} ({booking_id}) holding price to ${new_price:.2f}")
                     updates_made = True
                 except ValueError:
-                    print(f"❌ Invalid price format for {booking['location']}: {new_price}")
+                    print(f"❌ Invalid price format for Booking {i}: {input_price}")
         
         if updates_made:
             # Save the updated price history
@@ -204,21 +177,19 @@ jobs:
             print("\nSuccessfully updated price_history.json")
         else:
             print("\nNo price updates were made")
-        
-        def format_price(price):
-            try:
-                return f"${float(price):.2f}"
-            except:
-                return "N/A"
         EOF
         
-        # Set environment variables for each booking price
-        # This will be populated based on the dynamic inputs
+        # Set environment variables for the prices
+        export BOOKING_1_PRICE="${{ github.event.inputs.booking_1_price }}"
+        export BOOKING_2_PRICE="${{ github.event.inputs.booking_2_price }}"
+        export BOOKING_3_PRICE="${{ github.event.inputs.booking_3_price }}"
+        
+        # Run the update script
         python update_prices.py
         
         # Show updated prices
         echo "\nCurrent booking prices after updates:"
-        jq -r '.bookings | to_entries[] | "\(.value.location) \(.value.focus_category): \(.value.holding_price)"' price_history.json
+        jq -r '.bookings | to_entries[] | "\(.value.location) (\(.value.pickup_date) to \(.value.dropoff_date)): $\(.value.holding_price)"' price_history.json
 
     - name: Extract environment variables
       run: |
