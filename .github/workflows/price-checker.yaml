@@ -28,21 +28,9 @@ on:
         required: false
         type: string
       new_booking_category:
-        description: 'Vehicle category'
-        type: choice
+        description: 'Vehicle category (exact match from website)'
         required: false
-        options:
-          - Economy Car
-          - Compact Car
-          - Mid-size Car
-          - Full-size Car
-          - Premium Car
-          - Luxury Car
-          - Compact SUV
-          - Standard SUV
-          - Full-size SUV
-          - Premium SUV
-          - Minivan
+        type: string
       new_booking_holding_price:
         description: 'Initial holding price (optional)'
         required: false

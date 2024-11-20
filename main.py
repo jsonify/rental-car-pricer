@@ -5,17 +5,124 @@ import random
 import traceback
 import os
 import argparse
+import json
 from datetime import datetime
+from typing import Dict, List, Optional, Set
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from typing import Dict, List, Optional
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 from booking_tracker import BookingTracker
 from driver_setup import setup_driver
 from human_simulation import human_like_typing, random_mouse_movement, enter_date
 from price_extractor import extract_lowest_prices
 from email_module import send_price_alert
+
+def get_available_categories(driver) -> Set[str]:
+    """Extract all available vehicle categories from the search results page"""
+    try:
+        categories = set()
+        category_rows = driver.find_elements(By.CSS_SELECTOR, 'div[role="row"]')
+        
+        for row in category_rows:
+            try:
+                category_name = row.find_element(
+                    By.CSS_SELECTOR, 
+                    'div.inner.text-center.h3-tag-style'
+                ).text.strip()
+                categories.add(category_name)
+            except NoSuchElementException:
+                continue
+                
+        return categories
+    except Exception as e:
+        print(f"Error getting available categories: {str(e)}")
+        return set()
+
+def validate_category(driver, category: str, location: str) -> bool:
+    """Validate if a category exists for the given location"""
+    try:
+        # Navigate to the search page and enter location
+        driver.get("https://www.costcotravel.com/Rental-Cars")
+        time.sleep(random.uniform(2, 4))
+        
+        # Enter location
+        pickup_location_element = WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.ID, "pickupLocationTextWidget"))
+        )
+        pickup_location_element.click()
+        time.sleep(random.uniform(0.5, 1))
+        human_like_typing(pickup_location_element, location)
+        time.sleep(random.uniform(1.5, 2.5))
+        
+        # Select location from dropdown
+        location_xpath = f"//li[contains(text(), '{location}')]"
+        try:
+            dropdown_item = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, location_xpath))
+            )
+        except TimeoutException:
+            location_xpath = f"//li[contains(., '{location}')]"
+            dropdown_item = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, location_xpath))
+            )
+        
+        dropdown_item.click()
+        time.sleep(random.uniform(1, 2))
+        
+        # Fill default dates and search
+        tomorrow = (datetime.now() + timedelta(days=1)).strftime("%m/%d/%Y")
+        day_after = (datetime.now() + timedelta(days=2)).strftime("%m/%d/%Y")
+        
+        enter_date(driver, "pickUpDateWidget", tomorrow)
+        enter_date(driver, "dropOffDateWidget", day_after)
+        
+        # Set times
+        pickup_time = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "pickupTimeWidget"))
+        )
+        Select(pickup_time).select_by_value("12:00 PM")
+        
+        dropoff_time = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "dropoffTimeWidget"))
+        )
+        Select(dropoff_time).select_by_value("12:00 PM")
+        
+        # Check age checkbox
+        age_checkbox = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "driversAgeWidget"))
+        )
+        if not age_checkbox.is_selected():
+            driver.execute_script("arguments[0].click();", age_checkbox)
+        
+        # Click search
+        search_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, "findMyCarButton"))
+        )
+        search_button.click()
+        
+        # Wait for results
+        WebDriverWait(driver, 60).until(
+            lambda d: "results" in d.current_url or "vehicles" in d.current_url
+        )
+        time.sleep(5)
+        
+        # Get available categories
+        available_categories = get_available_categories(driver)
+        
+        if category not in available_categories:
+            print(f"\n❌ Category '{category}' not available at {location}")
+            print("\nAvailable categories:")
+            for available_category in sorted(available_categories):
+                print(f"- {available_category}")
+            return False
+            
+        return True
+        
+    except Exception as e:
+        print(f"Error validating category: {str(e)}")
+        return False
 
 def fill_search_form(driver, booking: Dict) -> bool:
     """Fill in the search form for a specific booking"""
@@ -39,7 +146,7 @@ def fill_search_form(driver, booking: Dict) -> bool:
             )
             time.sleep(random.uniform(0.5, 1))
             dropdown_item.click()
-        except Exception as e:
+        except TimeoutException:
             print(f"Warning: Could not find exact location match, trying partial match...")
             location_xpath = f"//li[contains(., '{booking['location']}')]"
             dropdown_item = WebDriverWait(driver, 10).until(
@@ -122,14 +229,13 @@ def wait_for_results(driver, current_url: str, timeout: int = 60) -> bool:
     
     try:
         WebDriverWait(driver, timeout).until(check_search_progress)
-        # Wait for prices to fully load after URL change
-        time.sleep(5)
+        time.sleep(5)  # Wait for prices to fully load
         return True
     except Exception as e:
         print(f"❌ Error waiting for results: {str(e)}")
         return False
 
-def get_new_booking_info() -> Dict:
+def get_new_booking_info(driver) -> Dict:
     """Get information for a new booking from user input"""
     print("\n📝 Enter new booking information:")
     
@@ -145,33 +251,81 @@ def get_new_booking_info() -> Dict:
         try:
             pickup_date = input("Enter pickup date (MM/DD/YYYY): ").strip()
             dropoff_date = input("Enter dropoff date (MM/DD/YYYY): ").strip()
-            # Validate dates by parsing them
             datetime.strptime(pickup_date, "%m/%d/%Y")
             datetime.strptime(dropoff_date, "%m/%d/%Y")
             break
         except ValueError:
             print("❌ Invalid date format. Please use MM/DD/YYYY format.")
     
-    # Select category
-    categories = [
-        "Economy Car", "Compact Car", "Mid-size Car", "Full-size Car",
-        "Premium Car", "Luxury Car", "Compact SUV", "Standard SUV",
-        "Full-size SUV", "Premium SUV", "Minivan"
-    ]
-    
-    print("\n📋 Available categories:")
-    for i, cat in enumerate(categories, 1):
-        print(f"{i}. {cat}")
-    
-    while True:
-        try:
-            cat_choice = int(input("\nSelect category number: ").strip())
-            if 1 <= cat_choice <= len(categories):
-                focus_category = categories[cat_choice - 1]
-                break
-            print(f"❌ Please enter a number between 1 and {len(categories)}")
-        except ValueError:
-            print("❌ Please enter a valid number")
+    # Get available categories for location
+    print(f"\nFetching available categories for {location}...")
+    try:
+        # Navigate and search to get categories
+        driver.get("https://www.costcotravel.com/Rental-Cars")
+        time.sleep(random.uniform(2, 4))
+        
+        if not fill_search_form(driver, {
+            'location': location,
+            'pickup_date': pickup_date,
+            'dropoff_date': dropoff_date,
+            'pickup_time': "12:00 PM",
+            'dropoff_time': "12:00 PM"
+        }):
+            raise Exception("Failed to fill search form")
+        
+        # Search
+        search_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, "findMyCarButton"))
+        )
+        current_url = driver.current_url
+        search_button.click()
+        
+        if not wait_for_results(driver, current_url):
+            raise Exception("Failed to load results")
+        
+        # Get categories
+        available_categories = sorted(get_available_categories(driver))
+        
+        if not available_categories:
+            raise Exception("No categories found")
+        
+        print("\n📋 Available categories:")
+        for i, cat in enumerate(available_categories, 1):
+            print(f"{i}. {cat}")
+        
+        while True:
+            try:
+                cat_choice = int(input("\nSelect category number: ").strip())
+                if 1 <= cat_choice <= len(available_categories):
+                    focus_category = available_categories[cat_choice - 1]
+                    break
+                print(f"❌ Please enter a number between 1 and {len(available_categories)}")
+            except ValueError:
+                print("❌ Please enter a valid number")
+        
+    except Exception as e:
+        print(f"❌ Error getting categories: {str(e)}")
+        print("Using default category list...")
+        
+        default_categories = [
+            "Economy Car", "Compact Car", "Intermediate Car", "Standard Car",
+            "Full-size Car", "Premium Car", "Compact SUV", "Standard SUV",
+            "Full-size SUV", "Premium SUV", "Minivan"
+        ]
+        
+        print("\n📋 Default categories:")
+        for i, cat in enumerate(default_categories, 1):
+            print(f"{i}. {cat}")
+        
+        while True:
+            try:
+                cat_choice = int(input("\nSelect category number: ").strip())
+                if 1 <= cat_choice <= len(default_categories):
+                    focus_category = default_categories[cat_choice - 1]
+                    break
+                print(f"❌ Please enter a number between 1 and {len(default_categories)}")
+            except ValueError:
+                print("❌ Please enter a valid number")
     
     return {
         "location": location,
@@ -228,6 +382,7 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
         print("✅ Results loaded successfully")
         
         # Save screenshot
+        os.makedirs("screenshots", exist_ok=True)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         screenshot_name = f"results_{booking['location']}_{timestamp}.png"
         driver.save_screenshot(f"screenshots/{screenshot_name}")
@@ -235,6 +390,34 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
         
         # Extract prices
         prices = extract_lowest_prices(driver)
+        
+        # Verify focus category exists
+        if booking['focus_category'] not in prices:
+            print(f"\n⚠️ Warning: Focus category '{booking['focus_category']}' not found in results!")
+            print("Available categories:")
+            for category in sorted(prices.keys()):
+                print(f"- {category}")
+            
+            # Optionally prompt for category change if in interactive mode
+            if not os.environ.get('CI'):
+                change = input("\nWould you like to change the focus category? (y/n): ").lower()
+                if change == 'y':
+                    print("\nAvailable categories:")
+                    categories = sorted(prices.keys())
+                    for i, category in enumerate(categories, 1):
+                        print(f"{i}. {category} (${prices[category]:.2f})")
+                    
+                    while True:
+                        try:
+                            choice = int(input("\nSelect new category number: ").strip())
+                            if 1 <= choice <= len(categories):
+                                booking['focus_category'] = categories[choice - 1]
+                                print(f"✅ Focus category updated to: {booking['focus_category']}")
+                                break
+                            print(f"❌ Please enter a number between 1 and {len(categories)}")
+                        except ValueError:
+                            print("❌ Please enter a valid number")
+        
         return prices
         
     except Exception as e:
@@ -242,6 +425,7 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
         traceback.print_exc()
         
         # Save error screenshot
+        os.makedirs("screenshots", exist_ok=True)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         screenshot_name = f"error_{booking['location']}_{timestamp}.png"
         driver.save_screenshot(f"screenshots/{screenshot_name}")
@@ -252,12 +436,14 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
 def run_price_checks(tracker, active_bookings):
     """Run price checks for all active bookings"""
     driver = setup_driver(headless=True)
+    
     # Clean up expired bookings
     deleted_bookings = tracker.cleanup_expired_bookings()
     if deleted_bookings:
         print("\n🧹 Cleaned up expired bookings:")
         for booking_id in deleted_bookings:
             print(f"  - {booking_id}")
+    
     try:
         bookings_data = []
         
@@ -326,17 +512,24 @@ def interactive_mode():
     print("\n🔄 Choose an action:")
     print("1. Track current bookings")
     print("2. Add a new booking")
-    print("3. Delete a booking")  # Add to menu options
+    print("3. Delete a booking")
     print("4. Update holding prices")
     print("5. Exit")
     
     choice = input("\nChoice (default: 1): ").strip() or "1"
     
     if choice == "2":
-        new_booking = get_new_booking_info()
-        booking_id = tracker.add_booking(**new_booking)
-        print(f"\n✅ Added new booking: {new_booking['location']}")
-        active_bookings = tracker.get_active_bookings()
+        driver = setup_driver(headless=True)
+        try:
+            new_booking = get_new_booking_info(driver)
+            if validate_category(driver, new_booking['focus_category'], new_booking['location']):
+                booking_id = tracker.add_booking(**new_booking)
+                print(f"\n✅ Added new booking: {new_booking['location']}")
+                active_bookings = tracker.get_active_bookings()
+            else:
+                print("\n❌ Failed to add booking: Invalid category for location")
+        finally:
+            driver.quit()
     elif choice == "3":
         try:
             booking_id = tracker.get_booking_choice()
