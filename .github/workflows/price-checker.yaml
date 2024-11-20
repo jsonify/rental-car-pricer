@@ -289,7 +289,6 @@ jobs:
         BOOKING_TO_DELETE: ${{ github.event.inputs.booking_to_delete }}
       run: |
         python delete_booking_cli.py
-
     - name: Run price checker
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
       env:
@@ -309,6 +308,7 @@ jobs:
         # Get first active booking details
         python - << 'EOL'
         import json
+        import os
         
         try:
             with open('price_history.json', 'r') as f:
@@ -342,9 +342,12 @@ jobs:
             exit(1)
         EOL
         
-        # Run price checker
-        python main.py
+        # Show contents of .env file (excluding sensitive data)
+        echo "Generated .env file contents (sanitized):"
+        grep -v "PASSWORD\|EMAIL\|SERVER" .env || true
         
+        # Run price checker
+        python main.py 
     - name: Commit and push changes
       if: github.event.inputs.action == 'add-booking' || github.event.inputs.action == 'update-holding-prices' || github.event.inputs.action == 'delete-booking'
       run: |
