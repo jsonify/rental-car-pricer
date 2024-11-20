@@ -226,6 +226,13 @@ jobs:
             print(f"Location: {location}")
             print(f"Dates: {pickup_date} to {dropoff_date}")
             print(f"Category: {category}")
+            if holding_price:
+                print(f"Holding price: {float(holding_price):.2f}")
+            return True
+
+        if not add_booking():
+            sys.exit(1)
+        EOL
 
     - name: Update holding prices
       if: github.event.inputs.action == 'update-holding-prices'
