@@ -306,22 +306,45 @@ jobs:
         # Create screenshots directory
         mkdir -p screenshots
         
-        # Create .env file
-        cat > .env << EOL
-        CI=true
-        CHROME_BINARY_PATH=/usr/bin/chrome
-        CHROMEDRIVER_PATH=/usr/bin/chromedriver
-        USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36
-        SMTP_SERVER=${{ secrets.SMTP_SERVER }}
-        SMTP_PORT=${{ secrets.SMTP_PORT }}
-        SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}
-        SENDER_PASSWORD=${{ secrets.SENDER_PASSWORD }}
-        RECIPIENT_EMAIL=${{ secrets.RECIPIENT_EMAIL }}
+        # Get first active booking details
+        python - << 'EOL'
+        import json
+        
+        try:
+            with open('price_history.json', 'r') as f:
+                data = json.load(f)
+                
+            active_bookings = data.get('metadata', {}).get('active_bookings', [])
+            if active_bookings:
+                booking = data['bookings'][active_bookings[0]]
+                with open('.env', 'w') as f:
+                    f.write(f"CI=true\n")
+                    f.write(f"CHROME_BINARY_PATH=/usr/bin/chrome\n")
+                    f.write(f"CHROMEDRIVER_PATH=/usr/bin/chromedriver\n")
+                    f.write(f"USER_AGENT=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36\n")
+                    f.write(f"PICKUP_LOCATION={booking['location']}\n")
+                    f.write(f"PICKUP_DATE={booking['pickup_date']}\n")
+                    f.write(f"DROPOFF_DATE={booking['dropoff_date']}\n")
+                    f.write(f"FOCUS_CATEGORY={booking['focus_category']}\n")
+                    f.write(f"PICKUP_TIME={booking.get('pickup_time', '12:00 PM')}\n")
+                    f.write(f"DROPOFF_TIME={booking.get('dropoff_time', '12:00 PM')}\n")
+                    f.write(f"SMTP_SERVER={os.environ.get('SMTP_SERVER', '')}\n")
+                    f.write(f"SMTP_PORT={os.environ.get('SMTP_PORT', '')}\n")
+                    f.write(f"SENDER_EMAIL={os.environ.get('SENDER_EMAIL', '')}\n")
+                    f.write(f"SENDER_PASSWORD={os.environ.get('SENDER_PASSWORD', '')}\n")
+                    f.write(f"RECIPIENT_EMAIL={os.environ.get('RECIPIENT_EMAIL', '')}\n")
+                print("✅ Successfully created .env file with booking details")
+            else:
+                print("❌ No active bookings found")
+                exit(1)
+        except Exception as e:
+            print(f"❌ Error setting up environment: {str(e)}")
+            exit(1)
         EOL
         
         # Run price checker
         python main.py
-
+        
     - name: Commit and push changes
       if: github.event.inputs.action == 'add-booking' || github.event.inputs.action == 'update-holding-prices' || github.event.inputs.action == 'delete-booking'
       run: |
