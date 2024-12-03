@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "last_updated": "2024-11-19T08:51:03.483736",
+    "last_updated": "2024-12-03T16:16:58.497296",
     "active_bookings": [
       "LIH_04032025_04102025",
       "KOA_04102025_04142025",
@@ -275,7 +275,7 @@
         }
       ],
       "created_at": "2024-11-10T00:12:09.308258",
-      "holding_price": 266.6
+      "holding_price": 256.36
     },
     "LIH_12082024_12142024": {
       "location": "LIH",
