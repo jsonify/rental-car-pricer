@@ -1,32 +1,85 @@
 import { useState, useEffect } from 'react';
+import { supabase, type Booking, type PriceHistory } from '../lib/supabase';
 import { DataGrid } from './DataGrid';
 import { Chart } from './Chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { format } from 'date-fns';
 
-const formatPrice = (price) => `$${parseFloat(price).toFixed(2)}`;
+const formatPrice = (price: number) => `$${price.toFixed(2)}`;
+
+interface BookingWithHistory extends Booking {
+  price_history: PriceHistory[];
+  latestPrice: number;
+  previousPrice: number;
+  potentialSavings: number;
+  priceChange: number;
+  percentChange: number;
+}
 
 export const PriceTracker = () => {
-  const [priceData, setPriceData] = useState(null);
+  const [bookings, setBookings] = useState<BookingWithHistory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchPriceData = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/price_history.json');
-        if (!response.ok) throw new Error('Failed to load price data');
-        const data = await response.json();
-        setPriceData(data);
+        // Fetch active bookings
+        const { data: bookingsData, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('active', true)
+          .order('pickup_date', { ascending: true });
+
+        if (bookingsError) throw bookingsError;
+
+        // Fetch price histories for all bookings
+        const bookingsWithHistory = await Promise.all(
+          bookingsData.map(async (booking) => {
+            const { data: priceHistories, error: historiesError } = await supabase
+              .from('price_histories')
+              .select('*')
+              .eq('booking_id', booking.id)
+              .order('created_at', { ascending: true });
+
+            if (historiesError) throw historiesError;
+
+            const latestHistory = priceHistories[priceHistories.length - 1];
+            const previousHistory = priceHistories[priceHistories.length - 2];
+
+            const latestPrice = latestHistory?.prices?.[booking.focus_category] || 0;
+            const previousPrice = previousHistory?.prices?.[booking.focus_category] || 0;
+            const holdingPrice = booking.holding_price || 0;
+            const potentialSavings = Math.max(0, holdingPrice - latestPrice);
+            const priceChange = latestPrice - previousPrice;
+            const percentChange = previousPrice ? (priceChange / previousPrice) * 100 : 0;
+
+            return {
+              ...booking,
+              price_history: priceHistories,
+              latestPrice,
+              previousPrice,
+              potentialSavings,
+              priceChange,
+              percentChange
+            };
+          })
+        );
+
+        setBookings(bookingsWithHistory);
+        setLastUpdated(new Date().toISOString());
         setError(null);
       } catch (err) {
-        setError(err.message);
+        console.error('Error fetching data:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPriceData();
-    const interval = setInterval(fetchPriceData, 30000); // Refresh every 30 seconds
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -46,32 +99,16 @@ export const PriceTracker = () => {
     );
   }
 
-  const bookings = Object.entries(priceData?.bookings || {}).map(([id, booking]) => {
-    const priceHistory = booking.price_history || [];
-    const latestPrice = priceHistory[priceHistory.length - 1]?.prices?.[booking.focus_category] || 0;
-    const previousPrice = priceHistory[priceHistory.length - 2]?.prices?.[booking.focus_category] || 0;
-    const holdingPrice = booking.holding_price || 0;
-    const potentialSavings = Math.max(0, holdingPrice - latestPrice);
-
-    return {
-      id,
-      ...booking,
-      latestPrice,
-      previousPrice,
-      potentialSavings,
-      priceChange: latestPrice - previousPrice,
-      percentChange: previousPrice ? ((latestPrice - previousPrice) / previousPrice) * 100 : 0
-    };
-  });
-
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Car Rental Price Monitor</h1>
-          <p className="text-gray-500">
-            Last updated: {new Date(priceData?.metadata?.last_updated).toLocaleString()}
-          </p>
+          {lastUpdated && (
+            <p className="text-gray-500">
+              Last updated: {format(new Date(lastUpdated), 'PPpp')}
+            </p>
+          )}
         </div>
         
         <div className="space-y-8">
@@ -133,3 +170,5 @@ export const PriceTracker = () => {
     </div>
   );
 };
+
+export default PriceTracker;

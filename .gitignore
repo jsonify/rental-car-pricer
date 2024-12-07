@@ -133,3 +133,6 @@ $RECYCLE.BIN/
 
 # Linux
 *~
+
+# Misc
+utils/
