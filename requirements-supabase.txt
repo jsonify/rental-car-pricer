@@ -1,0 +1,4 @@
+supabase>=2.10.0
+python-dotenv>=1.0.0
+httpx>=0.26.0,<0.28.0
+websockets>=11.0.0,<14.0.0
