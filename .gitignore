@@ -53,3 +53,4 @@ debug.log
 
 # System
 .DS_STORE
+node_modules

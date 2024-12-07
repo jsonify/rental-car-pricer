@@ -7,6 +7,7 @@ import traceback
 import ssl
 import os
 from dotenv import load_dotenv
+from supabase_client import SupabaseClient
 
 # Import email formatting functions
 try:
@@ -64,6 +65,9 @@ def send_price_alert(bookings_data: List[Dict]) -> bool:
             print("Sending email...")
             server.send_message(msg)
             print("✅ Email sent successfully!")
+        
+        supabase = SupabaseClient()
+        supabase.store_price_check(bookings_data)
         
         return True
         
