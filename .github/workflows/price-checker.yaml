@@ -289,6 +289,8 @@ jobs:
         SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
         SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
         RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       run: |
         # Create screenshots directory
         mkdir -p screenshots
@@ -336,6 +338,12 @@ jobs:
         
         # Run price checker
         python main.py 
+    - name: Update Supabase
+      if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
+      run: python supabase_updater.py
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
     - name: Commit and push changes
       if: github.event.inputs.action == 'add-booking' || github.event.inputs.action == 'update-holding-prices' || github.event.inputs.action == 'delete-booking'
       run: |
