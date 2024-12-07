@@ -40,17 +40,96 @@ data/
 *.sqlite3
 
 # Logs
+logs
 *.log
-selenium.log
-logs/
-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# IDE
-.idea/
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build directories
+dist/
+build/
+.tmp/
+.out/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directories
+coverage/
+.nyc_output/
+
+# IDEs and editors
 .vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*.local
+
+# Test artifacts
+test-results/
+test-output/
+
+# npm specific
+package-lock.json
+yarn.lock
+.npm/
+.eslintcache
+.stylelintcache
+*.tgz
+
+# TypeScript
+*.tsbuildinfo
+.yarn-integrity
+
+# Project bundler artifacts
+.parcel-cache/
+.next/
+out/
+
+# React Native
+.expo/
+*.expo/*
+expo-debug/
+
+# Svelte
+.svelte-kit/
+
+# Angular
+.angular/
+.angular-cache/
+
+# Misc
 *.swp
 *.swo
+*.bak
+*.orig
 
-# System
-.DS_STORE
-node_modules
+# MacOS
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
