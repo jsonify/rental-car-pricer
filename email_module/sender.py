@@ -22,7 +22,7 @@ def send_price_alert(bookings_data: List[Dict]) -> bool:
 
         # Initialize Supabase client only if credentials are available
         supabase = None
-        if os.getenv('SUPABASE_URL') and os.getenv('SUPABASE_KEY'):
+        if os.getenv('SUPABASE_URL') and os.getenv('SUPABASE_SERVICE_KEY'):
             try:
                 supabase = get_supabase_client()
             except Exception as e:

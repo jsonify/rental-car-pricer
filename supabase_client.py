@@ -9,12 +9,12 @@ class SupabaseClient:
         """Initialize Supabase client with environment variables"""
         if not SupabaseClient._instance:
             supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_KEY')  # Changed from SUPABASE_SERVICE_KEY
+            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # Changed to SUPABASE_SERVICE_KEY
             
             if not supabase_url or not supabase_key:
                 raise ValueError(
                     "Missing Supabase credentials. Please ensure SUPABASE_URL and "
-                    "SUPABASE_KEY are set in your environment variables."
+                    "SUPABASE_SERVICE_KEY are set in your environment variables."
                 )
             
             SupabaseClient._instance = create_client(supabase_url, supabase_key)
