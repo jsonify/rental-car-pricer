@@ -1,40 +1,43 @@
-from supabase import create_client
+from supabase import create_client, Client
 import os
-from typing import Dict, List
-from datetime import datetime
+from typing import Optional
 
 class SupabaseClient:
+    _instance: Optional[Client] = None
+
     def __init__(self):
-        self.supabase = create_client(
-            os.getenv('SUPABASE_URL'),
-            os.getenv('SUPABASE_KEY')
-        )
+        """Initialize Supabase client with environment variables"""
+        if not SupabaseClient._instance:
+            supabase_url = os.getenv('SUPABASE_URL')
+            supabase_key = os.getenv('SUPABASE_KEY')  # Changed from SUPABASE_SERVICE_KEY
+            
+            if not supabase_url or not supabase_key:
+                raise ValueError(
+                    "Missing Supabase credentials. Please ensure SUPABASE_URL and "
+                    "SUPABASE_KEY are set in your environment variables."
+                )
+            
+            SupabaseClient._instance = create_client(supabase_url, supabase_key)
+    
+    @property
+    def client(self) -> Client:
+        """Get the Supabase client instance"""
+        if not SupabaseClient._instance:
+            raise RuntimeError("Supabase client not initialized")
+        return SupabaseClient._instance
 
-    def store_price_check(self, bookings_data: List[Dict]) -> bool:
-        """Store price check results in Supabase"""
-        try:
-            for booking_data in bookings_data:
-                booking = booking_data['booking']
-                prices = booking_data['prices']
-                trends = booking_data.get('trends', {})
+    def get_bookings(self):
+        """Fetch all active bookings"""
+        return self.client.table('bookings').select('*').eq('active', True).execute()
 
-                # Format data for Supabase
-                price_record = {
-                    'location': booking['location'],
-                    'pickup_date': booking['pickup_date'],
-                    'dropoff_date': booking['dropoff_date'],
-                    'focus_category': booking['focus_category'],
-                    'current_price': prices.get(booking['focus_category']),
-                    'holding_price': booking.get('holding_price'),
-                    'all_prices': prices,
-                    'trends': trends,
-                    'checked_at': datetime.now().isoformat()
-                }
+    def update_price_history(self, booking_id: str, price_data: dict):
+        """Insert a new price history record"""
+        return self.client.table('price_histories').insert(price_data).execute()
 
-                # Insert into Supabase
-                self.supabase.table('price_checks').insert(price_record).execute()
-
-            return True
-        except Exception as e:
-            print(f"Error storing in Supabase: {str(e)}")
-            return False
+# Helper function to get a configured client
+def get_supabase_client() -> SupabaseClient:
+    try:
+        return SupabaseClient()
+    except Exception as e:
+        print(f"Error initializing Supabase client: {str(e)}")
+        raise

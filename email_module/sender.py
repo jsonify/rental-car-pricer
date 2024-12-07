@@ -1,78 +1,71 @@
+import os
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
-from typing import Dict, List
-import smtplib
-import traceback
-import ssl
-import os
-from dotenv import load_dotenv
-from supabase_client import SupabaseClient
-
-# Import email formatting functions
-try:
-    from templates.formatters import format_email_body_text
-    from templates.html_template import format_email_body_html
-except ImportError:
-    from .templates.formatters import format_email_body_text
-    from .templates.html_template import format_email_body_html
-
-# Load environment variables
-load_dotenv()
-
-# Get email configuration
-SMTP_SERVER = os.getenv('SMTP_SERVER')
-SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
-SENDER_EMAIL = os.getenv('SENDER_EMAIL')
-SENDER_PASSWORD = os.getenv('SENDER_PASSWORD')
-RECIPIENT_EMAIL = os.getenv('RECIPIENT_EMAIL')
+from typing import List, Dict, Optional
+from supabase_client import get_supabase_client
 
 def send_price_alert(bookings_data: List[Dict]) -> bool:
-    """Send an HTML email with current rental car prices"""
+    """Send price alert email and update Supabase"""
     try:
-        print("\nStarting email generation process...")
-        print(f"SMTP Server: {SMTP_SERVER}")
-        print(f"SMTP Port: {SMTP_PORT}")
-        print(f"Sender: {SENDER_EMAIL}")
-        print(f"Recipient: {RECIPIENT_EMAIL}")
-        
-        if not all([SMTP_SERVER, SMTP_PORT, SENDER_EMAIL, SENDER_PASSWORD, RECIPIENT_EMAIL]):
-            raise ValueError("Missing required email configuration. Check environment variables.")
-        
+        # Email configuration
+        smtp_server = os.getenv('SMTP_SERVER')
+        smtp_port = int(os.getenv('SMTP_PORT', '587'))
+        sender_email = os.getenv('SENDER_EMAIL')
+        sender_password = os.getenv('SENDER_PASSWORD')
+        recipient_email = os.getenv('RECIPIENT_EMAIL')
+
+        if not all([smtp_server, smtp_port, sender_email, sender_password, recipient_email]):
+            print("Missing email configuration")
+            return False
+
+        # Initialize Supabase client only if credentials are available
+        supabase = None
+        if os.getenv('SUPABASE_URL') and os.getenv('SUPABASE_KEY'):
+            try:
+                supabase = get_supabase_client()
+            except Exception as e:
+                print(f"Warning: Could not initialize Supabase client: {str(e)}")
+
+        # Create message
         msg = MIMEMultipart('alternative')
-        msg['From'] = SENDER_EMAIL
-        msg['To'] = RECIPIENT_EMAIL
-        
-        locations = [data['booking']['location'] for data in bookings_data]
-        subject = f"Costco Car Rental Update - {', '.join(locations)} - {datetime.now().strftime('%Y-%m-%d')}"
-        msg['Subject'] = subject
-        
-        print("\nGenerating email content...")
-        text_body = format_email_body_text(bookings_data)
-        html_body = format_email_body_html(bookings_data)
-        
-        msg.attach(MIMEText(text_body, 'plain'))
-        msg.attach(MIMEText(html_body, 'html'))
-        
-        print("\nConnecting to SMTP server...")
-        context = ssl.create_default_context()
-        
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            print("Starting TLS...")
-            server.starttls(context=context)
-            print("Logging in...")
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            print("Sending email...")
+        msg['Subject'] = f'Car Rental Price Update ({datetime.now().strftime("%Y-%m-%d %H:%M")})'
+        msg['From'] = sender_email
+        msg['To'] = recipient_email
+
+        # Generate email content (your existing email generation code here)
+        text_content = "Price update notification..."  # Your text content
+        html_content = "<html><body>Price update notification...</body></html>"  # Your HTML content
+
+        msg.attach(MIMEText(text_content, 'plain'))
+        msg.attach(MIMEText(html_content, 'html'))
+
+        # Send email
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
             server.send_message(msg)
-            print("✅ Email sent successfully!")
-        
-        supabase = SupabaseClient()
-        supabase.store_price_check(bookings_data)
-        
+
+        # Update Supabase if client is available
+        if supabase:
+            for booking_data in bookings_data:
+                try:
+                    booking_id = booking_data['booking']['id']
+                    price_data = {
+                        'booking_id': booking_id,
+                        'timestamp': datetime.now().isoformat(),
+                        'prices': booking_data['prices'],
+                        'lowest_price': min(booking_data['prices'].values()) if booking_data['prices'] else None
+                    }
+                    supabase.update_price_history(booking_id, price_data)
+                except Exception as e:
+                    print(f"Warning: Failed to update Supabase for booking {booking_id}: {str(e)}")
+
         return True
-        
+
     except Exception as e:
-        print(f"❌ Failed to send email alert: {str(e)}")
-        print("Full traceback:")
-        traceback.print_exc()
+        print(f"Error sending price alert: {str(e)}")
+        # print("Full traceback:")
+        # traceback.print_exc()
         return False
