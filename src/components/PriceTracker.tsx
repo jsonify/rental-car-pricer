@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase, type Booking, type PriceHistory } from '../lib/supabase';
+import { createSupabaseClient } from '@/lib/supabase'
 import { DataGrid } from './DataGrid';
 import { Chart } from './Chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
+import { TestControls } from './TestControls';
+import { isDevelopment } from '@/lib/environment';
+import { useEnvironment } from '@/contexts/EnvironmentContext'
 
 const formatPrice = (price: number) => `$${price.toFixed(2)}`;
 
@@ -21,16 +25,17 @@ export const PriceTracker = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const { isTestEnvironment } = useEnvironment()
+  const supabase = createSupabaseClient(isTestEnvironment)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch active bookings
         const { data: bookingsData, error: bookingsError } = await supabase
           .from('bookings')
           .select('*')
           .eq('active', true)
-          .order('pickup_date', { ascending: true });
+          .order('pickup_date', { ascending: true })
 
         if (bookingsError) throw bookingsError;
 
@@ -81,7 +86,7 @@ export const PriceTracker = () => {
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isTestEnvironment])
 
   if (loading) {
     return (
@@ -102,6 +107,7 @@ export const PriceTracker = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
+      {isDevelopment && <TestControls />}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Car Rental Price Monitor</h1>
           {lastUpdated && (
