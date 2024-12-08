@@ -65,18 +65,19 @@ export const PriceTracker = () => {
           setBookings(bookingsWithHistory)
           setLastUpdated(new Date().toISOString())
         } else {
-          // Supabase fetch logic
+          // Fetch bookings with holding price history
           const { data: bookingsData, error: bookingsError } = await supabase
             .from('bookings')
             .select('*')
             .eq('active', true)
-            .order('pickup_date', { ascending: true })
+            .order('pickup_date', { ascending: true });
     
           if (bookingsError) throw bookingsError;
     
-          // Fetch price histories for all bookings
+          // Fetch data for each booking
           const bookingsWithHistory = await Promise.all(
             bookingsData.map(async (booking) => {
+              // Fetch price histories
               const { data: priceHistories, error: historiesError } = await supabase
                 .from('price_histories')
                 .select('*')
@@ -84,6 +85,15 @@ export const PriceTracker = () => {
                 .order('created_at', { ascending: true });
     
               if (historiesError) throw historiesError;
+    
+              // Fetch holding price histories
+              const { data: holdingPriceHistory, error: holdingError } = await supabase
+                .from('holding_price_histories')
+                .select('*')
+                .eq('booking_id', booking.id)
+                .order('effective_from', { ascending: true });
+    
+              if (holdingError) throw holdingError;
     
               const latestHistory = priceHistories[priceHistories.length - 1];
               const previousHistory = priceHistories[priceHistories.length - 2];
@@ -98,6 +108,7 @@ export const PriceTracker = () => {
               return {
                 ...booking,
                 price_history: priceHistories,
+                holding_price_history: holdingPriceHistory,
                 latestPrice,
                 previousPrice,
                 potentialSavings,
@@ -111,12 +122,12 @@ export const PriceTracker = () => {
           setLastUpdated(new Date().toISOString());
         }
       } catch (err) {
-        console.error('Error fetching data:', err)
-        setError(err instanceof Error ? err.message : 'An error occurred')
+        console.error('Error fetching data:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
   
     fetchData()
     const interval = setInterval(fetchData, 30000)

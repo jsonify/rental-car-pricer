@@ -10,36 +10,37 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-interface PriceRecord {
-  timestamp: string;
-  prices: {
-    [key: string]: number;
-  };
-}
-
-interface Booking {
-  id: string;
-  location: string;
-  location_full_name: string;
-  pickup_date: string;
-  dropoff_date: string;
-  focus_category: string;
-  price_history: PriceRecord[];
-  holding_price?: number;
-}
-
-interface ChartProps {
-  booking: Booking;
-}
-
-export const Chart = ({ booking }: ChartProps) => {
+export const Chart = ({ booking }) => {
   const chartData = useMemo(() => {
     if (!booking?.price_history) return [];
 
-    return booking.price_history.map((record) => ({
+    // Convert holding price history into a lookup map
+    const holdingPrices = new Map();
+    
+    // If we have holding price history in the booking
+    if (booking.holding_price_history) {
+      booking.holding_price_history.forEach(history => {
+        // Get dates as timestamps for comparison
+        const startDate = new Date(history.effective_from).getTime();
+        const endDate = history.effective_to ? new Date(history.effective_to).getTime() : new Date().getTime();
+        
+        // For each price history entry
+        booking.price_history.forEach(record => {
+          const recordDate = new Date(record.timestamp).getTime();
+          // If the record falls within this holding price's effective period
+          if (recordDate >= startDate && recordDate <= endDate) {
+            holdingPrices.set(record.timestamp, history.price);
+          }
+        });
+      });
+    }
+
+    // Map the price history with corresponding holding prices
+    return booking.price_history.map(record => ({
       timestamp: record.timestamp,
       price: record.prices?.[booking.focus_category] || 0,
-      holdingPrice: booking.holding_price || 0
+      // Use the mapped holding price or fall back to current holding price
+      holdingPrice: holdingPrices.get(record.timestamp) || booking.holding_price || 0
     }));
   }, [booking]);
 
@@ -67,8 +68,13 @@ export const Chart = ({ booking }: ChartProps) => {
             fontSize={12}
           />
           <Tooltip
-            formatter={(value: number) => [`$${value.toFixed(2)}`, '']}
-            contentStyle={{ backgroundColor: 'white', borderRadius: '8px' }}
+            formatter={(value) => [`$${value.toFixed(2)}`, '']}
+            contentStyle={{ 
+              backgroundColor: 'white', 
+              borderRadius: '8px',
+              padding: '8px',
+              border: '1px solid #e5e7eb'
+            }}
           />
           <Legend />
           <Line
@@ -81,16 +87,18 @@ export const Chart = ({ booking }: ChartProps) => {
             activeDot={{ r: 6 }}
           />
           <Line
-            type="monotone"
+            type="step"
             dataKey="holdingPrice"
             name="Holding Price"
             stroke="#dc2626"
             strokeWidth={2}
             strokeDasharray="5 5"
-            dot={false}
+            dot={{ r: 3 }}
           />
         </LineChart>
       </ResponsiveContainer>
     </div>
   );
 };
+
+export default Chart;

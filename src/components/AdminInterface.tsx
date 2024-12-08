@@ -1,16 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
 import { githubActions } from '@/lib/github-actions'
+import { createSupabaseClient } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select"
 import { 
   Dialog,
   DialogContent,
@@ -20,14 +14,17 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, RefreshCw } from 'lucide-react'
+import {HoldingPricesDialog} from './HoldingPricesDialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function AdminInterface() {
   const { isTestEnvironment } = useEnvironment()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const [workflowStatus, setWorkflowStatus] = useState<string>('unknown')
+  const [workflowStatus, setWorkflowStatus] = useState('unknown')
+  const [bookings, setBookings] = useState([])
   
-  // Separate dialog states
+  // Dialog states
   const [addBookingOpen, setAddBookingOpen] = useState(false)
   const [updatePricesOpen, setUpdatePricesOpen] = useState(false)
   const [deleteBookingOpen, setDeleteBookingOpen] = useState(false)
@@ -40,90 +37,79 @@ export function AdminInterface() {
     holding_price: ''
   })
 
-  const [holdingPrices, setHoldingPrices] = useState({
-    booking1: '',
-    booking2: '',
-    booking3: ''
-  })
-
   const [bookingToDelete, setBookingToDelete] = useState('')
 
-  const handleAction = async (action: string) => {
+  // Initialize Supabase client
+  const supabase = createSupabaseClient(isTestEnvironment)
+
+  // Fetch bookings
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        if (isTestEnvironment) {
+          // Get data from mock store
+          const mockStore = githubActions.getMockStore()
+          setBookings(mockStore.bookings)
+        } else {
+          // Get data from Supabase
+          const { data, error } = await supabase
+            .from('bookings')
+            .select('*')
+            .eq('active', true)
+            .order('created_at', { ascending: true })
+
+          if (error) throw error
+          setBookings(data || [])
+        }
+      } catch (error) {
+        console.error('Error fetching bookings:', error)
+        setMessage('Failed to load bookings')
+      }
+    }
+
+    fetchBookings()
+  }, [isTestEnvironment])
+
+  const handleAction = async (action, inputs = {}) => {
     setLoading(true)
     setMessage('')
     setWorkflowStatus('pending')
     
     try {
-      let inputs = {}
-      
-      switch (action) {
-        case 'add-booking':
-          inputs = {
-            new_booking_location: newBooking.location,
-            new_booking_pickup_date: newBooking.pickup_date,
-            new_booking_dropoff_date: newBooking.dropoff_date,
-            new_booking_category: newBooking.category,
-            new_booking_holding_price: newBooking.holding_price
-          }
-          setAddBookingOpen(false)
-          break
-          
-        case 'update-holding-prices':
-          inputs = {
-            booking_1_price: holdingPrices.booking1,
-            booking_2_price: holdingPrices.booking2,
-            booking_3_price: holdingPrices.booking3
-          }
-          setUpdatePricesOpen(false)
-          break
-          
-        case 'delete-booking':
-          inputs = {
-            booking_to_delete: bookingToDelete
-          }
-          setDeleteBookingOpen(false)
-          break
-      }
-  
-      const result = await githubActions.triggerWorkflow(action, inputs)
-      
-      if (result.success) {
-        setMessage(isTestEnvironment ? 
-          `Mock ${action} completed successfully` : 
-          'Action started. Checking status...'
-        )
-  
-        // Reset form data
-        switch (action) {
-          case 'add-booking':
-            setNewBooking({
-              location: '',
-              pickup_date: '',
-              dropoff_date: '',
-              category: '',
-              holding_price: ''
-            })
-            break
-            
-          case 'update-holding-prices':
-            setHoldingPrices({
-              booking1: '',
-              booking2: '',
-              booking3: ''
-            })
-            break
-            
-          case 'delete-booking':
-            setBookingToDelete('')
-            break
-        }
-  
-        if (isTestEnvironment) {
+      if (isTestEnvironment) {
+        const result = await githubActions.triggerWorkflow(action, inputs)
+        if (result.success) {
+          setMessage('Mock action completed successfully')
           window.location.reload()
         }
+      } else {
+        // Handle production actions
+        switch (action) {
+          case 'update-holding-prices':
+            // Update each booking's holding price in Supabase
+            for (const [key, value] of Object.entries(inputs)) {
+              if (value) {
+                const bookingIndex = parseInt(key.replace('booking_', '')) - 1
+                const booking = bookings[bookingIndex]
+                if (booking) {
+                  const { error } = await supabase
+                    .from('bookings')
+                    .update({ holding_price: parseFloat(value) })
+                    .eq('id', booking.id)
+
+                  if (error) throw error
+                }
+              }
+            }
+            setMessage('Holding prices updated successfully')
+            window.location.reload()
+            break
+
+          // ... handle other actions ...
+        }
       }
-      
     } catch (error) {
+      console.error('Error:', error)
       setMessage(error instanceof Error ? error.message : 'An error occurred')
     } finally {
       setLoading(false)
@@ -143,6 +129,7 @@ export function AdminInterface() {
           )}
         </CardTitle>
       </CardHeader>
+
       <CardContent className="flex flex-col gap-4">
         {/* Check Prices Button */}
         <Button 
@@ -154,11 +141,41 @@ export function AdminInterface() {
           Check Current Prices {isTestEnvironment && '(Mock)'}
         </Button>
 
+        {/* Add Booking Button */}
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={() => setAddBookingOpen(true)}
+        >
+          Add New Booking
+        </Button>
+
+        {/* Update Prices Button */}
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={() => setUpdatePricesOpen(true)}
+        >
+          Update Holding Prices
+        </Button>
+
+        {/* Delete Booking Button */}
+        <Button 
+          variant="destructive" 
+          className="w-full" 
+          onClick={() => setDeleteBookingOpen(true)}
+        >
+          Delete Booking
+        </Button>
+
+        {message && (
+          <Alert>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Add Booking Dialog */}
         <Dialog open={addBookingOpen} onOpenChange={setAddBookingOpen}>
-          <Button variant="outline" className="w-full" onClick={() => setAddBookingOpen(true)}>
-            Add New Booking
-          </Button>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Booking</DialogTitle>
@@ -194,7 +211,13 @@ export function AdminInterface() {
                 onChange={(e) => setNewBooking({...newBooking, holding_price: e.target.value})}
               />
               <Button 
-                onClick={() => handleAction('add-booking')}
+                onClick={() => handleAction('add-booking', {
+                  new_booking_location: newBooking.location,
+                  new_booking_pickup_date: newBooking.pickup_date,
+                  new_booking_dropoff_date: newBooking.dropoff_date,
+                  new_booking_category: newBooking.category,
+                  new_booking_holding_price: newBooking.holding_price
+                })}
                 disabled={loading}
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -204,55 +227,21 @@ export function AdminInterface() {
           </DialogContent>
         </Dialog>
 
-        {/* Update Prices Dialog */}
-        <Dialog open={updatePricesOpen} onOpenChange={setUpdatePricesOpen}>
-          <Button variant="outline" className="w-full" onClick={() => setUpdatePricesOpen(true)}>
-            Update Holding Prices
-          </Button>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Update Holding Prices</DialogTitle>
-              <DialogDescription>Enter new holding prices for your bookings.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <Input
-                type="number"
-                placeholder="Booking 1 new price"
-                value={holdingPrices.booking1}
-                onChange={(e) => setHoldingPrices({...holdingPrices, booking1: e.target.value})}
-              />
-              <Input
-                type="number"
-                placeholder="Booking 2 new price"
-                value={holdingPrices.booking2}
-                onChange={(e) => setHoldingPrices({...holdingPrices, booking2: e.target.value})}
-              />
-              <Input
-                type="number"
-                placeholder="Booking 3 new price"
-                value={holdingPrices.booking3}
-                onChange={(e) => setHoldingPrices({...holdingPrices, booking3: e.target.value})}
-              />
-              <Button 
-                onClick={() => handleAction('update-holding-prices')}
-                disabled={loading}
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Update Holding Prices
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Holding Prices Dialog */}
+        <HoldingPricesDialog
+          open={updatePricesOpen}
+          onOpenChange={setUpdatePricesOpen}
+          bookings={bookings}
+          onSubmit={(prices) => handleAction('update-holding-prices', {
+            booking_1_price: prices.booking1,
+            booking_2_price: prices.booking2,
+            booking_3_price: prices.booking3
+          })}
+          loading={loading}
+        />
 
         {/* Delete Booking Dialog */}
         <Dialog open={deleteBookingOpen} onOpenChange={setDeleteBookingOpen}>
-          <Button 
-            variant="destructive" 
-            className="w-full"
-            onClick={() => setDeleteBookingOpen(true)}
-          >
-            Delete Booking
-          </Button>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Booking</DialogTitle>
@@ -264,14 +253,18 @@ export function AdminInterface() {
                   <SelectValue placeholder="Select booking to delete" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">Booking 1</SelectItem>
-                  <SelectItem value="2">Booking 2</SelectItem>
-                  <SelectItem value="3">Booking 3</SelectItem>
+                  {bookings.map((booking, index) => (
+                    <SelectItem key={booking.id} value={(index + 1).toString()}>
+                      {booking.location}: {booking.pickup_date} to {booking.dropoff_date}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button 
-                onClick={() => handleAction('delete-booking')}
-                disabled={loading}
+                onClick={() => handleAction('delete-booking', {
+                  booking_to_delete: bookingToDelete
+                })}
+                disabled={loading || !bookingToDelete}
                 variant="destructive"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -280,12 +273,6 @@ export function AdminInterface() {
             </div>
           </DialogContent>
         </Dialog>
-
-        {message && (
-          <Alert>
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        )}
       </CardContent>
     </Card>
   )
