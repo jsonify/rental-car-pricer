@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
 import { githubActions } from '@/lib/github-actions'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,7 +17,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, RefreshCw } from 'lucide-react'
@@ -26,8 +25,12 @@ export function AdminInterface() {
   const { isTestEnvironment } = useEnvironment()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [workflowStatus, setWorkflowStatus] = useState<string>('unknown')
+  
+  // Separate dialog states
+  const [addBookingOpen, setAddBookingOpen] = useState(false)
+  const [updatePricesOpen, setUpdatePricesOpen] = useState(false)
+  const [deleteBookingOpen, setDeleteBookingOpen] = useState(false)
 
   const [newBooking, setNewBooking] = useState({
     location: '',
@@ -45,81 +48,7 @@ export function AdminInterface() {
 
   const [bookingToDelete, setBookingToDelete] = useState('')
 
-  // Poll workflow status - only in production mode
-  useEffect(() => {
-    let intervalId: number
-
-    if (loading && !isTestEnvironment) {
-      intervalId = window.setInterval(async () => {
-        const status = await githubActions.getWorkflowStatus()
-        setWorkflowStatus(status)
-        
-        if (status === 'completed') {
-          setLoading(false)
-          setMessage('Action completed successfully')
-        } else if (status === 'failed') {
-          setLoading(false)
-          setMessage('Action failed. Check GitHub Actions for details.')
-        }
-      }, 5000)
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId)
-    }
-  }, [loading, isTestEnvironment])
-
   const handleAction = async (action: string) => {
-    // If in test mode, handle mock actions
-    if (isTestEnvironment) {
-      setLoading(true)
-      setMessage('')
-      setWorkflowStatus('pending')
-
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      if (action === 'check-prices') {
-        // Mock successful price check
-        setWorkflowStatus('completed')
-        setMessage('Mock price check completed successfully')
-      } else if (action === 'add-booking') {
-        // Handle mock add booking
-        setWorkflowStatus('completed')
-        setMessage('Mock booking added successfully')
-        setDialogOpen(false)
-        // Reset form
-        setNewBooking({
-          location: '',
-          pickup_date: '',
-          dropoff_date: '',
-          category: '',
-          holding_price: ''
-        })
-      } else if (action === 'update-holding-prices') {
-        // Handle mock price updates
-        setWorkflowStatus('completed')
-        setMessage('Mock holding prices updated successfully')
-        setDialogOpen(false)
-        // Reset form
-        setHoldingPrices({
-          booking1: '',
-          booking2: '',
-          booking3: ''
-        })
-      } else if (action === 'delete-booking') {
-        // Handle mock deletion
-        setWorkflowStatus('completed')
-        setMessage('Mock booking deleted successfully')
-        setDialogOpen(false)
-        setBookingToDelete('')
-      }
-
-      setLoading(false)
-      return
-    }
-
-    // Production mode
     setLoading(true)
     setMessage('')
     setWorkflowStatus('pending')
@@ -136,6 +65,7 @@ export function AdminInterface() {
             new_booking_category: newBooking.category,
             new_booking_holding_price: newBooking.holding_price
           }
+          setAddBookingOpen(false)
           break
           
         case 'update-holding-prices':
@@ -144,41 +74,59 @@ export function AdminInterface() {
             booking_2_price: holdingPrices.booking2,
             booking_3_price: holdingPrices.booking3
           }
+          setUpdatePricesOpen(false)
           break
           
         case 'delete-booking':
           inputs = {
             booking_to_delete: bookingToDelete
           }
+          setDeleteBookingOpen(false)
           break
       }
-
-      await githubActions.triggerWorkflow(action, inputs)
-      setMessage('Action started. Checking status...')
-      setDialogOpen(false)
-
-      // Reset form data
-      if (action === 'add-booking') {
-        setNewBooking({
-          location: '',
-          pickup_date: '',
-          dropoff_date: '',
-          category: '',
-          holding_price: ''
-        })
-      } else if (action === 'update-holding-prices') {
-        setHoldingPrices({
-          booking1: '',
-          booking2: '',
-          booking3: ''
-        })
-      } else if (action === 'delete-booking') {
-        setBookingToDelete('')
+  
+      const result = await githubActions.triggerWorkflow(action, inputs)
+      
+      if (result.success) {
+        setMessage(isTestEnvironment ? 
+          `Mock ${action} completed successfully` : 
+          'Action started. Checking status...'
+        )
+  
+        // Reset form data
+        switch (action) {
+          case 'add-booking':
+            setNewBooking({
+              location: '',
+              pickup_date: '',
+              dropoff_date: '',
+              category: '',
+              holding_price: ''
+            })
+            break
+            
+          case 'update-holding-prices':
+            setHoldingPrices({
+              booking1: '',
+              booking2: '',
+              booking3: ''
+            })
+            break
+            
+          case 'delete-booking':
+            setBookingToDelete('')
+            break
+        }
+  
+        if (isTestEnvironment) {
+          window.location.reload()
+        }
       }
       
     } catch (error) {
-      setLoading(false)
       setMessage(error instanceof Error ? error.message : 'An error occurred')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -197,22 +145,20 @@ export function AdminInterface() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {/* Check Prices Button */}
-        <div>
-          <Button 
-            onClick={() => handleAction('check-prices')}
-            disabled={loading}
-            className="w-full"
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Check Current Prices {isTestEnvironment && '(Mock)'}
-          </Button>
-        </div>
+        <Button 
+          onClick={() => handleAction('check-prices')}
+          disabled={loading}
+          className="w-full"
+        >
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Check Current Prices {isTestEnvironment && '(Mock)'}
+        </Button>
 
-        {/* Add Booking Section */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="w-full">Add New Booking</Button>
-          </DialogTrigger>
+        {/* Add Booking Dialog */}
+        <Dialog open={addBookingOpen} onOpenChange={setAddBookingOpen}>
+          <Button variant="outline" className="w-full" onClick={() => setAddBookingOpen(true)}>
+            Add New Booking
+          </Button>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Booking</DialogTitle>
@@ -258,11 +204,11 @@ export function AdminInterface() {
           </DialogContent>
         </Dialog>
 
-        {/* Update Prices Section */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="w-full">Update Holding Prices</Button>
-          </DialogTrigger>
+        {/* Update Prices Dialog */}
+        <Dialog open={updatePricesOpen} onOpenChange={setUpdatePricesOpen}>
+          <Button variant="outline" className="w-full" onClick={() => setUpdatePricesOpen(true)}>
+            Update Holding Prices
+          </Button>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Update Holding Prices</DialogTitle>
@@ -298,11 +244,15 @@ export function AdminInterface() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Booking Section */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="destructive" className="w-full">Delete Booking</Button>
-          </DialogTrigger>
+        {/* Delete Booking Dialog */}
+        <Dialog open={deleteBookingOpen} onOpenChange={setDeleteBookingOpen}>
+          <Button 
+            variant="destructive" 
+            className="w-full"
+            onClick={() => setDeleteBookingOpen(true)}
+          >
+            Delete Booking
+          </Button>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete Booking</DialogTitle>
