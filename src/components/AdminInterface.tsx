@@ -1,6 +1,5 @@
-// src/components/AdminInterface.tsx
-import { useState } from 'react'
-import { adminApi } from '@/lib/api-handler'
+import { useState, useEffect } from 'react'
+import { githubActions } from '@/lib/github-actions'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,12 +19,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from 'lucide-react'
+import { Loader2, RefreshCw } from 'lucide-react'
 
 export function AdminInterface() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [workflowStatus, setWorkflowStatus] = useState<string>('unknown')
 
   const [newBooking, setNewBooking] = useState({
     location: '',
@@ -43,56 +43,105 @@ export function AdminInterface() {
 
   const [bookingToDelete, setBookingToDelete] = useState('')
 
+  // Poll workflow status
+  useEffect(() => {
+    let intervalId: number
+
+    if (loading) {
+      intervalId = window.setInterval(async () => {
+        const status = await githubActions.getWorkflowStatus()
+        setWorkflowStatus(status)
+        
+        if (status === 'completed') {
+          setLoading(false)
+          setMessage('Action completed successfully')
+        } else if (status === 'failed') {
+          setLoading(false)
+          setMessage('Action failed. Check GitHub Actions for details.')
+        }
+      }, 5000)
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [loading])
+
   const handleAction = async (action: string) => {
     setLoading(true)
     setMessage('')
+    setWorkflowStatus('pending')
     
     try {
-      let result;
+      let inputs = {}
       
       switch (action) {
-        case 'check-prices':
-          result = await adminApi.checkPrices()
-          break
         case 'add-booking':
-          result = await adminApi.addBooking(newBooking)
-          setNewBooking({
-            location: '',
-            pickup_date: '',
-            dropoff_date: '',
-            category: '',
-            holding_price: ''
-          })
-          setDialogOpen(false)
+          inputs = {
+            new_booking_location: newBooking.location,
+            new_booking_pickup_date: newBooking.pickup_date,
+            new_booking_dropoff_date: newBooking.dropoff_date,
+            new_booking_category: newBooking.category,
+            new_booking_holding_price: newBooking.holding_price
+          }
           break
+          
         case 'update-holding-prices':
-          result = await adminApi.updateHoldingPrices(holdingPrices)
-          setHoldingPrices({
-            booking1: '',
-            booking2: '',
-            booking3: ''
-          })
-          setDialogOpen(false)
+          inputs = {
+            booking_1_price: holdingPrices.booking1,
+            booking_2_price: holdingPrices.booking2,
+            booking_3_price: holdingPrices.booking3
+          }
           break
+          
         case 'delete-booking':
-          result = await adminApi.deleteBooking(bookingToDelete)
-          setBookingToDelete('')
-          setDialogOpen(false)
+          inputs = {
+            booking_to_delete: bookingToDelete
+          }
           break
       }
 
-      setMessage(result.message)
+      await githubActions.triggerWorkflow(action, inputs)
+      setMessage('Action started. Checking status...')
+      setDialogOpen(false)
+
+      // Reset form data
+      if (action === 'add-booking') {
+        setNewBooking({
+          location: '',
+          pickup_date: '',
+          dropoff_date: '',
+          category: '',
+          holding_price: ''
+        })
+      } else if (action === 'update-holding-prices') {
+        setHoldingPrices({
+          booking1: '',
+          booking2: '',
+          booking3: ''
+        })
+      } else if (action === 'delete-booking') {
+        setBookingToDelete('')
+      }
+      
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'An error occurred')
-    } finally {
       setLoading(false)
+      setMessage(error instanceof Error ? error.message : 'An error occurred')
     }
   }
 
   return (
     <Card className="w-full max-w-4xl mx-auto mt-8">
       <CardHeader>
-        <CardTitle>Admin Controls</CardTitle>
+        <CardTitle className="flex justify-between items-center">
+          <span>Admin Controls</span>
+          {workflowStatus !== 'unknown' && (
+            <div className="text-sm font-normal">
+              Status: {workflowStatus}
+              {loading && <RefreshCw className="ml-2 h-4 w-4 animate-spin inline" />}
+            </div>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {/* Check Prices Button */}
