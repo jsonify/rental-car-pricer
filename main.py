@@ -489,8 +489,9 @@ def run_price_checks(tracker, active_bookings):
         
         # Send alerts only if there are significant price drops
         if bookings_data:
-            alert_result = alert_service.process_alerts(bookings_data)
-            if not alert_result:
+            if alert_service.send_alerts(bookings_data):
+                print("\n📧 Price alert email sent successfully!")
+            else:
                 print("\n❌ Failed to send price alert email")
         
     except Exception as e:
