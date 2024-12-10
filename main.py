@@ -489,63 +489,8 @@ def run_price_checks(tracker, active_bookings):
         
         # Send alerts only if there are significant price drops
         if bookings_data:
-            if alert_service.send_alerts(bookings_data):
-                print("\n📧 Price alert email sent successfully!")
-            else:
-                print("\n❌ Failed to send price alert email")
-        
-    except Exception as e:
-        print(f"\n❌ An error occurred: {str(e)}")
-        traceback.print_exc()
-    finally:
-        print("\n🔄 Closing browser...")
-        driver.quit()
-    """Run price checks for all active bookings"""
-    driver = setup_driver(headless=True)
-    
-    # Clean up expired bookings
-    deleted_bookings = tracker.cleanup_expired_bookings()
-    if deleted_bookings:
-        print("\n🧹 Cleaned up expired bookings:")
-        for booking_id in deleted_bookings:
-            print(f"  - {booking_id}")
-    
-    try:
-        bookings_data = []
-        
-        # Process each booking
-        for booking in active_bookings:
-            prices = process_booking(driver, booking)
-            
-            if prices:
-                # Generate booking ID
-                booking_id = f"{booking['location']}_{booking['pickup_date']}_{booking['dropoff_date']}".replace("/", "")
-                
-                # Update price history
-                tracker.update_prices(booking_id, prices)
-                
-                # Get price trends
-                trends = tracker.get_price_trends(booking_id)
-                
-                # Add to bookings data for email
-                bookings_data.append({
-                    'booking': booking,
-                    'prices': prices,
-                    'trends': trends
-                })
-                
-                print(f"\n✅ Prices updated for {booking['location']}")
-            else:
-                print(f"\n❌ Failed to get prices for {booking['location']}")
-            
-            # Wait between bookings
-            time.sleep(random.uniform(2, 4))
-        
-        # Send email with all booking data
-        if bookings_data:
-            if send_price_alert(bookings_data):
-                print("\n📧 Price alert email sent successfully!")
-            else:
+            alert_result = alert_service.process_alerts(bookings_data)
+            if not alert_result:
                 print("\n❌ Failed to send price alert email")
         
     except Exception as e:

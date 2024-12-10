@@ -72,12 +72,12 @@ class PriceAlertService:
         
         return significant_drops
     
-    def send_alerts(self, bookings_data: List[Dict]) -> bool:
+    def process_alerts(self, bookings_data: List[Dict]) -> bool:
         """
         Process bookings and send alerts if significant price drops are found
         
         Returns:
-            bool: True if alerts were sent successfully, False otherwise
+            bool: True if alerts were sent successfully or no alerts needed, False if error
         """
         try:
             # Filter out expired bookings
@@ -90,13 +90,23 @@ class PriceAlertService:
             # Check for significant price drops
             bookings_with_drops = self.check_price_drops(active_bookings)
             
-            if bookings_with_drops:
-                print(f"Sending alerts for {len(bookings_with_drops)} price drops")
-                return send_price_alert(bookings_with_drops)
-            else:
+            if not bookings_with_drops:
                 print("No significant price drops found")
                 return True
+            
+            print(f"Sending alerts for {len(bookings_with_drops)} price drops")
+            alert_sent = send_price_alert(bookings_with_drops)
+            
+            if alert_sent:
+                print("✅ Price alert email sent successfully!")
+            else:
+                print("❌ Failed to send price alert email")
+            
+            return alert_sent
                 
         except Exception as e:
-            print(f"Error sending price alerts: {str(e)}")
+            print(f"Error processing price alerts: {str(e)}")
             return False
+
+    # Alias for backward compatibility
+    send_alerts = process_alerts
