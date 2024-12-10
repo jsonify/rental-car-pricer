@@ -18,6 +18,7 @@ from driver_setup import setup_driver
 from human_simulation import human_like_typing, random_mouse_movement, enter_date
 from price_extractor import extract_lowest_prices
 from email_module import send_price_alert
+from services.price_alert_service import PriceAlertService
 
 def get_available_categories(driver) -> Set[str]:
     """Extract all available vehicle categories from the search results page"""
@@ -434,6 +435,71 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
         return None
 
 def run_price_checks(tracker, active_bookings):
+    """Run price checks for all active bookings"""
+    driver = setup_driver(headless=True)
+    alert_service = PriceAlertService(price_threshold=10.0)  # $10 minimum price drop
+    
+    # Clean up expired bookings
+    deleted_bookings = tracker.cleanup_expired_bookings()
+    if deleted_bookings:
+        print("\n🧹 Cleaned up expired bookings:")
+        for booking_id in deleted_bookings:
+            print(f"  - {booking_id}")
+    
+    try:
+        bookings_data = []
+        
+        # Process each booking
+        for booking in active_bookings:
+            # Skip expired bookings
+            try:
+                dropoff_date = datetime.strptime(booking['dropoff_date'], "%m/%d/%Y").date()
+                if dropoff_date < datetime.now().date():
+                    print(f"Skipping expired booking: {booking['location']} - {booking['dropoff_date']}")
+                    continue
+            except ValueError:
+                print(f"Error parsing date for booking: {booking['location']}")
+                continue
+                
+            prices = process_booking(driver, booking)
+            
+            if prices:
+                # Generate booking ID
+                booking_id = f"{booking['location']}_{booking['pickup_date']}_{booking['dropoff_date']}".replace("/", "")
+                
+                # Update price history
+                tracker.update_prices(booking_id, prices)
+                
+                # Get price trends
+                trends = tracker.get_price_trends(booking_id)
+                
+                # Add to bookings data for email
+                bookings_data.append({
+                    'booking': booking,
+                    'prices': prices,
+                    'trends': trends
+                })
+                
+                print(f"\n✅ Prices updated for {booking['location']}")
+            else:
+                print(f"\n❌ Failed to get prices for {booking['location']}")
+            
+            # Wait between bookings
+            time.sleep(random.uniform(2, 4))
+        
+        # Send alerts only if there are significant price drops
+        if bookings_data:
+            if alert_service.send_alerts(bookings_data):
+                print("\n📧 Price alert email sent successfully!")
+            else:
+                print("\n❌ Failed to send price alert email")
+        
+    except Exception as e:
+        print(f"\n❌ An error occurred: {str(e)}")
+        traceback.print_exc()
+    finally:
+        print("\n🔄 Closing browser...")
+        driver.quit()
     """Run price checks for all active bookings"""
     driver = setup_driver(headless=True)
     
