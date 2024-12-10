@@ -19,6 +19,8 @@ from human_simulation import human_like_typing, random_mouse_movement, enter_dat
 from price_extractor import extract_lowest_prices
 from email_module import send_price_alert
 from services.price_alert_service import PriceAlertService
+from email_module.templates.html_template import format_email_body_html
+from email_module.templates.formatters import format_email_body_text
 
 def get_available_categories(driver) -> Set[str]:
     """Extract all available vehicle categories from the search results page"""

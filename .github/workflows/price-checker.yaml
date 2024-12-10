@@ -399,6 +399,23 @@ jobs:
                     print(f"Error sending price alerts: {str(e)}")
                     return False
         EOL
+    - name: Setup email module structure
+      run: |
+        # Create required directories
+        mkdir -p email_module/templates
+        mkdir -p email_module/styles
+        touch email_module/__init__.py
+        touch email_module/templates/__init__.py
+        touch email_module/styles/__init__.py
+        
+        # Verify structure
+        echo "Checking project structure..."
+        ls -R email_module/
+        
+        echo "Checking if key files exist..."
+        test -f "email_module/templates/html_template.py" || echo "Missing html_template.py"
+        test -f "email_module/templates/formatters.py" || echo "Missing formatters.py"
+        test -f "email_module/styles/css_styles.py" || echo "Missing css_styles.py"
 
     - name: Run price checker
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
@@ -418,7 +435,28 @@ jobs:
         # Create screenshots directory
         mkdir -p screenshots
         
-        # Get first active booking details
+        # Debug Python environment
+        echo "Python version:"
+        python -V
+        
+        echo "Project structure:"
+        ls -R
+        
+        # Verify email template imports
+        python - << 'EOL'
+        import sys
+        import traceback
+        try:
+            from email_module.templates.html_template import format_email_body_html
+            from email_module.templates.formatters import format_email_body_text
+            print('✅ Successfully imported email templates')
+        except Exception as e:
+            print('❌ Error importing email templates:')
+            traceback.print_exc()
+            sys.exit(1)
+        EOL
+        
+        # Get first active booking details and setup environment
         python - << 'EOL'
         import json
         import os
@@ -459,9 +497,11 @@ jobs:
         echo "Generated .env file contents (sanitized):"
         grep -v "PASSWORD\|EMAIL\|SERVER" .env || true
         
-        # Run price checker
-        python main.py
-
+        # Run main script
+        python main.py || {
+          echo "❌ Error running price checker"
+          exit 1
+        }
     - name: Update Supabase
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
       env:
