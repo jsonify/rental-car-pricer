@@ -6,99 +6,72 @@ from datetime import datetime
 from ..styles.css_styles import EMAIL_CSS
 from .formatters import format_price_change_html
 
-def create_price_trend_table(price_history: List[Dict]) -> str:
-    """Create an HTML table showing price trends"""
-    try:
-        if not price_history:
-            print("No price history available")
-            return ""
-        
-        print("\nCreating price trend table")
-        print(f"Number of records: {len(price_history)}")
-        print("First record structure:", json.dumps(price_history[0], indent=2))
-        
-        rows = []
-        for record in price_history:
-            # Try both possible key names
-            price = record.get('price') or record.get('focus_category_price')
-            if price is None:
-                print(f"Warning: No price found in record: {record}")
-                continue
-                
-            rows.append(f"""
-                <tr>
-                    <td style="padding: 4px; border-bottom: 1px solid #e5e7eb;">{record['timestamp']}</td>
-                    <td style="padding: 4px; border-bottom: 1px solid #e5e7eb; text-align: right;">${price:.2f}</td>
-                </tr>
-            """)
-        
-        return f"""
-            <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px;">
-                <tr>
-                    <th style="padding: 4px; border-bottom: 2px solid #e5e7eb; text-align: left;">Time</th>
-                    <th style="padding: 4px; border-bottom: 2px solid #e5e7eb; text-align: right;">Price</th>
-                </tr>
-                {''.join(rows)}
-            </table>
-        """
-    except Exception as e:
-        print(f"Error creating price trend table: {str(e)}")
-        traceback.print_exc()
-        return f"<div style='color: red;'>Error creating price trend table: {str(e)}</div>"
+def calculate_better_deals(prices: Dict[str, float], focus_category: str) -> List[Dict]:
+    """Calculate better deals compared to focus category"""
+    better_deals = []
+    if focus_category in prices:
+        focus_price = prices[focus_category]
+        for category, price in prices.items():
+            if price < focus_price and category != focus_category:
+                savings = focus_price - price
+                savings_pct = (savings / focus_price) * 100
+                better_deals.append({
+                    'category': category,
+                    'price': price,
+                    'savings': savings,
+                    'savings_pct': savings_pct
+                })
+    return sorted(better_deals, key=lambda x: x['savings'], reverse=True)
 
-def create_price_rows(prices: Dict[str, float], focus_category: str) -> str:
-    """Create HTML rows for all price categories"""
-    rows = []
-    for category, price in sorted(prices.items(), key=lambda x: x[1]):
-        background = 'background: #e0f2fe;' if category == focus_category else ''
-        rows.append(f"""
-            <div style="display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #e2e8f0; {background}">
-                <span>{"🎯 " if category == focus_category else ""}{category}</span>
-                <span>${price:.2f}</span>
+def format_better_deals_section(better_deals: List[Dict]) -> str:
+    """Format the better deals section of the email"""
+    if not better_deals:
+        return ""
+        
+    deals_html = []
+    for deal in better_deals:
+        deals_html.append(f"""
+            <div style="background: white; padding: 8px; margin: 4px 0; border-radius: 4px;">
+                {deal['category']}: ${deal['price']:.2f}
+                <span style="color: #059669">
+                    (Save ${deal['savings']:.2f}, {deal['savings_pct']:.1f}%)
+                </span>
             </div>
         """)
-    return ''.join(rows)
+    
+    return f"""
+        <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #bae6fd;">
+            <div style="font-weight: bold; color: #0369a1; margin-bottom: 10px;">
+                💰 Better Deals Available
+            </div>
+            {''.join(deals_html)}
+        </div>
+    """
 
 def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -> str:
-    """Format a single booking card"""
+    """Format a single booking card with updated layout"""
     try:
-        print(f"\nFormatting booking card for {booking.get('location')}")
-        print("Trends structure:", json.dumps(trends, indent=2))
-        
         focus_category = booking['focus_category']
         holding_price = booking.get('holding_price')
         focus_trends = trends.get('focus_category', {})
-        price_history = focus_trends.get('price_history', [])
         
-        print(f"Focus category: {focus_category}")
-        print(f"Current prices: {prices}")
-        print(f"Number of price history records: {len(price_history)}")
+        # Calculate better deals
+        better_deals = calculate_better_deals(prices, focus_category)
+        better_deals_html = format_better_deals_section(better_deals)
         
-        # Better deals section
-        better_deals_html = []
-        if focus_category in prices:
-            focus_price = prices[focus_category]
-            for category, price in prices.items():
-                if price < focus_price and category != focus_category:
-                    savings = focus_price - price
-                    savings_pct = (savings / focus_price) * 100
-                    better_deals_html.append(f"""
-                        <div style="background: #f0f9ff; padding: 8px; margin: 4px 0; border-radius: 4px;">
-                            {category}: ${price:.2f} 
-                            <span style="color: #059669">(Save ${savings:.2f}, {savings_pct:.1f}%)</span>
-                        </div>
-                    """)
-
-        better_deals_section = ""
-        if better_deals_html:
-            better_deals_section = f"""
-                <div style="margin: 15px 0;">
-                    <div style="font-weight: bold; color: #0369a1; margin-bottom: 8px;">
-                        💰 Better Deals Available
-                    </div>
-                    {''.join(better_deals_html)}
+        # Calculate stats
+        current_price = prices.get(focus_category, 0)
+        previous_price = focus_trends.get('previous_price')
+        if previous_price:
+            price_change = current_price - previous_price
+            price_change_html = f"""
+                <div style="font-size: 1rem; margin-top: 5px; color: {price_change > 0 and '#dc2626' or '#16a34a'}">
+                    {price_change > 0 and '↑' or '↓'} ${abs(price_change):.2f}
+                    ({abs((price_change / previous_price) * 100):.1f}%)
                 </div>
             """
+        else:
+            price_change_html = ""
 
         return f"""
             <td style="width: 50%; padding: 20px; vertical-align: top;">
@@ -107,49 +80,47 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
                         {booking['location']} - {booking.get('location_full_name', 'Airport')}
                     </h2>
                     
-                    <div style="background: #f3f4f6; padding: 8px; border-radius: 4px; margin-bottom: 10px;">
-                        📅 {booking['pickup_date']} to {booking['dropoff_date']}
-                        <br>
-                        ⏰ {booking['pickup_time']} - {booking['dropoff_time']}
-                        {f'<br>💰 Holding Price: ${holding_price:.2f}' if holding_price else ''}
+                    <div style="background: #f3f4f6; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                        <div style="margin-bottom: 5px;">📅 {booking['pickup_date']} to {booking['dropoff_date']}</div>
+                        <div>⏰ {booking['pickup_time']} - {booking['dropoff_time']}</div>
+                        {holding_price and f'<div style="margin-top: 5px;">💰 Holding Price: ${holding_price:.2f}</div>' or ''}
                     </div>
                     
-                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; margin: 15px 0; border: 2px solid #e2e8f0;">
-                        <div style="font-size: 0.875rem; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; border: 2px solid #e2e8f0;">
+                        <div style="text-transform: uppercase; color: #64748b; font-size: 0.75rem; letter-spacing: 0.05em;">
                             Tracked Category
                         </div>
-                        <div style="font-size: 1.25rem; font-weight: bold; margin-bottom: 10px;">
+                        <div style="font-size: 1.25rem; font-weight: bold; margin: 8px 0;">
                             {focus_category}
                         </div>
-                        <div style="font-size: 1.5rem; font-weight: bold;">
-                            ${prices.get(focus_category, 0):.2f}
+                        <div style="font-size: 2rem; font-weight: bold;">
+                            ${current_price:.2f}
+                            {price_change_html}
                         </div>
-                        
-                        {create_price_trend_table(price_history)}
                         
                         <div style="display: flex; gap: 10px; margin-top: 15px;">
                             <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
                                 <div style="font-size: 0.75rem; color: #64748b;">Lowest</div>
-                                <div style="font-weight: bold;">
+                                <div style="font-weight: bold; margin-top: 2px;">
                                     ${focus_trends.get('lowest', 0):.2f}
                                 </div>
                             </div>
                             <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
                                 <div style="font-size: 0.75rem; color: #64748b;">Average</div>
-                                <div style="font-weight: bold;">
+                                <div style="font-weight: bold; margin-top: 2px;">
                                     ${focus_trends.get('average', 0):.2f}
                                 </div>
                             </div>
                             <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
                                 <div style="font-size: 0.75rem; color: #64748b;">Highest</div>
-                                <div style="font-weight: bold;">
+                                <div style="font-weight: bold; margin-top: 2px;">
                                     ${focus_trends.get('highest', 0):.2f}
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    {better_deals_section}
+                    {better_deals_html}
                     
                     <div style="margin-top: 15px;">
                         <div style="font-weight: bold; margin-bottom: 8px;">All Categories</div>
@@ -169,6 +140,29 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
             </td>
         """
 
+def create_price_rows(prices: Dict[str, float], focus_category: str) -> str:
+    """Create HTML rows for all price categories with enhanced focus highlighting"""
+    rows = []
+    for category, price in sorted(prices.items(), key=lambda x: x[1]):
+        is_focus = category == focus_category
+        row_style = """
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            {}
+        """.format('background: #e0f2fe;' if is_focus else '')
+        
+        rows.append(f"""
+            <div style="{row_style}">
+                <span>
+                    {is_focus and '🎯 ' or ''}{category}
+                </span>
+                <span>${price:.2f}</span>
+            </div>
+        """)
+    return ''.join(rows)
+
 def format_email_body_html(bookings_data: List[Dict]) -> str:
     """Format the complete email body in HTML"""
     try:
@@ -183,17 +177,18 @@ def format_email_body_html(bookings_data: List[Dict]) -> str:
                     booking_data['prices'],
                     booking_data['trends']
                 )
-            # If odd number of bookings, add empty cell
             if len(row_bookings) == 1:
                 row_html += "<td style='width: 50%;'></td>"
             row_html += "</tr>"
             booking_rows.append(row_html)
 
-        html = f"""
+        return f"""
         <div style="max-width: 1200px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
             <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #1a1a1a; margin-bottom: 10px;">Costco Travel Car Rental Update</h1>
-                <div style="color: #666;">
+                <h1 style="color: #1a1a1a; margin-bottom: 10px; font-size: 24px; font-weight: bold;">
+                    Costco Travel Car Rental Update
+                </h1>
+                <div style="color: #666; font-size: 14px;">
                     Last checked: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
                     <br>
                     Tracking {len(bookings_data)} booking{'s' if len(bookings_data) != 1 else ''}
@@ -209,9 +204,6 @@ def format_email_body_html(bookings_data: List[Dict]) -> str:
             </div>
         </div>
         """
-        
-        return html
-        
     except Exception as e:
         print(f"Error in format_email_body_html: {str(e)}")
         traceback.print_exc()
