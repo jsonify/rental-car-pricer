@@ -487,12 +487,9 @@ def run_price_checks(tracker, active_bookings):
             # Wait between bookings
             time.sleep(random.uniform(2, 4))
         
-        # Send alerts only if there are significant price drops
+        # Process and send alerts
         if bookings_data:
-            if alert_service.send_alerts(bookings_data):
-                print("\n📧 Price alert email sent successfully!")
-            else:
-                print("\n❌ Failed to send price alert email")
+            alert_service.send_alerts(bookings_data)
         
     except Exception as e:
         print(f"\n❌ An error occurred: {str(e)}")
