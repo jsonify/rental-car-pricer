@@ -4,7 +4,6 @@
     "active_bookings": [
       "KOA_04102025_04142025",
       "SAN_11292024_11302024",
-      "LIH_12082024_12142024",
       "LIH_04032025_04102025"
     ]
   },
@@ -442,110 +441,6 @@
       ],
       "created_at": "2024-11-10T00:12:09.308258",
       "holding_price": 256.36
-    },
-    "LIH_12082024_12142024": {
-      "location": "LIH",
-      "location_full_name": "LIH Airport",
-      "pickup_date": "12/08/2024",
-      "dropoff_date": "12/14/2024",
-      "pickup_time": "12:00 PM",
-      "dropoff_time": "12:00 PM",
-      "focus_category": "Intermediate Car",
-      "price_history": [
-        {
-          "timestamp": "2024-11-25T14:16:53",
-          "prices": {
-            "Intermediate Car": 246.74,
-            "Full-size Car": 253.26,
-            "Standard Car": 254.05,
-            "Compact Car": 254.57,
-            "Intermediate SUV": 271.98,
-            "Standard SUV": 311.81,
-            "Standard Sporty Car": 341.59,
-            "Jeep Wrangler 4 door": 341.77,
-            "Economy Car": 345.2,
-            "Compact SUV": 380.2,
-            "Standard Convertible": 380.53,
-            "Standard Elite SUV": 394.13,
-            "Full-size Pickup": 422.68,
-            "Mini Van": 464.33,
-            "Luxury Car": 547.84,
-            "Full-size SUV": 818.22,
-            "Luxury SUV": 834.39,
-            "Large Luxury SUV": 834.39,
-            "Premium SUV": 906.38,
-            "Premium Car": 927.85,
-            "Full-size Van": 1953.28
-          },
-          "lowest_price": {
-            "category": "Intermediate Car",
-            "price": 246.74
-          }
-        },
-        {
-          "timestamp": "2024-12-02T14:17:06",
-          "prices": {
-            "Intermediate Car": 242.64,
-            "Standard Car": 248.29,
-            "Full-size Car": 252.01,
-            "Compact Car": 261.17,
-            "Intermediate SUV": 274.75,
-            "Standard SUV": 316.41,
-            "Standard Sporty Car": 341.59,
-            "Jeep Wrangler 4 door": 341.77,
-            "Economy Car": 345.2,
-            "Standard Elite SUV": 372.95,
-            "Luxury Car": 390.27,
-            "Mini Van": 407.52,
-            "Full-size Pickup": 413.46,
-            "Standard Convertible": 432.41,
-            "Compact SUV": 484.57,
-            "Full-size SUV": 818.22,
-            "Luxury SUV": 834.39,
-            "Large Luxury SUV": 834.39,
-            "Premium SUV": 906.38,
-            "Premium Car": 909.42,
-            "Full-size Van": 1953.28
-          },
-          "lowest_price": {
-            "category": "Intermediate Car",
-            "price": 242.64
-          }
-        },
-        {
-          "timestamp": "2024-12-03T15:55:25",
-          "prices": {
-            "Intermediate Car": 223.7,
-            "Electric Car": 231.83,
-            "Full-size Car": 246.43,
-            "Standard Car": 248.29,
-            "Compact Car": 255.47,
-            "Intermediate SUV": 271.06,
-            "Standard SUV": 302.59,
-            "Standard Sporty Car": 318.55,
-            "Luxury Car": 339.59,
-            "Jeep Wrangler 4 door": 341.77,
-            "Economy Car": 345.2,
-            "Standard Elite SUV": 373.87,
-            "Full-size Pickup": 390.42,
-            "Mini Van": 407.52,
-            "Standard Convertible": 435.19,
-            "Compact SUV": 484.57,
-            "Premium Car": 725.13,
-            "Luxury SUV": 811.36,
-            "Large Luxury SUV": 811.36,
-            "Full-size SUV": 818.22,
-            "Premium SUV": 906.38,
-            "Full-size Van": 1953.28
-          },
-          "lowest_price": {
-            "category": "Intermediate Car",
-            "price": 223.7
-          }
-        }
-      ],
-      "created_at": "2024-11-20T01:33:07.864551",
-      "holding_price": 281.0
     }
   }
 }
