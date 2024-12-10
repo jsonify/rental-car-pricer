@@ -1,3 +1,4 @@
+# .github/workflows/test-email.yaml
 name: Test Email Configuration
 
 on:
@@ -13,28 +14,162 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
+        cache: 'pip'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install -r requirements.txt
         pip install python-dotenv
 
-    - name: Create test script
+    - name: Create test directory structure
+      run: |
+        mkdir -p email_module/templates
+        mkdir -p email_module/styles
+        touch email_module/__init__.py
+        touch email_module/templates/__init__.py
+        touch email_module/styles/__init__.py
+
+    - name: Verify file structure
+      run: |
+        echo "Checking project structure..."
+        ls -R email_module/
+        echo "Checking if key files exist..."
+        test -f "email_module/templates/html_template.py" || echo "Missing html_template.py"
+        test -f "email_module/templates/formatters.py" || echo "Missing formatters.py"
+        test -f "email_module/styles/css_styles.py" || echo "Missing css_styles.py"
+
+    - name: Create test script with debugging
       run: |
         cat > test_email.py << 'EOL'
         import os
+        import sys
         import smtplib
+        import ssl
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
         from datetime import datetime
+        from typing import Dict, List
+        import traceback
+
+        # Add project root to Python path
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+        print("\n📁 Python path:")
+        for path in sys.path:
+            print(f"  - {path}")
+
+        try:
+            # Import our actual email formatters
+            print("\n📦 Importing email modules...")
+            from email_module.templates.html_template import format_email_body_html
+            from email_module.templates.formatters import format_email_body_text
+            print("✅ Email modules imported successfully")
+        except Exception as e:
+            print(f"❌ Error importing email modules: {str(e)}")
+            traceback.print_exc()
+            sys.exit(1)
+
+        def generate_test_data() -> List[Dict]:
+            """Generate sample booking data that matches production format"""
+            return [{
+                'booking': {
+                    'location': 'LIH',
+                    'location_full_name': 'Lihue Airport',
+                    'pickup_date': '04/03/2025',
+                    'dropoff_date': '04/10/2025',
+                    'pickup_time': '12:00 PM',
+                    'dropoff_time': '12:00 PM',
+                    'focus_category': 'Full-size Car',
+                    'holding_price': 469.70
+                },
+                'prices': {
+                    'Economy Car': 620.40,
+                    'Compact Car': 558.65,
+                    'Intermediate Car': 462.88,
+                    'Standard Car': 465.73,
+                    'Full-size Car': 469.68,
+                    'Premium Car': 988.53,
+                    'Intermediate SUV': 862.75,
+                    'Standard SUV': 893.04,
+                    'Standard Elite SUV': 939.48,
+                    'Full-size SUV': 1020.84,
+                    'Mini Van': 654.78,
+                    'Electric Car': 440.79
+                },
+                'trends': {
+                    'focus_category': {
+                        'current': 469.68,
+                        'previous_price': 512.07,
+                        'lowest': 469.68,
+                        'highest': 512.07,
+                        'average': 478.16,
+                        'price_history': [
+                            {
+                                'timestamp': '11/10 00:10',
+                                'price': 512.07
+                            },
+                            {
+                                'timestamp': '11/19 08:39',
+                                'price': 469.68
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                'booking': {
+                    'location': 'KOA',
+                    'location_full_name': 'Kailua-Kona International Airport',
+                    'pickup_date': '04/10/2025',
+                    'dropoff_date': '04/14/2025',
+                    'pickup_time': '12:00 PM',
+                    'dropoff_time': '12:00 PM',
+                    'focus_category': 'Full-size Car',
+                    'holding_price': 266.60
+                },
+                'prices': {
+                    'Economy Car': 273.18,
+                    'Compact Car': 264.21,
+                    'Intermediate Car': 264.58,
+                    'Standard Car': 275.46,
+                    'Full-size Car': 276.54,
+                    'Premium Car': 289.69,
+                    'Compact SUV': 275.49,
+                    'Intermediate SUV': 287.33,
+                    'Standard SUV': 335.73,
+                    'Electric Car': 289.69
+                },
+                'trends': {
+                    'focus_category': {
+                        'current': 276.54,
+                        'previous_price': 282.16,
+                        'lowest': 276.54,
+                        'highest': 282.16,
+                        'average': 277.66,
+                        'price_history': [
+                            {
+                                'timestamp': '11/10 00:13',
+                                'price': 282.16
+                            },
+                            {
+                                'timestamp': '11/19 08:40',
+                                'price': 276.54
+                            }
+                        ]
+                    }
+                }
+            }]
 
         def test_smtp_connection():
-            """Test SMTP connection and send a test email"""
+            """Test SMTP connection and send a test email with sample booking data"""
             # Get configuration from environment
             smtp_server = os.environ['SMTP_SERVER']
             smtp_port = int(os.environ['SMTP_PORT'])
@@ -49,63 +184,30 @@ jobs:
             print(f"Recipient: {recipient_email}")
 
             try:
+                # Generate test data
+                bookings_data = generate_test_data()
+                
+                print("\n📊 Generating email content...")
+                # Generate email content using our actual templates
+                text_content = format_email_body_text(bookings_data)
+                html_content = format_email_body_html(bookings_data)
+                print("✅ Email content generated successfully")
+
                 # Create message
                 msg = MIMEMultipart('alternative')
-                msg['Subject'] = f'Car Rental Price Tracker - Email Test ({datetime.now().strftime("%Y-%m-%d %H:%M:%S")})'
+                msg['Subject'] = f'Car Rental Price Tracker - Test Email ({datetime.now().strftime("%Y-%m-%d %H:%M:%S")})'
                 msg['From'] = sender_email
                 msg['To'] = recipient_email
-
-                # Create both plain text and HTML versions
-                text_content = f"""
-                This is a test email from the Car Rental Price Tracker.
-                
-                Configuration:
-                - SMTP Server: {smtp_server}
-                - SMTP Port: {smtp_port}
-                - Sender: {sender_email}
-                - Recipient: {recipient_email}
-                
-                If you received this email, your email configuration is working correctly!
-                
-                Time: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                """
-
-                html_content = f"""
-                <html>
-                <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h1 style="color: #2563eb;">Car Rental Price Tracker</h1>
-                    <h2>Email Configuration Test</h2>
-                    
-                    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                        <p>This is a test email to verify your email configuration.</p>
-                        
-                        <h3>Configuration Details:</h3>
-                        <ul>
-                            <li><strong>SMTP Server:</strong> {smtp_server}</li>
-                            <li><strong>SMTP Port:</strong> {smtp_port}</li>
-                            <li><strong>Sender:</strong> {sender_email}</li>
-                            <li><strong>Recipient:</strong> {recipient_email}</li>
-                        </ul>
-                        
-                        <p style="color: #059669; font-weight: bold;">
-                            ✅ If you received this email, your configuration is working correctly!
-                        </p>
-                    </div>
-                    
-                    <div style="color: #6b7280; font-size: 0.875rem; margin-top: 20px;">
-                        Sent at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                    </div>
-                </body>
-                </html>
-                """
 
                 # Attach both versions
                 msg.attach(MIMEText(text_content, 'plain'))
                 msg.attach(MIMEText(html_content, 'html'))
 
                 print("\n🔄 Connecting to SMTP server...")
+                context = ssl.create_default_context()
+                
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
-                    server.starttls()
+                    server.starttls(context=context)
                     print("🔒 Starting TLS connection...")
                     
                     server.login(sender_email, sender_password)
@@ -117,11 +219,14 @@ jobs:
 
             except Exception as e:
                 print(f"\n❌ Error: {str(e)}")
+                traceback.print_exc()
                 raise
 
         if __name__ == "__main__":
             test_smtp_connection()
         EOL
+
+        chmod +x test_email.py
 
     - name: Set up environment
       run: |
@@ -135,4 +240,7 @@ jobs:
         fi
 
     - name: Run email test
-      run: python test_email.py
+      run: |
+        echo "Running email test..."
+        python -V
+        python test_email.py
