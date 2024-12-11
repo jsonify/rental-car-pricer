@@ -550,6 +550,63 @@ jobs:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       run: |
+        # First ensure our module structure exists
+        mkdir -p src/lib/supabase
+        
+        # Copy our supabase client file to the correct location
+        cat > src/lib/supabase/client.py << 'EOL'
+        """
+        Supabase client configuration and helper functions for interacting with the database.
+        Provides functions for fetching price histories and holding prices.
+        """
+
+        import os
+        from typing import List, Dict, Optional
+        from supabase import create_client, Client
+
+        def get_supabase_client() -> Client:
+            """Initialize and return Supabase client"""
+            url = os.environ.get('SUPABASE_URL')
+            key = os.environ.get('SUPABASE_SERVICE_KEY')
+            
+            if not url or not key:
+                raise ValueError("Missing Supabase configuration. Set SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables.")
+            
+            return create_client(url, key)
+
+        def get_holding_price_histories(booking_id: str) -> List[Dict]:
+            """
+            Fetch holding price histories for a booking from Supabase
+            
+            Args:
+                booking_id: The ID of the booking to fetch histories for
+                
+            Returns:
+                List of holding price history records sorted by effective_from date
+            """
+            try:
+                supabase = get_supabase_client()
+                
+                response = supabase.table('holding_price_histories') \
+                    .select('*') \
+                    .eq('booking_id', booking_id) \
+                    .order('effective_from', desc=False) \
+                    .execute()
+                    
+                return response.data
+            except Exception as e:
+                print(f"Error fetching holding price histories: {str(e)}")
+                return []
+        EOL
+        
+        # Create an empty __init__.py file to make it a proper Python package
+        touch src/lib/__init__.py
+        touch src/lib/supabase/__init__.py
+        
+        # Add the current directory to PYTHONPATH
+        export PYTHONPATH="${PYTHONPATH:+${PYTHONPATH}:}$(pwd)"
+        
+        # Now run our test script
         python - << 'EOL'
         import json
         import sys
@@ -559,6 +616,11 @@ jobs:
         import plotly.graph_objects as go
         import base64
         from src.lib.supabase.client import get_holding_price_histories
+
+
+
+
+
 
         def print_debug(title: str, data: Any = None) -> None:
             print("\n" + "="*50)
