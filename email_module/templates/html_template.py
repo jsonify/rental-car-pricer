@@ -319,7 +319,29 @@ def create_price_rows(prices: Dict[str, float], focus_category: str) -> str:
     return ''.join(rows)
 
 def format_email_body_html(bookings_data: List[Dict]) -> str:
-    """Format the complete email body in HTML"""
+    """Format the complete email body in HTML with debug logging"""
+    print("\n" + "="*50 + "\nDEBUG: format_email_body_html")
+    print(f"Number of bookings: {len(bookings_data)}")
+    
+    for i, booking_data in enumerate(bookings_data):
+        print(f"\nBooking {i+1}:")
+        print(f"Location: {booking_data.get('booking', {}).get('location', 'N/A')}")
+        print("Has price_history:", 'price_history' in booking_data)
+        print("Has holding_price_histories:", 'holding_price_histories' in booking_data.get('booking', {}))
+        
+        if 'price_history' in booking_data:
+            print(f"Number of price history records: {len(booking_data['price_history'])}")
+            for record in booking_data['price_history'][:2]:  # Show first two records
+                print(f"- {record.get('timestamp', 'N/A')}: {record.get('prices', 'N/A')}")
+        
+        if 'holding_price_histories' in booking_data.get('booking', {}):
+            histories = booking_data['booking']['holding_price_histories']
+            print(f"Number of holding price records: {len(histories)}")
+            for history in histories:
+                print(f"- {history.get('effective_from', 'N/A')}: ${history.get('price', 'N/A')}")
+    
+    print("="*50)
+    
     try:
         # Split bookings into rows of 2
         booking_rows = []

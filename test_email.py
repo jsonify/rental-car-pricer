@@ -12,9 +12,20 @@ from typing import Dict, List
 from email_module.templates.html_template import format_email_body_html
 from email_module.templates.formatters import format_email_body_text
 
+def print_debug(msg: str, obj: Any = None) -> None:
+    """Debug print function with clear separators"""
+    print("\n" + "="*50)
+    print(msg)
+    if obj is not None:
+        if isinstance(obj, (dict, list)):
+            print(json.dumps(obj, indent=2))
+        else:
+            print(obj)
+    print("="*50)
+
 def generate_test_data() -> List[Dict]:
     """Generate sample booking data that matches Supabase database format"""
-    return [{
+    test_data = [{
         'booking': {
             'location': 'LIH',
             'location_full_name': 'Lihue Airport',
@@ -69,67 +80,70 @@ def generate_test_data() -> List[Dict]:
                     'category': 'Full-size Car'
                 })
             }
-        ],
-        'trends': {
-            'focus_category': {
-                'current': 469.68,
-                'previous_price': 512.07,
-                'lowest': 469.68,
-                'highest': 512.07,
-                'average': 478.16
-            }
-        }
+        ]
     }]
+    
+    print_debug("Generated Test Data", test_data)
+    return test_data
 
 def test_smtp_connection():
     """Test SMTP connection and send a test email with sample booking data"""
-    # Get configuration from environment
-    smtp_server = os.environ['SMTP_SERVER']
-    smtp_port = int(os.environ['SMTP_PORT'])
-    sender_email = os.environ['SENDER_EMAIL']
-    sender_password = os.environ['SENDER_PASSWORD']
-    recipient_email = os.environ.get('RECIPIENT_OVERRIDE') or os.environ['RECIPIENT_EMAIL']
-
-    print("\n📧 Email Configuration:")
-    print(f"SMTP Server: {smtp_server}")
-    print(f"SMTP Port: {smtp_port}")
-    print(f"Sender: {sender_email}")
-    print(f"Recipient: {recipient_email}")
-
     try:
+        # Get configuration from environment
+        smtp_server = os.environ['SMTP_SERVER']
+        smtp_port = int(os.environ['SMTP_PORT'])
+        sender_email = os.environ['SENDER_EMAIL']
+        sender_password = os.environ['SENDER_PASSWORD']
+        recipient_email = os.environ.get('RECIPIENT_OVERRIDE') or os.environ['RECIPIENT_EMAIL']
+
+        print_debug("Email Configuration", {
+            'server': smtp_server,
+            'port': smtp_port,
+            'sender': sender_email,
+            'recipient': recipient_email
+        })
+
         # Generate test data
         bookings_data = generate_test_data()
         
+        print_debug("Generating email content...")
+        
+        # Generate email content
+        text_content = format_email_body_text(bookings_data)
+        print_debug("Text content generated successfully", text_content[:500] + "...")
+        
+        html_content = format_email_body_html(bookings_data)
+        print_debug("HTML content generated successfully", html_content[:500] + "...")
+
         # Create message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = f'Car Rental Price Tracker - Test Email ({datetime.now().strftime("%Y-%m-%d %H:%M:%S")})'
         msg['From'] = sender_email
         msg['To'] = recipient_email
 
-        # Generate email content using our actual templates
-        text_content = format_email_body_text(bookings_data)
-        html_content = format_email_body_html(bookings_data)
-
-        # Attach both versions
         msg.attach(MIMEText(text_content, 'plain'))
         msg.attach(MIMEText(html_content, 'html'))
 
-        print("\n🔄 Connecting to SMTP server...")
-        context = ssl.create_default_context()
+        print_debug("Connecting to SMTP server...")
         
+        context = ssl.create_default_context()
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls(context=context)
-            print("🔒 Starting TLS connection...")
+            print_debug("TLS connection started")
             
             server.login(sender_email, sender_password)
-            print("✅ Login successful")
+            print_debug("Login successful")
             
             server.send_message(msg)
-            print("📨 Test email sent successfully!")
+            print_debug("Test email sent successfully!")
             return True
 
     except Exception as e:
-        print(f"\n❌ Error: {str(e)}")
+        print_debug(f"Error sending email", {
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'traceback': traceback.format_exc()
+        })
         raise
 
 if __name__ == "__main__":
