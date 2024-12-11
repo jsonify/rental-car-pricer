@@ -253,7 +253,39 @@ jobs:
           libgdk-pixbuf2.0-0 \
           libffi-dev \
           shared-mime-info
-          
+
+    - name: Debug data structures
+      run: |
+        python - << 'EOL'
+        import json
+        from datetime import datetime
+        from typing import Dict, List
+        
+        def debug_booking_data(bookings_data: List[Dict]) -> None:
+            print("\n=== DEBUG: Booking Data Structure ===")
+            for i, booking_data in enumerate(bookings_data, 1):
+                print(f"\nBooking {i}:")
+                print(f"Location: {booking_data['booking']['location']}")
+                
+                if 'holding_price_histories' in booking_data['booking']:
+                    print("\nHolding Price History:")
+                    for h in booking_data['booking']['holding_price_histories']:
+                        print(f"- Price: ${h['price']:.2f}")
+                        print(f"  From: {h['effective_from']}")
+                
+                if 'price_history' in booking_data:
+                    print("\nPrice History Records:")
+                    for record in booking_data['price_history']:
+                        print(f"- Time: {record['timestamp']}")
+                        prices = json.loads(record['prices'])
+                        print(f"  {booking_data['booking']['focus_category']}: ${prices.get(booking_data['booking']['focus_category'], 'N/A')}")
+
+        # Test with sample data
+        from test_email import generate_test_data
+        bookings = generate_test_data()
+        debug_booking_data(bookings)
+        EOL
+
     - name: Run email test
       run: |
         echo "Running email test..."

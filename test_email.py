@@ -13,7 +13,7 @@ from email_module.templates.html_template import format_email_body_html
 from email_module.templates.formatters import format_email_body_text
 
 def generate_test_data() -> List[Dict]:
-    """Generate sample booking data that matches production format"""
+    """Generate sample booking data that matches Supabase database format"""
     return [{
         'booking': {
             'location': 'LIH',
@@ -23,7 +23,18 @@ def generate_test_data() -> List[Dict]:
             'pickup_time': '12:00 PM',
             'dropoff_time': '12:00 PM',
             'focus_category': 'Full-size Car',
-            'holding_price': 469.70
+            'holding_price_histories': [
+                {
+                    'price': 560.50,
+                    'effective_from': '2024-09-27T00:00:00+00:00',
+                    'effective_to': '2024-10-09T00:00:00+00:00'
+                },
+                {
+                    'price': 469.68,
+                    'effective_from': '2024-11-18T00:00:00+00:00',
+                    'effective_to': None
+                }
+            ]
         },
         'prices': {
             'Economy Car': 620.40,
@@ -32,73 +43,40 @@ def generate_test_data() -> List[Dict]:
             'Standard Car': 465.73,
             'Full-size Car': 469.68,
             'Premium Car': 988.53,
-            'Intermediate SUV': 862.75,
-            'Standard SUV': 893.04,
-            'Standard Elite SUV': 939.48,
-            'Full-size SUV': 1020.84,
-            'Mini Van': 654.78,
-            'Electric Car': 440.79
         },
+        'price_history': [
+            {
+                'timestamp': '2024-11-10T00:10:18+00:00',
+                'prices': json.dumps({
+                    'Full-size Car': 512.07,
+                    'Economy Car': 517.19,
+                    'Compact Car': 491.40
+                }),
+                'lowest_price': json.dumps({
+                    'price': 491.40,
+                    'category': 'Compact Car'
+                })
+            },
+            {
+                'timestamp': '2024-11-19T08:39:59+00:00',
+                'prices': json.dumps({
+                    'Full-size Car': 469.68,
+                    'Economy Car': 620.40,
+                    'Compact Car': 558.65
+                }),
+                'lowest_price': json.dumps({
+                    'price': 469.68,
+                    'category': 'Full-size Car'
+                })
+            }
+        ],
         'trends': {
             'focus_category': {
                 'current': 469.68,
                 'previous_price': 512.07,
                 'lowest': 469.68,
                 'highest': 512.07,
-                'average': 478.16,
-                'price_history': [
-                    {
-                        'timestamp': '11/10 00:10',
-                        'price': 512.07
-                    },
-                    {
-                        'timestamp': '11/19 08:39',
-                        'price': 469.68
-                    }
-                ]
-            }
-        }
-    },
-    {
-        'booking': {
-            'location': 'KOA',
-            'location_full_name': 'Kailua-Kona International Airport',
-            'pickup_date': '04/10/2025',
-            'dropoff_date': '04/14/2025',
-            'pickup_time': '12:00 PM',
-            'dropoff_time': '12:00 PM',
-            'focus_category': 'Full-size Car',
-            'holding_price': 266.60
-        },
-        'prices': {
-            'Economy Car': 273.18,
-            'Compact Car': 264.21,
-            'Intermediate Car': 264.58,
-            'Standard Car': 275.46,
-            'Full-size Car': 276.54,
-            'Premium Car': 289.69,
-            'Compact SUV': 275.49,
-            'Intermediate SUV': 287.33,
-            'Standard SUV': 335.73,
-            'Electric Car': 289.69
-        },
-        'trends': {
-            'focus_category': {
-                'current': 276.54,
-                'previous_price': 282.16,
-                'lowest': 276.54,
-                'highest': 282.16,
-                'average': 277.66,
-                'price_history': [
-                    {
-                        'timestamp': '11/10 00:13',
-                        'price': 282.16
-                    },
-                    {
-                        'timestamp': '11/19 08:40',
-                        'price': 276.54
-                    }
-                ]
+                'average': 478.16
             }
         }
     }]
