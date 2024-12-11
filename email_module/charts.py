@@ -1,119 +1,104 @@
 # email_module/charts.py
 
 """
-Chart generation module for email visualizations.
-Uses Plotly for better compatibility in headless environments.
+Chart generator for price history visualization.
+Handles Supabase JSON price data and creates simple, reliable price trend charts.
 """
 
 import io
 import base64
+import logging
+import json
 from typing import List, Dict
 from datetime import datetime
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
-def generate_price_trend_chart(price_history: List[Dict], 
-                             holding_price_histories: List[Dict] = None,
-                             width: int = 300,
-                             height: int = 100) -> str:
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+def extract_focus_category_price(prices_json: str, focus_category: str) -> float:
+    """Extract price for focus category from JSON string"""
+    try:
+        prices = json.loads(prices_json)
+        return float(prices.get(focus_category, 0))
+    except Exception as e:
+        logger.error(f"Error extracting price: {str(e)}")
+        return 0
+
+def generate_price_trend_chart(price_records: List[Dict], 
+                             holding_price_histories: List[Dict],
+                             focus_category: str) -> str:
     """
-    Generate a price trend chart as a base64-encoded PNG image using Plotly
+    Generate a price trend chart as base64-encoded PNG
     
     Args:
-        price_history: List of price records with timestamp and price
-        holding_price_histories: Optional list of holding price records
-        width: Chart width in pixels
-        height: Chart height in pixels
-    
-    Returns:
-        Base64-encoded PNG image string for email embedding
+        price_records: List of price history records from Supabase
+        holding_price_histories: List of holding price records from Supabase
+        focus_category: Category to track (e.g., "Full-size Car")
     """
     try:
-        # Create figure
-        fig = go.Figure()
-        
-        # Parse dates and prices
-        dates = [datetime.fromisoformat(record['timestamp']) for record in price_history]
-        prices = [float(record['price']) for record in price_history]
-        
-        # Add actual prices line
-        fig.add_trace(go.Scatter(
-            x=dates,
-            y=prices,
-            mode='lines',
-            name='Current Price',
-            line=dict(color='#2563eb', width=2)
-        ))
-        
-        # Add holding prices if available
+        logger.debug(f"Generating chart for {focus_category}")
+        logger.debug(f"Number of price records: {len(price_records)}")
+        logger.debug(f"Number of holding records: {len(holding_price_histories)}")
+
+        # Sort records by timestamp
+        sorted_prices = sorted(price_records, key=lambda x: datetime.fromisoformat(x['timestamp']))
+        sorted_holdings = sorted(holding_price_histories, 
+                               key=lambda x: datetime.fromisoformat(x['effective_from']))
+
+        # Extract data points
+        dates = [datetime.fromisoformat(record['timestamp']) for record in sorted_prices]
+        prices = [extract_focus_category_price(record['prices'], focus_category) 
+                 for record in sorted_prices]
+
+        # Create the figure with larger size for better visibility
+        plt.figure(figsize=(8, 4))
+
+        # Plot actual prices
+        plt.plot(dates, prices, 'b-', linewidth=2, label='Current Price')
+        logger.debug(f"Plotted {len(dates)} price points")
+
+        # Plot holding prices
         if holding_price_histories:
             holding_dates = []
-            holding_prices = []
+            holding_values = []
             
-            # Sort holding price history by date
-            sorted_holdings = sorted(holding_price_histories, 
-                                  key=lambda x: datetime.fromisoformat(x['effective_from']))
-            
-            # Create points for the holding price line
-            current_price = None
-            for holding in sorted_holdings:
-                holding_date = datetime.fromisoformat(holding['effective_from'])
-                if holding_date <= dates[0]:  # Before our price history
-                    current_price = holding['price']
-                    continue
-                    
-                if current_price is not None:
-                    holding_dates.append(holding_date)
-                    holding_prices.append(current_price)
-                    
-                current_price = holding['price']
-                holding_dates.append(holding_date)
-                holding_prices.append(current_price)
-            
-            # Add final point
-            if current_price is not None:
-                holding_dates.append(dates[-1])
-                holding_prices.append(current_price)
-            
-            # Add holding prices line
-            if holding_dates:
-                fig.add_trace(go.Scatter(
-                    x=holding_dates,
-                    y=holding_prices,
-                    mode='lines',
-                    name='Holding Price',
-                    line=dict(color='#dc2626', width=1.5, dash='dash')
-                ))
+            for record in sorted_holdings:
+                holding_dates.append(datetime.fromisoformat(record['effective_from']))
+                holding_values.append(float(record['price']))
+
+            plt.plot(holding_dates, holding_values, 'r--', linewidth=1.5, 
+                    label='Holding Price', alpha=0.7)
+            logger.debug(f"Plotted {len(holding_dates)} holding price points")
+
+        # Customize appearance
+        plt.grid(True, alpha=0.3)
+        plt.legend()
         
-        # Update layout
-        fig.update_layout(
-            width=width,
-            height=height,
-            margin=dict(l=40, r=20, t=20, b=20),
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            showlegend=False,
-            xaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(0,0,0,0.1)',
-                tickformat='%m/%d'
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridcolor='rgba(0,0,0,0.1)',
-                tickprefix='$',
-                tickformat=',.0f'
-            )
-        )
+        # Format x-axis to show dates nicely
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+        plt.xticks(rotation=45)
         
-        # Convert to PNG
-        img_bytes = fig.to_image(format="png", engine="kaleido")
-        
+        # Format y-axis to show dollars
+        plt.gca().yaxis.set_major_formatter(
+            plt.FuncFormatter(lambda x, p: f'${int(x):,}'))
+
+        # Adjust layout to prevent label cutoff
+        plt.tight_layout()
+
+        # Save to bytes
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        plt.close()
+        logger.debug("Chart generated and saved to buffer")
+
         # Encode as base64
-        image_base64 = base64.b64encode(img_bytes).decode()
-        
+        buf.seek(0)
+        image_base64 = base64.b64encode(buf.getvalue()).decode()
         return f'data:image/png;base64,{image_base64}'
-        
+
     except Exception as e:
-        print(f"Error generating price trend chart: {str(e)}")
+        logger.error(f"Error generating chart: {str(e)}")
         return ""
