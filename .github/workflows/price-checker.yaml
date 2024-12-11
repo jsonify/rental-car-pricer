@@ -96,6 +96,7 @@ jobs:
         /usr/bin/chrome --version
         echo "ChromeDriver version:"
         /usr/bin/chromedriver --version
+
     - name: Add new booking
       if: github.event.inputs.action == 'add-booking'
       env:
@@ -212,6 +213,68 @@ jobs:
 
         if not add_booking():
             sys.exit(1)
+        EOL
+
+    - name: Display booking information
+      if: github.event.inputs.action == 'display-bookings'
+      run: |
+        python - << 'EOL'
+        import json
+        from datetime import datetime
+
+        def display_booking_details(price_history: dict) -> None:
+            """Display detailed information about all bookings"""
+            print("\n🚗 Car Rental Bookings Overview")
+            print("=" * 80)
+            print(f"Last Updated: {price_history['metadata']['last_updated']}")
+            print("-" * 80)
+            
+            for i, booking_id in enumerate(price_history['bookings'].keys(), 1):
+                booking = price_history['bookings'][booking_id]
+                print(f"\nBooking #{i}:")
+                print(f"📍 Location: {booking['location']} ({booking['location_full_name']})")
+                print(f"📅 Dates: {booking['pickup_date']} to {booking['dropoff_date']}")
+                print(f"⏰ Times: {booking['pickup_time']} - {booking['dropoff_time']}")
+                print(f"🚙 Category: {booking['focus_category']}")
+                
+                if booking.get('holding_price'):
+                    print(f"💰 Holding Price: ${booking['holding_price']:.2f}")
+                
+                # Show price history statistics if available
+                if booking.get('price_history'):
+                    prices = [record['lowest_price']['price'] for record in booking['price_history']]
+                    if prices:
+                        print("\nPrice Statistics:")
+                        print(f"  Lowest: ${min(prices):.2f}")
+                        print(f"  Highest: ${max(prices):.2f}")
+                        print(f"  Average: ${sum(prices) / len(prices):.2f}")
+                        print(f"  Checks: {len(prices)}")
+                        
+                        # Show most recent price
+                        latest = booking['price_history'][-1]
+                        print(f"\nLatest Check ({latest['timestamp'][:10]}):")
+                        print(f"  Lowest Available: ${latest['lowest_price']['price']:.2f}")
+                        print(f"  Category: {latest['lowest_price']['category']}")
+                
+                print("-" * 80)
+
+            print("\n💡 Tips:")
+            print("• To update a booking price: use [booking_number, price]")
+            print("• To update price and category: use [booking_number, price, \"category\"]")
+            print("Example: [1, 299.99, \"Economy Car\"]")
+
+        try:
+            with open('price_history.json', 'r') as f:
+                price_history = json.load(f)
+                
+            display_booking_details(price_history)
+            
+        except FileNotFoundError:
+            print("❌ No price history file found")
+            exit(1)
+        except Exception as e:
+            print(f"❌ Error displaying booking information: {str(e)}")
+            exit(1)
         EOL
 
     - name: Update holding prices
@@ -434,6 +497,7 @@ jobs:
                     print(f"Error sending price alerts: {str(e)}")
                     return False
         EOL
+
     - name: Setup email module structure
       run: |
         # Create required directories
@@ -537,12 +601,14 @@ jobs:
           echo "❌ Error running price checker"
           exit 1
         }
+
     - name: Update Supabase
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
       env:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       run: python supabase_updater.py
+
     - name: Commit and push changes
       if: github.event.inputs.action == 'add-booking' || github.event.inputs.action == 'update-holding-prices' || github.event.inputs.action == 'delete-booking'
       run: |
