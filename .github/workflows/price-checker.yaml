@@ -35,20 +35,8 @@ on:
         description: 'Initial holding price (optional)'
         required: false
         type: string
-      booking_1_price:
-        description: 'New holding price for Booking 1'
-        required: false
-        type: string
-      booking_1_category:
-        description: 'New category for Booking 1 (optional)'
-        required: false
-        type: string
-      booking_2_price:
-        description: 'New holding price for Booking 2'
-        required: false
-        type: string
-      booking_2_category:
-        description: 'New category for Booking 2 (optional)'
+      booking_updates_json:
+        description: 'Updates as array [booking_number, price, category(optional)]. Example: [1, 299.99, "Economy Car"] or [2, 399.99]'
         required: false
         type: string
       booking_to_delete:
@@ -229,22 +217,36 @@ jobs:
     - name: Update holding prices
       if: github.event.inputs.action == 'update-holding-prices'
       env:
-        BOOKING_1_PRICE: ${{ github.event.inputs.booking_1_price }}
-        BOOKING_1_CATEGORY: ${{ github.event.inputs.booking_1_category }}
-        BOOKING_2_PRICE: ${{ github.event.inputs.booking_2_price }}
-        BOOKING_2_CATEGORY: ${{ github.event.inputs.booking_2_category }}
+        BOOKING_UPDATES_JSON: ${{ github.event.inputs.booking_updates_json }}
       run: |
         python - <<EOF
         import json
         import os
         from datetime import datetime
-        from typing import Optional
+        from typing import Optional, List, Union
 
-        def parse_price(price_str: str) -> Optional[float]:
-            """Parse price string to float, return None if invalid"""
+        def parse_updates(updates_json: str) -> Optional[List]:
+            """Parse and validate the updates array [booking_num, price, category?]"""
             try:
-                return float(price_str.strip()) if price_str.strip() else None
-            except ValueError:
+                updates = json.loads(updates_json)
+                if not isinstance(updates, list):
+                    raise ValueError("Updates must be an array")
+                if len(updates) < 2 or len(updates) > 3:
+                    raise ValueError("Updates must contain 2 or 3 elements [booking_number, price, category?]")
+                
+                booking_num = int(updates[0])
+                price = float(updates[1])
+                category = updates[2] if len(updates) > 2 else None
+                
+                return [booking_num, price, category]
+            except json.JSONDecodeError:
+                print("❌ Invalid JSON format for updates")
+                return None
+            except ValueError as e:
+                print(f"❌ Error parsing updates: {str(e)}")
+                return None
+            except Exception as e:
+                print(f"❌ Unexpected error parsing updates: {str(e)}")
                 return None
 
         try:
@@ -254,33 +256,41 @@ jobs:
 
             # Get list of booking IDs
             booking_ids = list(price_history['bookings'].keys())
-
-            # Process each booking (only first two)
+            
+            # Get updates from JSON input
+            updates_json = os.environ.get('BOOKING_UPDATES_JSON', '').strip()
+            if not updates_json:
+                print("ℹ️ No updates provided")
+                exit(0)
+                
+            updates = parse_updates(updates_json)
+            if updates is None:
+                exit(1)
+                
+            booking_num, new_price, new_category = updates
+            
+            # Validate booking number
+            if not 1 <= booking_num <= len(booking_ids):
+                print(f"❌ Invalid booking number: {booking_num}")
+                exit(1)
+                
+            # Get booking to update
+            booking_id = booking_ids[booking_num - 1]
+            booking = price_history['bookings'][booking_id]
+            
+            # Update booking
             updates_made = False
-            for i, booking_id in enumerate(booking_ids[:2], 1):
-                price_str = os.environ.get(f'BOOKING_{i}_PRICE', '').strip()
-                category = os.environ.get(f'BOOKING_{i}_CATEGORY', '').strip()
-                
-                if not price_str and not category:
-                    continue
-                    
-                booking = price_history['bookings'][booking_id]
-                
-                # Update price if provided
-                if price_str:
-                    new_price = parse_price(price_str)
-                    if new_price is not None:
-                        booking['holding_price'] = new_price
-                        print(f"✅ Updated Booking {i} holding price to ${new_price:.2f}")
-                        updates_made = True
-                    else:
-                        print(f"❌ Invalid price format for Booking {i}: {price_str}")
-                
-                # Update category if provided
-                if category:
-                    booking['focus_category'] = category
-                    print(f"✅ Updated Booking {i} category to {category}")
-                    updates_made = True
+            
+            # Update price
+            booking['holding_price'] = new_price
+            print(f"✅ Updated Booking {booking_num} holding price to ${new_price:.2f}")
+            updates_made = True
+            
+            # Update category if provided
+            if new_category:
+                booking['focus_category'] = new_category
+                print(f"✅ Updated Booking {booking_num} category to {new_category}")
+                updates_made = True
 
             if updates_made:
                 # Update last_updated timestamp
@@ -290,8 +300,6 @@ jobs:
                 with open('price_history.json', 'w') as f:
                     json.dump(price_history, f, indent=2)
                 print("✅ Successfully saved updated price history")
-            else:
-                print("ℹ️ No updates were made")
 
         except Exception as e:
             print(f"❌ Error updating booking details: {str(e)}")
