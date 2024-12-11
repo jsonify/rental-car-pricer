@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "last_updated": "2024-12-07T00:32:46.945719",
+    "last_updated": "2024-12-11T06:12:01.339802",
     "active_bookings": [
       "KOA_04102025_04142025",
       "SAN_11292024_11302024",
@@ -12,7 +12,7 @@
       "location": "LIH",
       "pickup_date": "04/03/2025",
       "dropoff_date": "04/10/2025",
-      "focus_category": "Full-size Car",
+      "focus_category": "Intermediate SUV",
       "pickup_time": "12:00 PM",
       "dropoff_time": "12:00 PM",
       "location_full_name": "LIH Airport",
@@ -209,7 +209,7 @@
         }
       ],
       "created_at": "2024-11-10T00:05:00.366223",
-      "holding_price": 469.7
+      "holding_price": 440.53
     },
     "KOA_04102025_04142025": {
       "location": "KOA",
