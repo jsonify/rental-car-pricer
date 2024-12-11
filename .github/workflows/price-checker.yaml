@@ -290,42 +290,41 @@ jobs:
         from typing import Optional, List, Union
 
         def parse_updates(updates_json: str) -> Optional[List]:
-        """Parse and validate the updates array [booking_num, price, category?]"""
-        try:
-            # First try to fix common formatting issues
-            updates_json = updates_json.strip()
-            if not updates_json.startswith('['):
-                print("❌ Input must start with '['. Example: [1, 440.53, \"Intermediate SUV\"]")
-                return None
-            if not updates_json.endswith(']'):
-                print("❌ Input must end with ']'. Example: [1, 440.53, \"Intermediate SUV\"]")
-                return None
+          """Parse and validate the updates array [booking_num, price, category?]"""
+          try:
+              # First try to fix common formatting issues
+              updates_json = updates_json.strip()
+              if not updates_json.startswith('['):
+                  print("❌ Input must start with '['. Example: [1, 440.53, \"Intermediate SUV\"]")
+                  return None
+              if not updates_json.endswith(']'):
+                  print("❌ Input must end with ']'. Example: [1, 440.53, \"Intermediate SUV\"]")
+                  return None
 
-            updates = json.loads(updates_json)
-            if not isinstance(updates, list):
-                raise ValueError("Updates must be an array")
-            if len(updates) < 2 or len(updates) > 3:
-                raise ValueError("Updates must contain 2 or 3 elements [booking_number, price, category?]")
-            
-            booking_num = int(updates[0])
-            price = float(updates[1])
-            category = updates[2] if len(updates) > 2 else None
-            
-            return [booking_num, price, category]
-        except json.JSONDecodeError:
-            print("❌ Invalid JSON format. Make sure to use proper quotes and brackets.")
-            print("Example format: [1, 440.53, \"Intermediate SUV\"]")
-            print("         or   : [1, 440.53]")
-            return None
-        except ValueError as e:
-            print(f"❌ Error parsing updates: {str(e)}")
-            print("Example format: [1, 440.53, \"Intermediate SUV\"]")
-            return None
-        except Exception as e:
-            print(f"❌ Unexpected error parsing updates: {str(e)}")
-            print("Example format: [1, 440.53, \"Intermediate SUV\"]")
-            return None
-
+              updates = json.loads(updates_json)
+              if not isinstance(updates, list):
+                  raise ValueError("Updates must be an array")
+              if len(updates) < 2 or len(updates) > 3:
+                  raise ValueError("Updates must contain 2 or 3 elements [booking_number, price, category?]")
+              
+              booking_num = int(updates[0])
+              price = float(updates[1])
+              category = updates[2] if len(updates) > 2 else None
+              
+              return [booking_num, price, category]
+          except json.JSONDecodeError:
+              print("❌ Invalid JSON format. Make sure to use proper quotes and brackets.")
+              print("Example format: [1, 440.53, \"Intermediate SUV\"]")
+              print("         or   : [1, 440.53]")
+              return None
+          except ValueError as e:
+              print(f"❌ Error parsing updates: {str(e)}")
+              print("Example format: [1, 440.53, \"Intermediate SUV\"]")
+              return None
+          except Exception as e:
+              print(f"❌ Unexpected error parsing updates: {str(e)}")
+              print("Example format: [1, 440.53, \"Intermediate SUV\"]")
+              return None
         try:
             # Load price history
             with open('price_history.json', 'r') as f:
