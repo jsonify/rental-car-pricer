@@ -51,14 +51,6 @@ on:
         description: 'New category for Booking 2 (optional)'
         required: false
         type: string
-      booking_3_price:
-        description: 'New holding price for Booking 3'
-        required: false
-        type: string
-      booking_3_category:
-        description: 'New category for Booking 3 (optional)'
-        required: false
-        type: string
       booking_to_delete:
         description: 'Booking number to delete (1-3)'
         required: false
@@ -241,8 +233,6 @@ jobs:
         BOOKING_1_CATEGORY: ${{ github.event.inputs.booking_1_category }}
         BOOKING_2_PRICE: ${{ github.event.inputs.booking_2_price }}
         BOOKING_2_CATEGORY: ${{ github.event.inputs.booking_2_category }}
-        BOOKING_3_PRICE: ${{ github.event.inputs.booking_3_price }}
-        BOOKING_3_CATEGORY: ${{ github.event.inputs.booking_3_category }}
       run: |
         python - <<EOF
         import json
@@ -265,9 +255,9 @@ jobs:
             # Get list of booking IDs
             booking_ids = list(price_history['bookings'].keys())
 
-            # Process each booking
+            # Process each booking (only first two)
             updates_made = False
-            for i, booking_id in enumerate(booking_ids[:3], 1):
+            for i, booking_id in enumerate(booking_ids[:2], 1):
                 price_str = os.environ.get(f'BOOKING_{i}_PRICE', '').strip()
                 category = os.environ.get(f'BOOKING_{i}_CATEGORY', '').strip()
                 
