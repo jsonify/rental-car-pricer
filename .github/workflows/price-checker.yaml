@@ -11,8 +11,9 @@ on:
         options:
           - check-prices
           - add-booking
+          - display-bookings
           - update-holding-prices
-          - delete-booking 
+          - delete-booking
         required: true
         default: 'check-prices'
       new_booking_location:
