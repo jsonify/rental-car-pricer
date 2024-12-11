@@ -146,7 +146,26 @@ class BookingTracker:
         
         self.bookings["bookings"][booking_id]["holding_price"] = holding_price
         self.save_bookings()
-
+        
+    def update_booking_details(self, booking_id: str, holding_price: Optional[float] = None, focus_category: Optional[str] = None):
+        """Update booking details including holding price and focus category"""
+        if booking_id not in self.bookings["bookings"]:
+            raise ValueError(f"Booking {booking_id} not found")
+        
+        booking = self.bookings["bookings"][booking_id]
+        updates_made = False
+        
+        if holding_price is not None:
+            booking["holding_price"] = holding_price
+            updates_made = True
+        
+        if focus_category is not None:
+            booking["focus_category"] = focus_category
+            updates_made = True
+            
+        if updates_made:
+            self.save_bookings()
+        
     def get_active_bookings(self) -> List[Dict]:
         """Get all active bookings"""
         active_bookings = []
