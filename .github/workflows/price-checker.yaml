@@ -545,6 +545,151 @@ jobs:
           libffi-dev \
           shared-mime-info
 
+    - name: Test chart generation
+      run: |
+        python - << 'EOL'
+        import json
+        import sys
+        import traceback
+        from datetime import datetime
+        from typing import Dict, List, Any
+        import matplotlib.pyplot as plt
+        import base64
+        import io
+
+        def print_debug(title: str, data: Any = None) -> None:
+            print("\n" + "="*50)
+            print(title)
+            if data:
+                if isinstance(data, (dict, list)):
+                    print(json.dumps(data, indent=2))
+                else:
+                    print(str(data))
+            print("="*50)
+
+        def generate_price_chart(price_history: List[Dict], 
+                               holding_price_histories: List[Dict],
+                               focus_category: str) -> str:
+            """Generate price trend chart with debug logging"""
+            try:
+                print_debug("Generating chart with data", {
+                    "price_history_count": len(price_history),
+                    "holding_price_count": len(holding_price_histories),
+                    "focus_category": focus_category
+                })
+
+                # Extract prices and dates from price history
+                dates = []
+                prices = []
+                for record in price_history:
+                    try:
+                        date = datetime.fromisoformat(record['timestamp'])
+                        price_data = json.loads(record['prices'])
+                        if focus_category in price_data:
+                            dates.append(date)
+                            prices.append(float(price_data[focus_category]))
+                    except Exception as e:
+                        print(f"Error processing price record: {str(e)}")
+                        continue
+
+                print_debug("Extracted price data", {
+                    "num_dates": len(dates),
+                    "num_prices": len(prices),
+                    "price_range": [min(prices), max(prices)] if prices else None
+                })
+
+                # Create the chart
+                plt.figure(figsize=(10, 6))
+                plt.plot(dates, prices, 'b-', label='Price')
+
+                # Add holding prices if available
+                if holding_price_histories:
+                    holding_dates = [datetime.fromisoformat(h['effective_from']) for h in holding_price_histories]
+                    holding_prices = [float(h['price']) for h in holding_price_histories]
+                    plt.plot(holding_dates, holding_prices, 'r--', label='Holding Price')
+
+                plt.title(f'Price Trend for {focus_category}')
+                plt.xlabel('Date')
+                plt.ylabel('Price ($)')
+                plt.grid(True)
+                plt.legend()
+
+                # Save to bytes
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png', dpi=100)
+                plt.close()
+                
+                # Convert to base64
+                buf.seek(0)
+                image_base64 = base64.b64encode(buf.getvalue()).decode()
+                
+                print_debug("Chart generated successfully!")
+                return image_base64
+
+            except Exception as e:
+                print_debug("Error generating chart", {
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                    "traceback": traceback.format_exc()
+                })
+                return ""
+
+        # Test with sample data from price_history.json
+        try:
+            print_debug("Loading price history data")
+            with open('price_history.json', 'r') as f:
+                data = json.load(f)
+
+            # Get first active booking
+            booking_id = data['metadata']['active_bookings'][0]
+            booking = data['bookings'][booking_id]
+            
+            print_debug("Processing booking data", {
+                "id": booking_id,
+                "location": booking['location'],
+                "category": booking['focus_category']
+            })
+
+            # Get holding price histories for this booking from database data
+            holding_histories = []  # This will come from your holding_price_histories_rows.csv
+            with open('holding_price_histories_rows.csv', 'r') as f:
+                import csv
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row['booking_id'] == booking_id:
+                        holding_histories.append(row)
+
+            print_debug("Found holding price histories", holding_histories)
+
+            # Generate test chart
+            chart_data = generate_price_chart(
+                price_history=booking.get('price_history', []),
+                holding_price_histories=holding_histories,
+                focus_category=booking['focus_category']
+            )
+
+            # Save chart to file for inspection
+            if chart_data:
+                chart_bytes = base64.b64decode(chart_data)
+                with open('test_chart.png', 'wb') as f:
+                    f.write(chart_bytes)
+                print_debug("Test chart saved to test_chart.png")
+            else:
+                print_debug("No chart data generated")
+
+        except Exception as e:
+            print_debug("Test failed", {
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "traceback": traceback.format_exc()
+            })
+            sys.exit(1)
+        EOL
+
+        # Display the generated chart
+        echo "Test chart (if generated):"
+        ls -l test_chart.png || echo "No chart file found"
+
     - name: Run price checker
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
       env:
