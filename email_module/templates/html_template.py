@@ -5,6 +5,8 @@ import traceback
 from datetime import datetime
 from ..styles.css_styles import EMAIL_CSS
 from .formatters import format_price_change_html
+from ..charts import generate_price_trend_chart
+
 
 def get_holding_price_details(holding_price_histories: List[Dict]) -> Dict:
     """
@@ -123,7 +125,7 @@ def generate_mini_sparkline(price_history: List[Dict], holding_price_histories: 
 
 def format_price_comparison(current_price: float, holding_price_details: Dict, 
                           price_history: List[Dict], holding_price_histories: List[Dict]) -> str:
-    """Format the price comparison section with sparkline and holding price details"""
+    """Format the price comparison section with PNG chart and holding price details"""
     if not holding_price_details:
         return ""
     
@@ -133,26 +135,25 @@ def format_price_comparison(current_price: float, holding_price_details: Dict,
     
     days_text = f"(last updated {holding_price_details['days_since_update']} days ago)"
     changes_text = f"Changed {holding_price_details['total_changes']} times since initial ${holding_price_details['initial_price']:.2f}"
-    sparkline = generate_mini_sparkline(price_history, holding_price_histories)
+    
+    # Generate price trend chart
+    chart_image = generate_price_trend_chart(price_history, holding_price_histories)
+    chart_html = f'<img src="{chart_image}" style="width: 100%; max-width: 300px; height: auto;" />' if chart_image else ''
     
     return f"""
-        <div style="display: flex; flex-direction: column; margin-top: 10px;">
-            <div style="display: flex; align-items: center;">
-                <div style="flex: 1;">
-                    <div style="font-size: 0.875rem; color: #64748b;">
-                        vs Holding Price {days_text}
-                    </div>
-                    <div style="font-size: 1rem; margin-top: 2px; color: {price_diff > 0 and '#dc2626' or '#16a34a'}">
-                        {price_diff > 0 and '↑' or '↓'} ${abs(price_diff):.2f}
-                        ({abs(pct_change):.1f}%)
-                    </div>
-                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">
-                        {changes_text}
-                    </div>
-                </div>
-                <div style="flex: 1;">
-                    {sparkline}
-                </div>
+        <div style="margin-top: 10px;">
+            <div style="font-size: 0.875rem; color: #64748b;">
+                vs Holding Price {days_text}
+            </div>
+            <div style="font-size: 1rem; margin-top: 2px; color: {price_diff > 0 and '#dc2626' or '#16a34a'}">
+                {price_diff > 0 and '↑' or '↓'} ${abs(price_diff):.2f}
+                ({abs(pct_change):.1f}%)
+            </div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">
+                {changes_text}
+            </div>
+            <div style="margin-top: 10px;">
+                {chart_html}
             </div>
         </div>
     """

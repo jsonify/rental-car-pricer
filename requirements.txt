@@ -5,3 +5,4 @@ beautifulsoup4==4.12.3
 email-validator==2.1.0.post1
 selenium-wire==5.1.0
 supabase==2.0.3
+matplotlib==3.8.3
