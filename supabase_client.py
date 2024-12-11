@@ -1,43 +1,44 @@
-from supabase import create_client, Client
+# src/lib/supabase/client.py
+
+"""
+Supabase client configuration and helper functions for interacting with the database.
+Provides functions for fetching price histories and holding prices.
+"""
+
 import os
-from typing import Optional
+from typing import List, Dict, Optional
+from supabase import create_client, Client
 
-class SupabaseClient:
-    _instance: Optional[Client] = None
-
-    def __init__(self):
-        """Initialize Supabase client with environment variables"""
-        if not SupabaseClient._instance:
-            supabase_url = os.getenv('SUPABASE_URL')
-            supabase_key = os.getenv('SUPABASE_SERVICE_KEY')  # Changed to SUPABASE_SERVICE_KEY
-            
-            if not supabase_url or not supabase_key:
-                raise ValueError(
-                    "Missing Supabase credentials. Please ensure SUPABASE_URL and "
-                    "SUPABASE_SERVICE_KEY are set in your environment variables."
-                )
-            
-            SupabaseClient._instance = create_client(supabase_url, supabase_key)
+def get_supabase_client() -> Client:
+    """Initialize and return Supabase client"""
+    url = os.environ.get('SUPABASE_URL')
+    key = os.environ.get('SUPABASE_SERVICE_KEY')
     
-    @property
-    def client(self) -> Client:
-        """Get the Supabase client instance"""
-        if not SupabaseClient._instance:
-            raise RuntimeError("Supabase client not initialized")
-        return SupabaseClient._instance
+    if not url or not key:
+        raise ValueError("Missing Supabase configuration. Set SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables.")
+    
+    return create_client(url, key)
 
-    def get_bookings(self):
-        """Fetch all active bookings"""
-        return self.client.table('bookings').select('*').eq('active', True).execute()
-
-    def update_price_history(self, booking_id: str, price_data: dict):
-        """Insert a new price history record"""
-        return self.client.table('price_histories').insert(price_data).execute()
-
-# Helper function to get a configured client
-def get_supabase_client() -> SupabaseClient:
+def get_holding_price_histories(booking_id: str) -> List[Dict]:
+    """
+    Fetch holding price histories for a booking from Supabase
+    
+    Args:
+        booking_id: The ID of the booking to fetch histories for
+        
+    Returns:
+        List of holding price history records sorted by effective_from date
+    """
     try:
-        return SupabaseClient()
+        supabase = get_supabase_client()
+        
+        response = supabase.table('holding_price_histories') \
+            .select('*') \
+            .eq('booking_id', booking_id) \
+            .order('effective_from', desc=False) \
+            .execute()
+            
+        return response.data
     except Exception as e:
-        print(f"Error initializing Supabase client: {str(e)}")
-        raise
+        print(f"Error fetching holding price histories: {str(e)}")
+        return []

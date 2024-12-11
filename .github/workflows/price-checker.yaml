@@ -546,6 +546,9 @@ jobs:
           shared-mime-info
 
     - name: Test chart generation
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       run: |
         python - << 'EOL'
         import json
@@ -553,9 +556,9 @@ jobs:
         import traceback
         from datetime import datetime
         from typing import Dict, List, Any
-        import matplotlib.pyplot as plt
+        import plotly.graph_objects as go
         import base64
-        import io
+        from src.lib.supabase.client import get_holding_price_histories
 
         def print_debug(title: str, data: Any = None) -> None:
             print("\n" + "="*50)
@@ -568,8 +571,8 @@ jobs:
             print("="*50)
 
         def generate_price_chart(price_history: List[Dict], 
-                               holding_price_histories: List[Dict],
-                               focus_category: str) -> str:
+                              holding_price_histories: List[Dict],
+                              focus_category: str) -> str:
             """Generate price trend chart with debug logging"""
             try:
                 print_debug("Generating chart with data", {
@@ -584,7 +587,9 @@ jobs:
                 for record in price_history:
                     try:
                         date = datetime.fromisoformat(record['timestamp'])
-                        price_data = json.loads(record['prices'])
+                        price_data = record.get('prices', {})
+                        if isinstance(price_data, str):
+                            price_data = json.loads(price_data)
                         if focus_category in price_data:
                             dates.append(date)
                             prices.append(float(price_data[focus_category]))
@@ -598,30 +603,43 @@ jobs:
                     "price_range": [min(prices), max(prices)] if prices else None
                 })
 
-                # Create the chart
-                plt.figure(figsize=(10, 6))
-                plt.plot(dates, prices, 'b-', label='Price')
+                # Create figure with plotly
+                fig = go.Figure()
+
+                # Add price line
+                fig.add_trace(go.Scatter(
+                    x=dates,
+                    y=prices,
+                    mode='lines+markers',
+                    name='Price',
+                    line=dict(color='blue')
+                ))
 
                 # Add holding prices if available
                 if holding_price_histories:
                     holding_dates = [datetime.fromisoformat(h['effective_from']) for h in holding_price_histories]
                     holding_prices = [float(h['price']) for h in holding_price_histories]
-                    plt.plot(holding_dates, holding_prices, 'r--', label='Holding Price')
+                    
+                    fig.add_trace(go.Scatter(
+                        x=holding_dates,
+                        y=holding_prices,
+                        mode='lines',
+                        name='Holding Price',
+                        line=dict(color='red', dash='dash')
+                    ))
 
-                plt.title(f'Price Trend for {focus_category}')
-                plt.xlabel('Date')
-                plt.ylabel('Price ($)')
-                plt.grid(True)
-                plt.legend()
+                # Update layout
+                fig.update_layout(
+                    title=f'Price Trend for {focus_category}',
+                    xaxis_title='Date',
+                    yaxis_title='Price ($)',
+                    showlegend=True,
+                    template='plotly_white'
+                )
 
-                # Save to bytes
-                buf = io.BytesIO()
-                plt.savefig(buf, format='png', dpi=100)
-                plt.close()
-                
-                # Convert to base64
-                buf.seek(0)
-                image_base64 = base64.b64encode(buf.getvalue()).decode()
+                # Save to PNG
+                img_bytes = fig.to_image(format="png")
+                image_base64 = base64.b64encode(img_bytes).decode()
                 
                 print_debug("Chart generated successfully!")
                 return image_base64
@@ -650,16 +668,9 @@ jobs:
                 "category": booking['focus_category']
             })
 
-            # Get holding price histories for this booking from database data
-            holding_histories = []  # This will come from your holding_price_histories_rows.csv
-            with open('holding_price_histories_rows.csv', 'r') as f:
-                import csv
-                reader = csv.DictReader(f)
-                for row in reader:
-                    if row['booking_id'] == booking_id:
-                        holding_histories.append(row)
-
-            print_debug("Found holding price histories", holding_histories)
+            # Get holding price histories from Supabase
+            holding_histories = get_holding_price_histories(booking_id)
+            print_debug("Found holding price histories from Supabase", holding_histories)
 
             # Generate test chart
             chart_data = generate_price_chart(
