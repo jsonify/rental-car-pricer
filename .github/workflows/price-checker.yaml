@@ -529,6 +529,22 @@ jobs:
         test -f "email_module/templates/formatters.py" || echo "Missing formatters.py"
         test -f "email_module/styles/css_styles.py" || echo "Missing css_styles.py"
 
+    - name: Install system dependencies for matplotlib
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3-dev \
+          python3-pip \
+          python3-setuptools \
+          python3-wheel \
+          python3-cffi \
+          libcairo2 \
+          libpango-1.0-0 \
+          libpangocairo-1.0-0 \
+          libgdk-pixbuf2.0-0 \
+          libffi-dev \
+          shared-mime-info
+
     - name: Run price checker
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
       env:

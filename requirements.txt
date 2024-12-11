@@ -1,3 +1,5 @@
+# requirements.txt
+
 selenium==4.18.1
 python-dotenv==1.0.1
 requests==2.31.0
@@ -6,3 +8,6 @@ email-validator==2.1.0.post1
 selenium-wire==5.1.0
 supabase==2.0.3
 matplotlib==3.8.3
+# Required for matplotlib in headless environments
+python-kaleido==0.2.1  # For static image export
+plotly==5.19.0  # Alternative plotting library that works better in headless environments
