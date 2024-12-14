@@ -54,6 +54,7 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
         focus_category = booking['focus_category']
         holding_price = booking.get('holding_price')
         focus_trends = trends.get('focus_category', {})
+        price_history = focus_trends.get('price_history', [])
         
         # Calculate better deals
         better_deals = calculate_better_deals(prices, focus_category)
@@ -73,6 +74,44 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
         else:
             price_change_html = ""
 
+        # Create price history table
+        price_history_html = ""
+        if price_history:
+            history_rows = []
+            for record in price_history:
+                timestamp = record.get('timestamp', '')
+                category_prices = record.get('prices', {})
+                focus_price = category_prices.get(focus_category, 0)
+                history_rows.append(f"""
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 8px; text-align: left;">{timestamp}</td>
+                        <td style="padding: 8px; text-align: right;">${focus_price:.2f}</td>
+                        <td style="padding: 8px; text-align: right;">
+                            {focus_category}
+                        </td>
+                    </tr>
+                """)
+            
+            price_history_html = f"""
+                <div style="margin-top: 15px; background: #f8fafc; border-radius: 8px; padding: 15px;">
+                    <div style="font-weight: bold; margin-bottom: 8px;">Price History</div>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #e2e8f0; font-weight: bold;">
+                                    <th style="padding: 8px; text-align: left;">Date</th>
+                                    <th style="padding: 8px; text-align: right;">Price</th>
+                                    <th style="padding: 8px; text-align: right;">Category</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {''.join(history_rows)}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            """
+
         return f"""
             <td style="width: 50%; padding: 20px; vertical-align: top;">
                 <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -86,7 +125,9 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
                         {holding_price and f'<div style="margin-top: 5px;">💰 Holding Price: ${holding_price:.2f}</div>' or ''}
                     </div>
                     
-                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; border: 2px solid #e2e8f0;">
+                    {price_history_html}
+                    
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; border: 2px solid #e2e8f0; margin-top: 15px;">
                         <div style="text-transform: uppercase; color: #64748b; font-size: 0.75rem; letter-spacing: 0.05em;">
                             Tracked Category
                         </div>
