@@ -186,7 +186,11 @@ def format_email_body_html(bookings_data: List[Dict]) -> str:
         <div style="max-width: 1200px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
             <div style="text-align: center; margin-bottom: 30px;">
                 <h1 style="color: #1a1a1a; margin-bottom: 10px; font-size: 24px; font-weight: bold;">
-                    Costco Travel Car Rental Update
+                    <a href="https://www.costcotravel.com/Rental-Cars" 
+                       style="color: #2563eb; text-decoration: none;"
+                       target="_blank">
+                        🚗 Costco Travel Car Rental Update
+                    </a>
                 </h1>
                 <div style="color: #666; font-size: 14px;">
                     Last checked: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
@@ -199,7 +203,15 @@ def format_email_body_html(bookings_data: List[Dict]) -> str:
                 {''.join(booking_rows)}
             </table>
             
-            <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+            <div style="text-align: center; margin-top: 30px; padding: 20px;">
+                <a href="https://www.costcotravel.com/Rental-Cars" 
+                   style="color: #2563eb; text-decoration: none; font-weight: 500;"
+                   target="_blank">
+                    View Current Prices at Costco Travel →
+                </a>
+            </div>
+            
+            <div style="text-align: center; margin-top: 10px; color: #666; font-size: 12px;">
                 All prices include taxes and fees • Historical trends shown when available
             </div>
         </div>
