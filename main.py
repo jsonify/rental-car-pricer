@@ -6,7 +6,7 @@ import traceback
 import os
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
@@ -439,7 +439,7 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
 def run_price_checks(tracker, active_bookings):
     """Run price checks for all active bookings"""
     driver = setup_driver(headless=True)
-    alert_service = PriceAlertService(price_threshold=10.0)  # $10 minimum price drop
+    price_alert_service = PriceAlertService(price_threshold=10.0)  # $10 minimum price drop
     
     # Clean up expired bookings
     deleted_bookings = tracker.cleanup_expired_bookings()
@@ -491,7 +491,9 @@ def run_price_checks(tracker, active_bookings):
         
         # Process and send alerts
         if bookings_data:
-            alert_service.send_alerts(bookings_data)
+            price_alert_service.send_alerts(bookings_data)
+        else:
+            print("\n📢 No bookings data to send")
         
     except Exception as e:
         print(f"\n❌ An error occurred: {str(e)}")
