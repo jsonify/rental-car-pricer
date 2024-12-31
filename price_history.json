@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "last_updated": "2024-12-29T11:40:02.183685",
+    "last_updated": "2024-12-31T20:45:32.030525",
     "active_bookings": [
       "KOA_04102025_04142025",
       "SAN_11292024_11302024",
@@ -12,7 +12,7 @@
       "location": "LIH",
       "pickup_date": "04/03/2025",
       "dropoff_date": "04/10/2025",
-      "focus_category": "Intermediate SUV",
+      "focus_category": "Intermediate Car",
       "pickup_time": "12:00 PM",
       "dropoff_time": "12:00 PM",
       "location_full_name": "LIH Airport",
