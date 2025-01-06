@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "last_updated": "2025-01-06T19:18:20.748885",
+    "last_updated": "2025-01-06T19:25:20.262577",
     "active_bookings": [
       "KOA_04102025_04142025",
       "SAN_11292024_11302024",
@@ -27,7 +27,7 @@
       "dropoff_date": "04/14/2025",
       "pickup_time": "12:00 PM",
       "dropoff_time": "12:00 PM",
-      "focus_category": "Full-size Car",
+      "focus_category": "Intermediate Car",
       "price_history": [
         {
           "timestamp": "2024-11-10T00:13:28.953152",
@@ -249,7 +249,7 @@
         }
       ],
       "created_at": "2024-11-10T00:12:09.308258",
-      "holding_price": 256.36
+      "holding_price": 215.38
     }
   }
 }
