@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "last_updated": "2025-01-06T19:25:20.262577",
+    "last_updated": "2025-01-06T19:34:54.218502",
     "active_bookings": [
       "KOA_04102025_04142025",
       "SAN_11292024_11302024",
@@ -15,10 +15,10 @@
       "dropoff_date": "04/10/2025",
       "pickup_time": "12:00 PM",
       "dropoff_time": "12:00 PM",
-      "focus_category": "Jeep Wrangler 4 door",
+      "focus_category": "Intermediate Car",
       "price_history": [],
       "created_at": "2025-01-06T19:21:17.855450",
-      "holding_price": 495.92
+      "holding_price": 396.09
     },
     "KOA_04102025_04142025": {
       "location": "KOA",
