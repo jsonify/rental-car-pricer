@@ -439,7 +439,7 @@ def process_booking(driver, booking: Dict) -> Optional[Dict[str, float]]:
 def run_price_checks(tracker, active_bookings):
     """Run price checks for all active bookings"""
     driver = setup_driver(headless=True)
-    price_alert_service = PriceAlertService(price_threshold=10.0)  # $10 minimum price drop
+    alert_service = PriceAlertService(price_threshold=10.0)  # $10 minimum price drop
     
     # Clean up expired bookings
     deleted_bookings = tracker.cleanup_expired_bookings()
@@ -475,11 +475,28 @@ def run_price_checks(tracker, active_bookings):
                 # Get price trends
                 trends = tracker.get_price_trends(booking_id)
                 
+                # Calculate if this booking has a significant price drop
+                current_price = prices.get(booking['focus_category'])
+                previous_price = None
+                
+                if booking.get('price_history'):
+                    prev_record = booking['price_history'][-2] if len(booking['price_history']) > 1 else None
+                    if prev_record and 'prices' in prev_record:
+                        previous_price = prev_record['prices'].get(booking['focus_category'])
+                
+                has_significant_drop = False
+                if current_price is not None and previous_price is not None:
+                    price_drop = previous_price - current_price
+                    if price_drop >= alert_service.price_threshold:
+                        has_significant_drop = True
+                        print(f"Significant price drop found for {booking['location']}: ${price_drop:.2f}")
+                
                 # Add to bookings data for email
                 bookings_data.append({
                     'booking': booking,
                     'prices': prices,
-                    'trends': trends
+                    'trends': trends,
+                    'has_significant_drop': has_significant_drop
                 })
                 
                 print(f"\n✅ Prices updated for {booking['location']}")
@@ -489,9 +506,14 @@ def run_price_checks(tracker, active_bookings):
             # Wait between bookings
             time.sleep(random.uniform(2, 4))
         
-        # Process and send alerts
+        # Send email with all bookings data
         if bookings_data:
-            price_alert_service.send_alerts(bookings_data)
+            print(f"\nSending email update for {len(bookings_data)} bookings")
+            drops_count = sum(1 for b in bookings_data if b.get('has_significant_drop'))
+            if drops_count:
+                print(f"Including {drops_count} bookings with significant price drops")
+            
+            send_price_alert(bookings_data)
         else:
             print("\n📢 No bookings data to send")
         
