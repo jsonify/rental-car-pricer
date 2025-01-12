@@ -22,6 +22,12 @@ def calculate_price_change(current: float, previous: float) -> tuple:
 
 def generate_email_content(bookings_data: List[Dict]) -> tuple:
     """Generate both plain text and HTML email content"""
+    print(f"\nGenerating email content for {len(bookings_data)} bookings:")
+    for booking in bookings_data:
+        print(f"- {booking['booking']['location']}: {booking['booking']['pickup_date']} to {booking['booking']['dropoff_date']}")
+        if booking.get('has_significant_drop'):
+            print("  * Has significant price drop!")
+        
     text_content = format_email_body_text(bookings_data)
     html_content = format_email_body_html(bookings_data)
     return text_content, html_content

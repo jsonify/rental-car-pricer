@@ -48,21 +48,96 @@ def format_better_deals_section(better_deals: List[Dict]) -> str:
         </div>
     """
 
-def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -> str:
+def format_price_history_table(price_history: List[Dict], focus_category: str) -> str:
+    """Format price history table for a booking"""
+    if not price_history:
+        return ""
+        
+    history_rows = []
+    # Sort history by timestamp in descending order (newest first)
+    sorted_history = sorted(price_history, key=lambda x: x['timestamp'], reverse=True)
+    
+    for record in sorted_history:
+        timestamp = record.get('timestamp', '')
+        record_prices = record.get('prices', {})
+        if focus_category in record_prices:
+            category_price = record_prices[focus_category]
+            history_rows.append(f"""
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 8px; text-align: left;">{timestamp}</td>
+                    <td style="padding: 8px; text-align: right;">${category_price:.2f}</td>
+                </tr>
+            """)
+    
+    if history_rows:  # Only show if we have history data
+        return f"""
+            <div style="margin: 15px 0; background: #f8fafc; border-radius: 8px; padding: 15px;">
+                <div style="font-weight: bold; margin-bottom: 8px;">📋 Price History for {focus_category}</div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #e2e8f0; font-weight: bold;">
+                                <th style="padding: 8px; text-align: left;">Date</th>
+                                <th style="padding: 8px; text-align: right;">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {''.join(history_rows)}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        """
+    return ""
+
+def create_price_rows(prices: Dict[str, float], focus_category: str) -> str:
+    """Create HTML rows for all price categories with enhanced focus highlighting"""
+    rows = []
+    for category, price in sorted(prices.items(), key=lambda x: x[1]):
+        is_focus = category == focus_category
+        row_style = """
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            {}
+        """.format('background: #e0f2fe;' if is_focus else '')
+        
+        rows.append(f"""
+            <div style="{row_style}">
+                <span>
+                    {is_focus and '🎯 ' or ''}{category}
+                </span>
+                <span>${price:.2f}</span>
+            </div>
+        """)
+    return ''.join(rows)
+
+def format_booking_card(booking_data: Dict) -> str:
     """Format a single booking card with updated layout"""
     try:
+        booking = booking_data['booking']
+        prices = booking_data['prices']
+        trends = booking_data.get('trends', {})
+        
         focus_category = booking['focus_category']
         holding_price = booking.get('holding_price')
-        focus_trends = trends.get('focus_category', {})
-        price_history = booking.get('price_history', [])  # Get price history directly from booking
+        has_significant_drop = booking_data.get('has_significant_drop', False)
+        price_history = booking.get('price_history', [])
         
         # Calculate better deals
         better_deals = calculate_better_deals(prices, focus_category)
         better_deals_html = format_better_deals_section(better_deals)
         
-        # Calculate stats
+        # Generate price history table
+        price_history_html = format_price_history_table(price_history, focus_category)
+        
+        # Calculate stats and price changes
         current_price = prices.get(focus_category, 0)
-        previous_price = focus_trends.get('previous_price')
+        previous_record = price_history[-2] if len(price_history) > 1 else None
+        previous_price = previous_record['prices'].get(focus_category) if previous_record else None
+        
+        # Calculate price change display
         if previous_price:
             price_change = current_price - previous_price
             price_change_html = f"""
@@ -74,48 +149,22 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
         else:
             price_change_html = ""
 
-        # Create price history table
-        price_history_html = ""
-        if price_history:
-            history_rows = []
-            # Sort history by timestamp in descending order (newest first)
-            sorted_history = sorted(price_history, key=lambda x: x['timestamp'], reverse=True)
-            
-            for record in sorted_history:
-                timestamp = record.get('timestamp', '')
-                record_prices = record.get('prices', {})
-                if focus_category in record_prices:
-                    category_price = record_prices[focus_category]
-                    history_rows.append(f"""
-                        <tr style="border-bottom: 1px solid #e2e8f0;">
-                            <td style="padding: 8px; text-align: left;">{timestamp}</td>
-                            <td style="padding: 8px; text-align: right;">${category_price:.2f}</td>
-                        </tr>
-                    """)
-            
-            if history_rows:  # Only show if we have history data
-                price_history_html = f"""
-                    <div style="margin: 15px 0; background: #f8fafc; border-radius: 8px; padding: 15px;">
-                        <div style="font-weight: bold; margin-bottom: 8px;">📋 Price History for {focus_category}</div>
-                        <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
-                                <thead>
-                                    <tr style="border-bottom: 2px solid #e2e8f0; font-weight: bold;">
-                                        <th style="padding: 8px; text-align: left;">Date</th>
-                                        <th style="padding: 8px; text-align: right;">Price</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {''.join(history_rows)}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                """
+        # Card style with optional highlight for significant drops
+        card_style = """
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            {}
+        """.format('border: 2px solid #16a34a;' if has_significant_drop else '')
 
         return f"""
             <td style="width: 50%; padding: 20px; vertical-align: top;">
-                <div style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="{card_style}">
+                    {has_significant_drop and 
+                     '<div style="color: #16a34a; font-weight: bold; margin-bottom: 10px;">💰 Price Drop Alert!</div>' 
+                     or ''}
+                    
                     <h2 style="margin: 0 0 10px 0; color: #1a1a1a;">
                         {booking['location']} - {booking.get('location_full_name', 'Airport')}
                     </h2>
@@ -123,7 +172,8 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
                     <div style="background: #f3f4f6; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
                         <div style="margin-bottom: 5px;">📅 {booking['pickup_date']} to {booking['dropoff_date']}</div>
                         <div>⏰ {booking['pickup_time']} - {booking['dropoff_time']}</div>
-                        {holding_price and f'<div style="margin-top: 5px;">💰 Holding Price: ${holding_price:.2f}</div>' or ''}
+                        {holding_price is not None and 
+                         f'<div style="margin-top: 5px;">💰 Holding Price: ${holding_price:.2f}</div>' or ''}
                     </div>
                     
                     {price_history_html}
@@ -144,19 +194,19 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
                             <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
                                 <div style="font-size: 0.75rem; color: #64748b;">Lowest</div>
                                 <div style="font-weight: bold; margin-top: 2px;">
-                                    ${focus_trends.get('lowest', 0):.2f}
+                                    ${min(prices.values()):.2f}
                                 </div>
                             </div>
                             <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
-                                <div style="font-size: 0.75rem; color: #64748b;">Average</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">Category Lowest</div>
                                 <div style="font-weight: bold; margin-top: 2px;">
-                                    ${focus_trends.get('average', 0):.2f}
+                                    ${current_price:.2f}
                                 </div>
                             </div>
                             <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
-                                <div style="font-size: 0.75rem; color: #64748b;">Highest</div>
+                                <div style="font-size: 0.75rem; color: #64748b;">Holding</div>
                                 <div style="font-weight: bold; margin-top: 2px;">
-                                    ${focus_trends.get('highest', 0):.2f}
+                                    ${holding_price or '-':.2f if holding_price else '-'}
                                 </div>
                             </div>
                         </div>
@@ -182,45 +232,32 @@ def format_booking_card(booking: Dict, prices: Dict[str, float], trends: Dict) -
             </td>
         """
 
-def create_price_rows(prices: Dict[str, float], focus_category: str) -> str:
-    """Create HTML rows for all price categories with enhanced focus highlighting"""
-    rows = []
-    for category, price in sorted(prices.items(), key=lambda x: x[1]):
-        is_focus = category == focus_category
-        row_style = """
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 12px;
-            border-bottom: 1px solid #e2e8f0;
-            {}
-        """.format('background: #e0f2fe;' if is_focus else '')
-        
-        rows.append(f"""
-            <div style="{row_style}">
-                <span>
-                    {is_focus and '🎯 ' or ''}{category}
-                </span>
-                <span>${price:.2f}</span>
-            </div>
-        """)
-    return ''.join(rows)
-
 def format_email_body_html(bookings_data: List[Dict]) -> str:
     """Format the complete email body in HTML"""
     try:
+        # Print debug info about bookings being processed
+        print(f"\nFormatting email HTML for {len(bookings_data)} bookings:")
+        for booking_data in bookings_data:
+            booking = booking_data['booking']
+            has_drop = booking_data.get('has_significant_drop', False)
+            print(f"- {booking['location']}: {booking['pickup_date']} to {booking['dropoff_date']}")
+            if has_drop:
+                print("  * Has significant price drop!")
+        
         # Split bookings into rows of 2
         booking_rows = []
         for i in range(0, len(bookings_data), 2):
             row_bookings = bookings_data[i:i+2]
             row_html = "<tr>"
+            
+            # Add booking cards
             for booking_data in row_bookings:
-                row_html += format_booking_card(
-                    booking_data['booking'],
-                    booking_data['prices'],
-                    booking_data['trends']
-                )
+                row_html += format_booking_card(booking_data)
+            
+            # Add empty cell if odd number of bookings
             if len(row_bookings) == 1:
                 row_html += "<td style='width: 50%;'></td>"
+            
             row_html += "</tr>"
             booking_rows.append(row_html)
 
