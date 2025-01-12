@@ -206,7 +206,7 @@ def format_booking_card(booking_data: Dict) -> str:
                             <div style="flex: 1; background: white; padding: 10px; border-radius: 4px; text-align: center;">
                                 <div style="font-size: 0.75rem; color: #64748b;">Holding</div>
                                 <div style="font-weight: bold; margin-top: 2px;">
-                                    ${holding_price or '-':.2f if holding_price else '-'}
+                                    ${f"{holding_price:.2f}" if holding_price is not None else "-"}
                                 </div>
                             </div>
                         </div>
