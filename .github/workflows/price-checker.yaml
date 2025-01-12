@@ -406,6 +406,53 @@ jobs:
       run: |
         python delete_booking_cli.py
     
+        - name: Cleanup expired bookings
+        run: |
+            python - << 'EOL'
+            import json
+            from datetime import datetime
+
+            def cleanup_expired_bookings():
+                try:
+                    with open('price_history.json', 'r') as f:
+                        price_history = json.load(f)
+                    
+                    current_date = datetime.now().date()
+                    active_bookings = []
+                    removed_bookings = []
+                    
+                    # Filter active bookings
+                    for booking_id in price_history['metadata']['active_bookings']:
+                        booking = price_history['bookings'].get(booking_id)
+                        if booking:
+                            dropoff_date = datetime.strptime(booking['dropoff_date'], "%m/%d/%Y").date()
+                            if dropoff_date >= current_date:
+                                active_bookings.append(booking_id)
+                            else:
+                                removed_bookings.append(f"{booking['location']} ({booking['dropoff_date']})")
+                    
+                    if removed_bookings:
+                        print(f"\n🧹 Removing expired bookings:")
+                        for booking in removed_bookings:
+                            print(f"  - {booking}")
+                        
+                        # Update active bookings list
+                        price_history['metadata']['active_bookings'] = active_bookings
+                        
+                        # Save updated price history
+                        with open('price_history.json', 'w') as f:
+                            json.dump(price_history, f, indent=2)
+                        print("✅ Price history updated")
+                    else:
+                        print("\n✅ No expired bookings to remove")
+                    
+                except Exception as e:
+                    print(f"❌ Error cleaning up bookings: {str(e)}")
+                    raise
+
+            cleanup_expired_bookings()
+            EOL
+
     - name: Setup Python services
       run: |
         mkdir -p services

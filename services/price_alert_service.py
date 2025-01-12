@@ -24,6 +24,7 @@ class PriceAlertService:
         """Filter out expired bookings based on dropoff date"""
         current_date = datetime.now().date()
         active_bookings = []
+        expired_bookings = []
         
         for booking_data in bookings_data:
             try:
@@ -33,10 +34,13 @@ class PriceAlertService:
                 if dropoff_date >= current_date:
                     active_bookings.append(booking_data)
                 else:
-                    logging.info(f"Skipping expired booking: {booking.get('location')} - {booking['dropoff_date']}")
+                    expired_bookings.append(booking['location'])
             except (KeyError, ValueError) as e:
-                logging.error(f"Error processing booking: {str(e)}")
+                print(f"Error processing booking: {str(e)}")
                 continue
+        
+        if expired_bookings:
+            print(f"Skipping expired bookings: {', '.join(expired_bookings)}")
         
         return active_bookings
     

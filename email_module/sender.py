@@ -29,6 +29,11 @@ def generate_email_content(bookings_data: List[Dict]) -> tuple:
 def send_price_alert(bookings_data: List[Dict]) -> bool:
     """Send price alert email and update Supabase"""
     try:
+        # Print debug info
+        print(f"\nProcessing {len(bookings_data)} bookings for email:")
+        for booking in bookings_data:
+            print(f"- {booking['booking']['location']}: {booking['booking']['pickup_date']} to {booking['booking']['dropoff_date']}")
+
         # Email configuration
         smtp_server = os.getenv('SMTP_SERVER')
         smtp_port = int(os.getenv('SMTP_PORT', '587'))
@@ -40,16 +45,32 @@ def send_price_alert(bookings_data: List[Dict]) -> bool:
             print("Missing email configuration")
             return False
 
-        # Initialize Supabase client
-        supabase = None
-        if os.getenv('SUPABASE_URL') and os.getenv('SUPABASE_SERVICE_KEY'):
+        # Filter out expired bookings
+        current_date = datetime.now().date()
+        active_bookings = []
+        for booking_data in bookings_data:
             try:
-                supabase = get_supabase_client()
+                booking = booking_data['booking']
+                dropoff_date = datetime.strptime(booking['dropoff_date'], "%m/%d/%Y").date()
+                if dropoff_date >= current_date:
+                    active_bookings.append(booking_data)
+                else:
+                    print(f"Skipping expired booking in email: {booking['location']} ({booking['dropoff_date']})")
             except Exception as e:
-                print(f"Warning: Could not initialize Supabase client: {str(e)}")
+                print(f"Error processing booking for email: {str(e)}")
+                continue
+
+        if not active_bookings:
+            print("No active bookings to include in email")
+            return True
 
         # Generate email content
-        text_content, html_content = generate_email_content(bookings_data)
+        try:
+            text_content, html_content = generate_email_content(active_bookings)
+            print("✅ Email content generated successfully")
+        except Exception as e:
+            print(f"Error generating email content: {str(e)}")
+            raise
 
         # Create message
         msg = MIMEMultipart('alternative')
@@ -65,26 +86,11 @@ def send_price_alert(bookings_data: List[Dict]) -> bool:
             server.starttls()
             server.login(sender_email, sender_password)
             server.send_message(msg)
-            print("✅ Price alert email sent successfully")
-
-        # Update Supabase if client is available
-        if supabase:
-            for booking_data in bookings_data:
-                try:
-                    booking_id = booking_data['booking']['id']
-                    price_data = {
-                        'booking_id': booking_id,
-                        'timestamp': datetime.now().isoformat(),
-                        'prices': booking_data['prices'],
-                        'lowest_price': min(booking_data['prices'].values()) if booking_data['prices'] else None
-                    }
-                    supabase.update_price_history(booking_id, price_data)
-                    print(f"✅ Updated price history for booking {booking_id}")
-                except Exception as e:
-                    print(f"⚠️ Failed to update Supabase for booking {booking_id}: {str(e)}")
+            print(f"✅ Price alert email sent successfully for {len(active_bookings)} bookings")
 
         return True
 
     except Exception as e:
         print(f"❌ Error sending price alert: {str(e)}")
+        traceback.print_exc()
         return False
