@@ -16,6 +16,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from 'lucide-react'
 import {HoldingPricesDialog} from './HoldingPricesDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DatePicker } from "@/components/ui/date-picker"
+import { format } from "date-fns"
 import type { Booking } from '@/lib/types'
 
 export function AdminInterface() {
@@ -31,8 +33,8 @@ export function AdminInterface() {
 
   const [newBooking, setNewBooking] = useState({
     location: '',
-    pickup_date: '',
-    dropoff_date: '',
+    pickup_date: undefined as Date | undefined,
+    dropoff_date: undefined as Date | undefined,
     category: '',
     holding_price: ''
   })
@@ -68,9 +70,20 @@ export function AdminInterface() {
     setMessage('')
 
     try {
+      // Validate dates are selected
+      if (!newBooking.pickup_date || !newBooking.dropoff_date) {
+        setMessage('Please select pickup and dropoff dates')
+        setLoading(false)
+        return
+      }
+
+      // Format dates as MM/DD/YYYY
+      const pickupDateStr = format(newBooking.pickup_date, 'MM/dd/yyyy')
+      const dropoffDateStr = format(newBooking.dropoff_date, 'MM/dd/yyyy')
+
       if (isTestEnvironment) {
         // Test mode: Update database directly
-        const bookingId = `${newBooking.location}_${newBooking.pickup_date.replace(/\//g, '')}_${newBooking.dropoff_date.replace(/\//g, '')}`
+        const bookingId = `${newBooking.location}_${pickupDateStr.replace(/\//g, '')}_${dropoffDateStr.replace(/\//g, '')}`
 
         const { error } = await supabase
           .from('bookings')
@@ -78,8 +91,8 @@ export function AdminInterface() {
             id: bookingId,
             location: newBooking.location,
             location_full_name: `${newBooking.location} International Airport`,
-            pickup_date: newBooking.pickup_date,
-            dropoff_date: newBooking.dropoff_date,
+            pickup_date: pickupDateStr,
+            dropoff_date: dropoffDateStr,
             pickup_time: '12:00 PM',
             dropoff_time: '12:00 PM',
             focus_category: newBooking.category,
@@ -110,8 +123,8 @@ export function AdminInterface() {
         await triggerWorkflow({
           action: 'add-booking',
           new_booking_location: newBooking.location,
-          new_booking_pickup_date: newBooking.pickup_date,
-          new_booking_dropoff_date: newBooking.dropoff_date,
+          new_booking_pickup_date: pickupDateStr,
+          new_booking_dropoff_date: dropoffDateStr,
           new_booking_category: newBooking.category,
           new_booking_holding_price: newBooking.holding_price || undefined
         })
@@ -120,7 +133,7 @@ export function AdminInterface() {
       }
 
       setAddBookingOpen(false)
-      setNewBooking({ location: '', pickup_date: '', dropoff_date: '', category: '', holding_price: '' })
+      setNewBooking({ location: '', pickup_date: undefined, dropoff_date: undefined, category: '', holding_price: '' })
 
       // Refresh bookings after a delay in production mode
       if (!isTestEnvironment) {
@@ -350,17 +363,15 @@ export function AdminInterface() {
                 value={newBooking.location}
                 onChange={(e) => setNewBooking({...newBooking, location: e.target.value})}
               />
-              <Input
-                type="text"
-                placeholder="Pickup date (MM/DD/YYYY)"
-                value={newBooking.pickup_date}
-                onChange={(e) => setNewBooking({...newBooking, pickup_date: e.target.value})}
+              <DatePicker
+                date={newBooking.pickup_date}
+                onDateChange={(date) => setNewBooking({...newBooking, pickup_date: date})}
+                placeholder="Select pickup date"
               />
-              <Input
-                type="text"
-                placeholder="Dropoff date (MM/DD/YYYY)"
-                value={newBooking.dropoff_date}
-                onChange={(e) => setNewBooking({...newBooking, dropoff_date: e.target.value})}
+              <DatePicker
+                date={newBooking.dropoff_date}
+                onDateChange={(date) => setNewBooking({...newBooking, dropoff_date: date})}
+                placeholder="Select dropoff date"
               />
               <Input
                 placeholder="Vehicle category"
