@@ -118,7 +118,10 @@ This will help you start monitoring prices right away.
     
     # Initialize price history file with the booking
     history_file = 'price_history.json'
-    booking_id = f"{airport}_{pickup_date}_{dropoff_date}".replace("/", "")
+    # Include category in booking ID to prevent collisions
+    import re
+    category_slug = re.sub(r'[^a-zA-Z0-9]', '', focus_category)
+    booking_id = f"{airport}_{pickup_date}_{dropoff_date}_{category_slug}".replace("/", "")
     
     initial_history = {
         "metadata": {

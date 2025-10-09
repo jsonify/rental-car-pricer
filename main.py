@@ -464,10 +464,12 @@ def run_price_checks(tracker, active_bookings):
                 continue
                 
             prices = process_booking(driver, booking)
-            
+
             if prices:
-                # Generate booking ID
-                booking_id = f"{booking['location']}_{booking['pickup_date']}_{booking['dropoff_date']}".replace("/", "")
+                # Generate booking ID (include category to prevent collisions)
+                import re
+                category_slug = re.sub(r'[^a-zA-Z0-9]', '', booking['focus_category'])
+                booking_id = f"{booking['location']}_{booking['pickup_date']}_{booking['dropoff_date']}_{category_slug}".replace("/", "")
                 
                 # Update price history
                 tracker.update_prices(booking_id, prices)

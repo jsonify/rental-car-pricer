@@ -19,12 +19,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatePicker } from "@/components/ui/date-picker"
 import { format } from "date-fns"
 import type { Booking } from '@/lib/types'
+import { useWorkflowStatus } from '@/hooks/useWorkflowStatus'
+import { WorkflowStatusBanner } from './WorkflowStatusBanner'
 
 export function AdminInterface() {
   const { isTestEnvironment } = useEnvironment()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [bookings, setBookings] = useState<Booking[]>([])
+  const { workflowStatus, startTracking, reset: resetWorkflowStatus } = useWorkflowStatus()
 
   // Dialog states
   const [addBookingOpen, setAddBookingOpen] = useState(false)
@@ -240,13 +243,13 @@ export function AdminInterface() {
     setMessage('')
 
     try {
-      await triggerWorkflow({
+      const runId = await triggerWorkflow({
         action: 'check-prices'
       })
 
-      setMessage('Price check workflow triggered! Check GitHub Actions for status.')
-      // Refresh bookings after workflow completes (rough estimate)
-      setTimeout(() => fetchBookings(), 30000) // 30 seconds
+      // Start tracking the workflow status
+      startTracking(runId)
+      setMessage('Price check workflow started! Tracking progress...')
     } catch (error) {
       console.error('Error triggering price check:', error)
       setMessage(error instanceof Error ? error.message : 'Failed to trigger price check')
@@ -254,6 +257,14 @@ export function AdminInterface() {
       setLoading(false)
     }
   }
+
+  // Auto-refresh bookings when workflow completes successfully
+  useEffect(() => {
+    if (workflowStatus.status === 'completed' && workflowStatus.conclusion === 'success') {
+      fetchBookings()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowStatus.status, workflowStatus.conclusion])
 
   const handleDeleteBooking = async () => {
     setLoading(true)
@@ -307,13 +318,21 @@ export function AdminInterface() {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
+        {/* Workflow Status Banner */}
+        {!isTestEnvironment && workflowStatus.runId && (
+          <WorkflowStatusBanner
+            status={workflowStatus}
+            onDismiss={resetWorkflowStatus}
+          />
+        )}
+
         {/* Check Prices Button */}
         {!isTestEnvironment && (
           <Button
             variant="default"
             className="w-full"
             onClick={handleCheckPrices}
-            disabled={loading || bookings.length === 0}
+            disabled={loading || bookings.length === 0 || workflowStatus.status === 'in_progress' || workflowStatus.status === 'queued'}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Check Prices Now

@@ -17,10 +17,19 @@ export interface WorkflowDispatchInputs {
   booking_to_delete?: string
 }
 
+export interface WorkflowRun {
+  id: number
+  status: 'queued' | 'in_progress' | 'completed'
+  conclusion: 'success' | 'failure' | 'cancelled' | 'skipped' | null
+  html_url: string
+  created_at: string
+  updated_at: string
+}
+
 /**
- * Trigger a GitHub Actions workflow
+ * Trigger a GitHub Actions workflow and return the run ID
  */
-export async function triggerWorkflow(inputs: WorkflowDispatchInputs): Promise<void> {
+export async function triggerWorkflow(inputs: WorkflowDispatchInputs): Promise<number> {
   if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
     const missing = []
     if (!GITHUB_TOKEN) missing.push('VITE_GITHUB_TOKEN')
@@ -55,4 +64,59 @@ export async function triggerWorkflow(inputs: WorkflowDispatchInputs): Promise<v
   }
 
   console.log('Workflow triggered successfully!')
+
+  // Get the latest workflow run ID (GitHub doesn't return it in the dispatch response)
+  // We need to poll the runs list to find the one we just created
+  await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1s for GitHub to register the run
+
+  const runsUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/price-checker.yaml/runs?per_page=1`
+  const runsResponse = await fetch(runsUrl, {
+    headers: {
+      'Accept': 'application/vnd.github.v3+json',
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+    },
+  })
+
+  if (!runsResponse.ok) {
+    throw new Error('Failed to fetch workflow run ID')
+  }
+
+  const runsData = await runsResponse.json()
+  if (!runsData.workflow_runs || runsData.workflow_runs.length === 0) {
+    throw new Error('No workflow runs found')
+  }
+
+  return runsData.workflow_runs[0].id
+}
+
+/**
+ * Get the status of a specific workflow run
+ */
+export async function getWorkflowRun(runId: number): Promise<WorkflowRun> {
+  if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
+    throw new Error('GitHub configuration is missing')
+  }
+
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${runId}`
+
+  const response = await fetch(url, {
+    headers: {
+      'Accept': 'application/vnd.github.v3+json',
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch workflow run: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  return {
+    id: data.id,
+    status: data.status,
+    conclusion: data.conclusion,
+    html_url: data.html_url,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+  }
 }
