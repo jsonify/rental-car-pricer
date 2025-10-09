@@ -837,7 +837,7 @@ jobs:
             'apikey': supabase_key,
             'Authorization': f'Bearer {supabase_key}',
             'Content-Type': 'application/json',
-            'Prefer': 'return=minimal'
+            'Prefer': 'resolution=merge-duplicates,return=minimal'
         }
 
         response = requests.post(
@@ -846,8 +846,8 @@ jobs:
             json=booking_data
         )
 
-        if response.status_code in (200, 201):
-            print(f"✅ Successfully created booking in Supabase: {booking_id}")
+        if response.status_code in (200, 201, 204):
+            print(f"✅ Successfully created/updated booking in Supabase: {booking_id}")
         else:
             print(f"❌ Error creating booking: {response.status_code} - {response.text}")
             exit(1)
