@@ -81,9 +81,12 @@ export function AdminInterface() {
       const pickupDateStr = format(newBooking.pickup_date, 'MM/dd/yyyy')
       const dropoffDateStr = format(newBooking.dropoff_date, 'MM/dd/yyyy')
 
+      // Create category slug (remove spaces and special chars)
+      const categorySlug = newBooking.category.replace(/[^a-zA-Z0-9]/g, '')
+
       if (isTestEnvironment) {
         // Test mode: Update database directly
-        const bookingId = `${newBooking.location}_${pickupDateStr.replace(/\//g, '')}_${dropoffDateStr.replace(/\//g, '')}`
+        const bookingId = `${newBooking.location}_${pickupDateStr.replace(/\//g, '')}_${dropoffDateStr.replace(/\//g, '')}_${categorySlug}`
 
         const { error } = await supabase
           .from('bookings')

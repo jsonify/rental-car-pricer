@@ -183,8 +183,10 @@ jobs:
                     "bookings": {}
                 }
 
-            # Create booking ID
-            booking_id = f"{location}_{pickup_date}_{dropoff_date}".replace("/", "")
+            # Create booking ID (include category to avoid conflicts)
+            import re
+            category_slug = re.sub(r'[^a-zA-Z0-9]', '', category)
+            booking_id = f"{location}_{pickup_date}_{dropoff_date}_{category_slug}".replace("/", "")
 
             # Create new booking
             new_booking = {

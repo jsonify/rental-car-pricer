@@ -59,11 +59,14 @@ class BookingTracker:
         with open(self.history_file, 'w') as f:
             json.dump(bookings, f, indent=2)
 
-    def add_booking(self, location: str, pickup_date: str, dropoff_date: str, 
-                   focus_category: str, pickup_time: str = "12:00 PM", 
+    def add_booking(self, location: str, pickup_date: str, dropoff_date: str,
+                   focus_category: str, pickup_time: str = "12:00 PM",
                    dropoff_time: str = "12:00 PM", holding_price: float = None) -> str:
         """Add a new booking to track"""
-        booking_id = f"{location}_{pickup_date}_{dropoff_date}".replace("/", "")
+        # Create category slug (remove non-alphanumeric characters)
+        import re
+        category_slug = re.sub(r'[^a-zA-Z0-9]', '', focus_category)
+        booking_id = f"{location}_{pickup_date}_{dropoff_date}_{category_slug}".replace("/", "")
         
         if booking_id in self.bookings["bookings"]:
             print(f"Booking already exists for {location} from {pickup_date} to {dropoff_date}")
@@ -133,7 +136,9 @@ class BookingTracker:
                 choice = int(input("\nEnter booking number: ").strip())
                 if 1 <= choice <= len(active_bookings):
                     booking = active_bookings[choice - 1]
-                    booking_id = f"{booking['location']}_{booking['pickup_date']}_{booking['dropoff_date']}".replace("/", "")
+                    import re
+                    category_slug = re.sub(r'[^a-zA-Z0-9]', '', booking['focus_category'])
+                    booking_id = f"{booking['location']}_{booking['pickup_date']}_{booking['dropoff_date']}_{category_slug}".replace("/", "")
                     return booking_id
             except ValueError:
                 pass
