@@ -22,27 +22,37 @@ export interface WorkflowDispatchInputs {
  */
 export async function triggerWorkflow(inputs: WorkflowDispatchInputs): Promise<void> {
   if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
-    throw new Error('GitHub configuration is missing. Please set VITE_GITHUB_TOKEN, VITE_GITHUB_OWNER, and VITE_GITHUB_REPO')
+    const missing = []
+    if (!GITHUB_TOKEN) missing.push('VITE_GITHUB_TOKEN')
+    if (!GITHUB_OWNER) missing.push('VITE_GITHUB_OWNER')
+    if (!GITHUB_REPO) missing.push('VITE_GITHUB_REPO')
+    throw new Error(`GitHub configuration is missing: ${missing.join(', ')}`)
   }
 
-  const response = await fetch(
-    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/price-checker.yaml/dispatches`,
-    {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ref: 'main',
-        inputs,
-      }),
-    }
-  )
+  console.log('Triggering workflow with inputs:', inputs)
+
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/price-checker.yaml/dispatches`
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/vnd.github.v3+json',
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      ref: 'main',
+      inputs,
+    }),
+  })
+
+  console.log('Workflow dispatch response:', response.status, response.statusText)
 
   if (!response.ok) {
     const error = await response.text()
-    throw new Error(`Failed to trigger workflow: ${response.status} ${error}`)
+    console.error('Workflow dispatch failed:', error)
+    throw new Error(`Failed to trigger workflow: ${response.status} ${response.statusText} - ${error}`)
   }
+
+  console.log('Workflow triggered successfully!')
 }

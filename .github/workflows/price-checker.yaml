@@ -823,8 +823,11 @@ jobs:
         booking_data = {
             'id': booking_id,
             'location': booking['location'],
+            'location_full_name': booking.get('location_full_name', f"{booking['location']} Airport"),
             'pickup_date': booking['pickup_date'],
             'dropoff_date': booking['dropoff_date'],
+            'pickup_time': booking.get('pickup_time', '12:00 PM'),
+            'dropoff_time': booking.get('dropoff_time', '12:00 PM'),
             'focus_category': booking['focus_category'],
             'holding_price': booking.get('holding_price'),
             'active': True
