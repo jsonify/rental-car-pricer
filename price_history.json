@@ -2,11 +2,11 @@
   "metadata": {
     "last_updated": "2025-10-08T16:27:39.886951",
     "active_bookings": [
-      "SAN_04022026_04082026"
+      "SAN_04022026_04082026_StandardCar"
     ]
   },
   "bookings": {
-    "SAN_04022026_04082026": {
+    "SAN_04022026_04082026_StandardCar": {
       "location": "SAN",
       "location_full_name": "SAN Airport",
       "pickup_date": "04/02/2026",
