@@ -399,13 +399,125 @@ jobs:
             exit(1)
         EOF
 
+    - name: Sync holding price update to Supabase
+      if: github.event.inputs.action == 'update-holding-prices'
+      env:
+        BOOKING_UPDATES_JSON: ${{ github.event.inputs.booking_updates_json }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      run: |
+        python - << 'EOL'
+        import os
+        import json
+        import requests
+
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        updates_json = os.getenv('BOOKING_UPDATES_JSON', '').strip()
+
+        # Load price_history.json to get booking_id
+        with open('price_history.json', 'r') as f:
+            data = json.load(f)
+
+        booking_ids = list(data['bookings'].keys())
+        updates = json.loads(updates_json)
+        booking_num = int(updates[0])
+        new_price = float(updates[1])
+        new_category = updates[2] if len(updates) > 2 else None
+
+        booking_id = booking_ids[booking_num - 1]
+
+        # Update in Supabase
+        update_data = {'holding_price': new_price}
+        if new_category:
+            update_data['focus_category'] = new_category
+
+        headers = {
+            'apikey': supabase_key,
+            'Authorization': f'Bearer {supabase_key}',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+        }
+
+        response = requests.patch(
+            f"{supabase_url}/rest/v1/bookings?id=eq.{booking_id}",
+            headers=headers,
+            json=update_data
+        )
+
+        if response.status_code == 204:
+            print(f"✅ Successfully updated booking in Supabase: {booking_id}")
+        else:
+            print(f"❌ Error updating booking: {response.status_code} - {response.text}")
+            exit(1)
+        EOL
+
     - name: Delete booking
       if: github.event.inputs.action == 'delete-booking'
       env:
         BOOKING_TO_DELETE: ${{ github.event.inputs.booking_to_delete }}
+        GITHUB_ACTIONS: true
       run: |
         python delete_booking_cli.py
-    
+
+    - name: Sync booking deletion to Supabase
+      if: github.event.inputs.action == 'delete-booking'
+      env:
+        BOOKING_TO_DELETE: ${{ github.event.inputs.booking_to_delete }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      run: |
+        python - << 'EOL'
+        import os
+        import json
+        import requests
+
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+        booking_number = int(os.getenv('BOOKING_TO_DELETE'))
+
+        # Load price_history.json to get booking_id that was deleted
+        with open('price_history.json', 'r') as f:
+            data = json.load(f)
+
+        # The booking was already removed, so we need to figure out which one
+        # Get all booking IDs from Supabase and find the one to delete
+        headers = {
+            'apikey': supabase_key,
+            'Authorization': f'Bearer {supabase_key}',
+            'Content-Type': 'application/json'
+        }
+
+        # Get all bookings from Supabase
+        response = requests.get(
+            f"{supabase_url}/rest/v1/bookings",
+            headers=headers
+        )
+
+        if response.status_code != 200:
+            print(f"❌ Error fetching bookings: {response.status_code}")
+            exit(1)
+
+        supabase_bookings = response.json()
+
+        # Find booking IDs that are in Supabase but not in price_history.json
+        local_booking_ids = set(data['bookings'].keys())
+
+        for sb_booking in supabase_bookings:
+            if sb_booking['id'] not in local_booking_ids:
+                # This booking was deleted locally, delete from Supabase
+                delete_response = requests.delete(
+                    f"{supabase_url}/rest/v1/bookings?id=eq.{sb_booking['id']}",
+                    headers={**headers, 'Prefer': 'return=minimal'}
+                )
+
+                if delete_response.status_code == 204:
+                    print(f"✅ Successfully deleted booking from Supabase: {sb_booking['id']}")
+                else:
+                    print(f"❌ Error deleting booking: {delete_response.status_code} - {delete_response.text}")
+                    exit(1)
+        EOL
+
     - name: Cleanup expired bookings
       run: |
         python - << 'EOL'
@@ -678,6 +790,65 @@ jobs:
           echo "❌ Error running price checker"
           exit 1
         }
+
+    - name: Sync booking to Supabase
+      if: github.event.inputs.action == 'add-booking'
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      run: |
+        python - << 'EOL'
+        import os
+        import json
+        import requests
+        from datetime import datetime
+
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_SERVICE_KEY')
+
+        # Load price_history.json
+        with open('price_history.json', 'r') as f:
+            data = json.load(f)
+
+        # Get the most recently added booking (last in active_bookings)
+        active_bookings = data['metadata']['active_bookings']
+        if not active_bookings:
+            print("No active bookings found")
+            exit(0)
+
+        booking_id = active_bookings[-1]  # Get last added
+        booking = data['bookings'][booking_id]
+
+        # Create booking in Supabase
+        booking_data = {
+            'id': booking_id,
+            'location': booking['location'],
+            'pickup_date': booking['pickup_date'],
+            'dropoff_date': booking['dropoff_date'],
+            'focus_category': booking['focus_category'],
+            'holding_price': booking.get('holding_price'),
+            'active': True
+        }
+
+        headers = {
+            'apikey': supabase_key,
+            'Authorization': f'Bearer {supabase_key}',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+        }
+
+        response = requests.post(
+            f"{supabase_url}/rest/v1/bookings",
+            headers=headers,
+            json=booking_data
+        )
+
+        if response.status_code in (200, 201):
+            print(f"✅ Successfully created booking in Supabase: {booking_id}")
+        else:
+            print(f"❌ Error creating booking: {response.status_code} - {response.text}")
+            exit(1)
+        EOL
 
     - name: Update Supabase
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'

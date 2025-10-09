@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Trash2, Plus, RefreshCw } from 'lucide-react'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
-import { githubActions } from '@/lib/github-actions'
+import { testUtils } from '@/lib/supabase'
 
 export const TestControls = () => {
   const { isTestEnvironment } = useEnvironment()
@@ -38,24 +38,27 @@ export const TestControls = () => {
     try {
       setLoading(true);
       setMessage('');
-  
+
       if (!newBooking.location || !newBooking.pickup_date || !newBooking.dropoff_date || !newBooking.category) {
         setMessage('Please fill in all required fields');
         return;
       }
-  
-      console.log('Before add:', githubActions.getMockStore());
-      await githubActions.triggerWorkflow('add-booking', {
-        new_booking_location: newBooking.location,
-        new_booking_pickup_date: newBooking.pickup_date,
-        new_booking_dropoff_date: newBooking.dropoff_date,
-        new_booking_category: newBooking.category,
-        new_booking_holding_price: newBooking.holding_price
+
+      testUtils.addMockBooking({
+        location: newBooking.location,
+        location_full_name: `${newBooking.location} International Airport`,
+        pickup_date: newBooking.pickup_date,
+        dropoff_date: newBooking.dropoff_date,
+        focus_category: newBooking.category,
+        holding_price: newBooking.holding_price ? parseFloat(newBooking.holding_price) : undefined,
+        pickup_time: '12:00 PM',
+        dropoff_time: '12:00 PM',
+        active: true
       });
-      console.log('After add:', githubActions.getMockStore());
-  
+
       setAddBookingOpen(false);
       setMessage('Booking added successfully');
+      setNewBooking({ location: '', pickup_date: '', dropoff_date: '', category: '', holding_price: '' })
       window.location.reload();
     } catch (error) {
       console.error('Add error:', error);
@@ -69,9 +72,9 @@ export const TestControls = () => {
     try {
       setLoading(true)
       setMessage('')
-      
+
       // Reset to initial mock data state (2 bookings with random but consistent data)
-      githubActions.initializeMockStore()
+      testUtils.resetMockStore()
       setMessage('Test data reset to initial state')
       window.location.reload()
     } catch (error) {
@@ -85,11 +88,9 @@ export const TestControls = () => {
     try {
       setLoading(true);
       setMessage('');
-      
-      console.log('Before clear:', githubActions.getMockStore());
-      await githubActions.clearMockStore();
-      console.log('After clear:', githubActions.getMockStore());
-      
+
+      testUtils.clearMockStore();
+
       setClearConfirmOpen(false);
       setMessage('All test bookings cleared');
       window.location.reload();

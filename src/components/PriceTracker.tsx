@@ -1,138 +1,15 @@
-import { useState, useEffect } from 'react';
-import { supabase, type Booking, type PriceHistory } from '../lib/supabase';
-import { createSupabaseClient } from '@/lib/supabase'
 import { DataGrid } from './DataGrid';
 import { Chart } from './Chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { TestControls } from './TestControls';
 import { isDevelopment } from '@/lib/environment';
-import { useEnvironment } from '@/contexts/EnvironmentContext'
-import { githubActions } from '@/lib/github-actions'
+import { useBookings } from '@/hooks/useBookings'
 
 const formatPrice = (price: number) => `$${price.toFixed(2)}`;
 
-interface BookingWithHistory extends Booking {
-  price_history: PriceHistory[];
-  latestPrice: number;
-  previousPrice: number;
-  potentialSavings: number;
-  priceChange: number;
-  percentChange: number;
-}
-
 export const PriceTracker = () => {
-  const [bookings, setBookings] = useState<BookingWithHistory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const { isTestEnvironment } = useEnvironment()
-  const supabase = createSupabaseClient(isTestEnvironment)
-  
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (isTestEnvironment) {
-          // Get data from mock store
-          const mockStore = githubActions.getMockStore()
-          const bookingsWithHistory = mockStore.bookings.map(booking => {
-            const priceHistories = mockStore.priceHistories.filter(
-              history => history.booking_id === booking.id
-            )
-            
-            const latestHistory = priceHistories[priceHistories.length - 1]
-            const previousHistory = priceHistories[priceHistories.length - 2]
-    
-            const latestPrice = latestHistory?.prices?.[booking.focus_category] || 0
-            const previousPrice = previousHistory?.prices?.[booking.focus_category] || 0
-            const holdingPrice = booking.holding_price || 0
-            const potentialSavings = Math.max(0, holdingPrice - latestPrice)
-            const priceChange = latestPrice - previousPrice
-            const percentChange = previousPrice ? (priceChange / previousPrice) * 100 : 0
-    
-            return {
-              ...booking,
-              price_history: priceHistories,
-              latestPrice,
-              previousPrice,
-              potentialSavings,
-              priceChange,
-              percentChange
-            }
-          })
-    
-          setBookings(bookingsWithHistory)
-          setLastUpdated(new Date().toISOString())
-        } else {
-          // Fetch bookings with holding price history
-          const { data: bookingsData, error: bookingsError } = await supabase
-            .from('bookings')
-            .select('*')
-            .eq('active', true)
-            .order('pickup_date', { ascending: true });
-    
-          if (bookingsError) throw bookingsError;
-    
-          // Fetch data for each booking
-          const bookingsWithHistory = await Promise.all(
-            bookingsData.map(async (booking) => {
-              // Fetch price histories
-              const { data: priceHistories, error: historiesError } = await supabase
-                .from('price_histories')
-                .select('*')
-                .eq('booking_id', booking.id)
-                .order('created_at', { ascending: true });
-    
-              if (historiesError) throw historiesError;
-    
-              // Fetch holding price histories
-              const { data: holdingPriceHistory, error: holdingError } = await supabase
-                .from('holding_price_histories')
-                .select('*')
-                .eq('booking_id', booking.id)
-                .order('effective_from', { ascending: true });
-    
-              if (holdingError) throw holdingError;
-    
-              const latestHistory = priceHistories[priceHistories.length - 1];
-              const previousHistory = priceHistories[priceHistories.length - 2];
-    
-              const latestPrice = latestHistory?.prices?.[booking.focus_category] || 0;
-              const previousPrice = previousHistory?.prices?.[booking.focus_category] || 0;
-              const holdingPrice = booking.holding_price || 0;
-              const potentialSavings = Math.max(0, holdingPrice - latestPrice);
-              const priceChange = latestPrice - previousPrice;
-              const percentChange = previousPrice ? (priceChange / previousPrice) * 100 : 0;
-    
-              return {
-                ...booking,
-                price_history: priceHistories,
-                holding_price_history: holdingPriceHistory,
-                latestPrice,
-                previousPrice,
-                potentialSavings,
-                priceChange,
-                percentChange
-              };
-            })
-          );
-    
-          setBookings(bookingsWithHistory);
-          setLastUpdated(new Date().toISOString());
-        }
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
-  
-    fetchData()
-    const interval = setInterval(fetchData, 30000)
-    return () => clearInterval(interval)
-  }, [isTestEnvironment])
+  const { bookings, loading, error, lastUpdated } = useBookings()
 
   if (loading) {
     return (

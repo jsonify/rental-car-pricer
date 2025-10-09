@@ -27,6 +27,18 @@ Before you begin, ensure you have the following installed:
 
 ## Installation 🔧
 
+### 🚀 Quick Start (3 Steps, 8 Minutes Total)
+
+**New to this project? Start here:** **[QUICK_START.md](QUICK_START.md)**
+
+**TL;DR:**
+1. `./setup-venv.sh` - Install Python dependencies (1 min)
+2. Follow [SUPABASE_SETUP_CHECKLIST.md](SUPABASE_SETUP_CHECKLIST.md) (5 min)
+3. Add Gmail credentials to `.env` (2 min)
+4. `python3 main.py -i` - You're running!
+
+### Detailed Setup
+
 1. Clone the repository:
 
 ```bash
@@ -34,18 +46,28 @@ git clone https://github.com/yourusername/costco-car-rental-tracker.git
 cd costco-car-rental-tracker
 ```
 
-2. Install required Python packages:
+2. Install required packages:
 
+**Python:**
 ```bash
-pip3 install selenium python-dotenv
+pip3 install selenium python-dotenv supabase
 ```
 
-3. Download required Chrome components:
+**Frontend:**
+```bash
+npm install
+```
+
+3. Set up Supabase database:
+   - See [SUPABASE_SETUP_CHECKLIST.md](SUPABASE_SETUP_CHECKLIST.md) for detailed instructions
+   - SQL schema available in `supabase/schema.sql`
+
+4. Download required Chrome components:
 
    - [Google Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/)
    - [ChromeDriver](https://chromedriver.chromium.org/downloads) (make sure it matches your Chrome version)
 
-4. Run the setup script:
+5. Run the setup script:
 
 ```bash
 python3 setup.py

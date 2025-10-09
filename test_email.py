@@ -3,10 +3,16 @@
 import os
 import smtplib
 import ssl
+import json
+import traceback
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Any
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Import our actual email formatters
 from email_module.templates.html_template import format_email_body_html

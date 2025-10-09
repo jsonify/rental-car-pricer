@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
-import { githubActions } from '@/lib/github-actions'
 import { createSupabaseClient } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -13,17 +12,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import {HoldingPricesDialog} from './HoldingPricesDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { Booking } from '@/lib/types'
 
 export function AdminInterface() {
   const { isTestEnvironment } = useEnvironment()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const [workflowStatus, setWorkflowStatus] = useState('unknown')
-  const [bookings, setBookings] = useState([])
-  
+  const [bookings, setBookings] = useState<Booking[]>([])
+
   // Dialog states
   const [addBookingOpen, setAddBookingOpen] = useState(false)
   const [updatePricesOpen, setUpdatePricesOpen] = useState(false)
@@ -43,74 +42,115 @@ export function AdminInterface() {
   const supabase = createSupabaseClient(isTestEnvironment)
 
   // Fetch bookings
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        if (isTestEnvironment) {
-          // Get data from mock store
-          const mockStore = githubActions.getMockStore()
-          setBookings(mockStore.bookings)
-        } else {
-          // Get data from Supabase
-          const { data, error } = await supabase
-            .from('bookings')
-            .select('*')
-            .eq('active', true)
-            .order('created_at', { ascending: true })
+  const fetchBookings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('active', true)
+        .order('created_at', { ascending: true })
 
-          if (error) throw error
-          setBookings(data || [])
-        }
-      } catch (error) {
-        console.error('Error fetching bookings:', error)
-        setMessage('Failed to load bookings')
-      }
+      if (error) throw error
+      setBookings(data || [])
+    } catch (error) {
+      console.error('Error fetching bookings:', error)
+      setMessage('Failed to load bookings')
     }
+  }
 
+  useEffect(() => {
     fetchBookings()
   }, [isTestEnvironment])
 
-  const handleAction = async (action, inputs = {}) => {
+  const handleAddBooking = async () => {
     setLoading(true)
     setMessage('')
-    setWorkflowStatus('pending')
-    
+
     try {
-      if (isTestEnvironment) {
-        const result = await githubActions.triggerWorkflow(action, inputs)
-        if (result.success) {
-          setMessage('Mock action completed successfully')
-          window.location.reload()
-        }
-      } else {
-        // Handle production actions
-        switch (action) {
-          case 'update-holding-prices':
-            // Update each booking's holding price in Supabase
-            for (const [key, value] of Object.entries(inputs)) {
-              if (value) {
-                const bookingIndex = parseInt(key.replace('booking_', '')) - 1
-                const booking = bookings[bookingIndex]
-                if (booking) {
-                  const { error } = await supabase
-                    .from('bookings')
-                    .update({ holding_price: parseFloat(value) })
-                    .eq('id', booking.id)
+      const { error } = await supabase
+        .from('bookings')
+        .insert({
+          location: newBooking.location,
+          location_full_name: `${newBooking.location} International Airport`,
+          pickup_date: newBooking.pickup_date,
+          dropoff_date: newBooking.dropoff_date,
+          pickup_time: '12:00 PM',
+          dropoff_time: '12:00 PM',
+          focus_category: newBooking.category,
+          holding_price: newBooking.holding_price ? parseFloat(newBooking.holding_price) : null,
+          active: true
+        })
+        .select()
 
-                  if (error) throw error
-                }
-              }
-            }
-            setMessage('Holding prices updated successfully')
-            window.location.reload()
-            break
+      if (error) throw error
 
-          // ... handle other actions ...
+      setMessage('Booking added successfully')
+      setAddBookingOpen(false)
+      setNewBooking({ location: '', pickup_date: '', dropoff_date: '', category: '', holding_price: '' })
+      await fetchBookings()
+    } catch (error) {
+      console.error('Error adding booking:', error)
+      setMessage(error instanceof Error ? error.message : 'Failed to add booking')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdateHoldingPrices = async (prices: Record<string, string>) => {
+    setLoading(true)
+    setMessage('')
+
+    try {
+      for (const [key, value] of Object.entries(prices)) {
+        if (value) {
+          const bookingIndex = parseInt(key.replace('booking', '')) - 1
+          const booking = bookings[bookingIndex]
+          if (booking) {
+            const { error } = await supabase
+              .from('bookings')
+              .update({ holding_price: parseFloat(value) })
+              .eq('id', booking.id)
+
+            if (error) throw error
+          }
         }
       }
+
+      setMessage('Holding prices updated successfully')
+      setUpdatePricesOpen(false)
+      await fetchBookings()
     } catch (error) {
-      console.error('Error:', error)
-      setMessage(error instanceof Error ? error.message : 'An error occurred')
+      console.error('Error updating prices:', error)
+      setMessage(error instanceof Error ? error.message : 'Failed to update prices')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteBooking = async () => {
+    setLoading(true)
+    setMessage('')
+
+    try {
+      const bookingIndex = parseInt(bookingToDelete) - 1
+      const booking = bookings[bookingIndex]
+
+      if (!booking) throw new Error('Booking not found')
+
+      const { error } = await supabase
+        .from('bookings')
+        .update({ active: false })
+        .eq('id', booking.id)
+
+      if (error) throw error
+
+      setMessage('Booking deleted successfully')
+      setDeleteBookingOpen(false)
+      setBookingToDelete('')
+      await fetchBookings()
+    } catch (error) {
+      console.error('Error deleting booking:', error)
+      setMessage(error instanceof Error ? error.message : 'Failed to delete booking')
     } finally {
       setLoading(false)
     }
@@ -121,48 +161,32 @@ export function AdminInterface() {
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           <span>Admin Controls {isTestEnvironment && '(Test Mode)'}</span>
-          {workflowStatus !== 'unknown' && (
-            <div className="text-sm font-normal">
-              Status: {workflowStatus}
-              {loading && <RefreshCw className="ml-2 h-4 w-4 animate-spin inline" />}
-            </div>
-          )}
         </CardTitle>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
-        {/* Check Prices Button */}
-        <Button 
-          onClick={() => handleAction('check-prices')}
-          disabled={loading}
-          className="w-full"
-        >
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Check Current Prices {isTestEnvironment && '(Mock)'}
-        </Button>
-
         {/* Add Booking Button */}
-        <Button 
-          variant="outline" 
-          className="w-full" 
+        <Button
+          variant="outline"
+          className="w-full"
           onClick={() => setAddBookingOpen(true)}
         >
           Add New Booking
         </Button>
 
         {/* Update Prices Button */}
-        <Button 
-          variant="outline" 
-          className="w-full" 
+        <Button
+          variant="outline"
+          className="w-full"
           onClick={() => setUpdatePricesOpen(true)}
         >
           Update Holding Prices
         </Button>
 
         {/* Delete Booking Button */}
-        <Button 
-          variant="destructive" 
-          className="w-full" 
+        <Button
+          variant="destructive"
+          className="w-full"
           onClick={() => setDeleteBookingOpen(true)}
         >
           Delete Booking
@@ -210,14 +234,8 @@ export function AdminInterface() {
                 value={newBooking.holding_price}
                 onChange={(e) => setNewBooking({...newBooking, holding_price: e.target.value})}
               />
-              <Button 
-                onClick={() => handleAction('add-booking', {
-                  new_booking_location: newBooking.location,
-                  new_booking_pickup_date: newBooking.pickup_date,
-                  new_booking_dropoff_date: newBooking.dropoff_date,
-                  new_booking_category: newBooking.category,
-                  new_booking_holding_price: newBooking.holding_price
-                })}
+              <Button
+                onClick={handleAddBooking}
                 disabled={loading}
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -232,11 +250,7 @@ export function AdminInterface() {
           open={updatePricesOpen}
           onOpenChange={setUpdatePricesOpen}
           bookings={bookings}
-          onSubmit={(prices) => handleAction('update-holding-prices', {
-            booking_1_price: prices.booking1,
-            booking_2_price: prices.booking2,
-            booking_3_price: prices.booking3
-          })}
+          onSubmit={handleUpdateHoldingPrices}
           loading={loading}
         />
 
@@ -260,10 +274,8 @@ export function AdminInterface() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button 
-                onClick={() => handleAction('delete-booking', {
-                  booking_to_delete: bookingToDelete
-                })}
+              <Button
+                onClick={handleDeleteBooking}
                 disabled={loading || !bookingToDelete}
                 variant="destructive"
               >
