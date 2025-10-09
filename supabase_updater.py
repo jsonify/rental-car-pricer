@@ -3,6 +3,9 @@ import json
 from datetime import datetime
 import requests
 from typing import Dict, List, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class SupabaseUpdater:
     def __init__(self, supabase_url: str, service_key: str):

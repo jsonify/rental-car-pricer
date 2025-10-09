@@ -219,6 +219,26 @@ export function AdminInterface() {
     }
   }
 
+  const handleCheckPrices = async () => {
+    setLoading(true)
+    setMessage('')
+
+    try {
+      await triggerWorkflow({
+        action: 'check-prices'
+      })
+
+      setMessage('Price check workflow triggered! Check GitHub Actions for status.')
+      // Refresh bookings after workflow completes (rough estimate)
+      setTimeout(() => fetchBookings(), 30000) // 30 seconds
+    } catch (error) {
+      console.error('Error triggering price check:', error)
+      setMessage(error instanceof Error ? error.message : 'Failed to trigger price check')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleDeleteBooking = async () => {
     setLoading(true)
     setMessage('')
@@ -271,6 +291,19 @@ export function AdminInterface() {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
+        {/* Check Prices Button */}
+        {!isTestEnvironment && (
+          <Button
+            variant="default"
+            className="w-full"
+            onClick={handleCheckPrices}
+            disabled={loading || bookings.length === 0}
+          >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Check Prices Now
+          </Button>
+        )}
+
         {/* Add Booking Button */}
         <Button
           variant="outline"
