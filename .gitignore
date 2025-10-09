@@ -1,4 +1,4 @@
-# Environment Files
+# Environment Files & Credentials
 .env
 .env.*
 *.env
@@ -10,6 +10,10 @@
 .env.development
 .env.test
 .env.production
+*credentials*
+*secrets*
+*.key
+*.pem
 
 # Python Environment
 venv/
