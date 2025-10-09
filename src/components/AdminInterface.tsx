@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
 import { createSupabaseClient } from '@/lib/supabase'
+import { triggerWorkflow } from '@/lib/github'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,27 +68,66 @@ export function AdminInterface() {
     setMessage('')
 
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .insert({
-          location: newBooking.location,
-          location_full_name: `${newBooking.location} International Airport`,
-          pickup_date: newBooking.pickup_date,
-          dropoff_date: newBooking.dropoff_date,
-          pickup_time: '12:00 PM',
-          dropoff_time: '12:00 PM',
-          focus_category: newBooking.category,
-          holding_price: newBooking.holding_price ? parseFloat(newBooking.holding_price) : null,
-          active: true
+      if (isTestEnvironment) {
+        // Test mode: Update database directly
+        const bookingId = `${newBooking.location}_${newBooking.pickup_date.replace(/\//g, '')}_${newBooking.dropoff_date.replace(/\//g, '')}`
+
+        const { error } = await supabase
+          .from('bookings')
+          .insert({
+            id: bookingId,
+            location: newBooking.location,
+            location_full_name: `${newBooking.location} International Airport`,
+            pickup_date: newBooking.pickup_date,
+            dropoff_date: newBooking.dropoff_date,
+            pickup_time: '12:00 PM',
+            dropoff_time: '12:00 PM',
+            focus_category: newBooking.category,
+            holding_price: newBooking.holding_price ? parseFloat(newBooking.holding_price) : null,
+            active: true
+          })
+          .select()
+
+        if (error) throw error
+
+        // If a holding price was provided, create initial history entry
+        if (newBooking.holding_price) {
+          const { error: historyError } = await supabase
+            .from('holding_price_histories')
+            .insert({
+              booking_id: bookingId,
+              price: parseFloat(newBooking.holding_price),
+              effective_from: new Date().toISOString(),
+              effective_to: null
+            })
+
+          if (historyError) throw historyError
+        }
+
+        setMessage('Booking added successfully (test mode)')
+      } else {
+        // Production mode: Trigger GitHub Actions workflow
+        await triggerWorkflow({
+          action: 'add-booking',
+          new_booking_location: newBooking.location,
+          new_booking_pickup_date: newBooking.pickup_date,
+          new_booking_dropoff_date: newBooking.dropoff_date,
+          new_booking_category: newBooking.category,
+          new_booking_holding_price: newBooking.holding_price || undefined
         })
-        .select()
 
-      if (error) throw error
+        setMessage('Workflow triggered! Check GitHub Actions for status.')
+      }
 
-      setMessage('Booking added successfully')
       setAddBookingOpen(false)
       setNewBooking({ location: '', pickup_date: '', dropoff_date: '', category: '', holding_price: '' })
-      await fetchBookings()
+
+      // Refresh bookings after a delay in production mode
+      if (!isTestEnvironment) {
+        setTimeout(() => fetchBookings(), 5000)
+      } else {
+        await fetchBookings()
+      }
     } catch (error) {
       console.error('Error adding booking:', error)
       setMessage(error instanceof Error ? error.message : 'Failed to add booking')
@@ -101,24 +141,76 @@ export function AdminInterface() {
     setMessage('')
 
     try {
-      for (const [key, value] of Object.entries(prices)) {
-        if (value) {
-          const bookingIndex = parseInt(key.replace('booking', '')) - 1
-          const booking = bookings[bookingIndex]
-          if (booking) {
-            const { error } = await supabase
-              .from('bookings')
-              .update({ holding_price: parseFloat(value) })
-              .eq('id', booking.id)
+      if (isTestEnvironment) {
+        // Test mode: Update database directly
+        for (const [key, value] of Object.entries(prices)) {
+          if (value) {
+            const bookingIndex = parseInt(key.replace('booking', '')) - 1
+            const booking = bookings[bookingIndex]
+            if (booking) {
+              const newPrice = parseFloat(value)
 
-            if (error) throw error
+              // Close current holding price history entry (set effective_to)
+              const { data: currentHistory } = await supabase
+                .from('holding_price_histories')
+                .select('*')
+                .eq('booking_id', booking.id)
+                .is('effective_to', null)
+                .single()
+
+              if (currentHistory) {
+                await supabase
+                  .from('holding_price_histories')
+                  .update({ effective_to: new Date().toISOString() })
+                  .eq('id', currentHistory.id)
+              }
+
+              // Create new history entry
+              const { error: historyError } = await supabase
+                .from('holding_price_histories')
+                .insert({
+                  booking_id: booking.id,
+                  price: newPrice,
+                  effective_from: new Date().toISOString(),
+                  effective_to: null
+                })
+
+              if (historyError) throw historyError
+
+              // Update the booking's current holding_price
+              const { error: bookingError } = await supabase
+                .from('bookings')
+                .update({ holding_price: newPrice })
+                .eq('id', booking.id)
+
+              if (bookingError) throw bookingError
+            }
           }
         }
+
+        setMessage('Holding prices updated successfully (test mode)')
+        await fetchBookings()
+      } else {
+        // Production mode: Trigger workflow for each price update
+        // The workflow expects JSON format: [booking_number, price]
+        for (const [key, value] of Object.entries(prices)) {
+          if (value) {
+            const bookingNumber = parseInt(key.replace('booking', ''))
+            const updatesJson = JSON.stringify([bookingNumber, parseFloat(value)])
+
+            await triggerWorkflow({
+              action: 'update-holding-prices',
+              booking_updates_json: updatesJson
+            })
+          }
+        }
+
+        setMessage('Workflow(s) triggered! Check GitHub Actions for status.')
+        // Refresh bookings after a delay
+        setTimeout(() => fetchBookings(), 5000)
       }
 
-      setMessage('Holding prices updated successfully')
       setUpdatePricesOpen(false)
-      await fetchBookings()
     } catch (error) {
       console.error('Error updating prices:', error)
       setMessage(error instanceof Error ? error.message : 'Failed to update prices')
@@ -132,22 +224,36 @@ export function AdminInterface() {
     setMessage('')
 
     try {
-      const bookingIndex = parseInt(bookingToDelete) - 1
-      const booking = bookings[bookingIndex]
+      if (isTestEnvironment) {
+        // Test mode: Update database directly
+        const bookingIndex = parseInt(bookingToDelete) - 1
+        const booking = bookings[bookingIndex]
 
-      if (!booking) throw new Error('Booking not found')
+        if (!booking) throw new Error('Booking not found')
 
-      const { error } = await supabase
-        .from('bookings')
-        .update({ active: false })
-        .eq('id', booking.id)
+        const { error } = await supabase
+          .from('bookings')
+          .update({ active: false })
+          .eq('id', booking.id)
 
-      if (error) throw error
+        if (error) throw error
 
-      setMessage('Booking deleted successfully')
+        setMessage('Booking deleted successfully (test mode)')
+        await fetchBookings()
+      } else {
+        // Production mode: Trigger GitHub Actions workflow
+        await triggerWorkflow({
+          action: 'delete-booking',
+          booking_to_delete: bookingToDelete
+        })
+
+        setMessage('Workflow triggered! Check GitHub Actions for status.')
+        // Refresh bookings after a delay
+        setTimeout(() => fetchBookings(), 5000)
+      }
+
       setDeleteBookingOpen(false)
       setBookingToDelete('')
-      await fetchBookings()
     } catch (error) {
       console.error('Error deleting booking:', error)
       setMessage(error instanceof Error ? error.message : 'Failed to delete booking')

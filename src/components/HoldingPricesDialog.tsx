@@ -40,49 +40,17 @@ export function HoldingPricesDialog({
   }, [open, bookings])
 
   const handleSubmit = async () => {
-    if (hasInvalidInputs) {
-      setMessage('Please enter valid prices');
-      return;
+    // Validate that at least one price was entered
+    const hasAnyPrices = Object.values(prices).some(value => value && !isNaN(parseFloat(value)))
+
+    if (!hasAnyPrices) {
+      setMessage('Please enter at least one valid price')
+      return
     }
-  
-    // For each price update, create a new history entry
-    const updates = Object.entries(prices).map(async ([key, value]) => {
-      if (!value) return;
-  
-      const index = parseInt(key.replace('booking', '')) - 1;
-      const booking = bookings[index];
-      
-      if (booking) {
-        // Close current holding price history entry
-        const { data: currentHistory } = await supabase
-          .from('holding_price_histories')
-          .select('*')
-          .eq('booking_id', booking.id)
-          .is('effective_to', null)
-          .single();
-  
-        if (currentHistory) {
-          await supabase
-            .from('holding_price_histories')
-            .update({ effective_to: new Date().toISOString() })
-            .eq('id', currentHistory.id);
-        }
-  
-        // Create new history entry
-        await supabase
-          .from('holding_price_histories')
-          .insert({
-            booking_id: booking.id,
-            price: parseFloat(value),
-            effective_from: new Date().toISOString(),
-            effective_to: null
-          });
-      }
-    });
-  
-    await Promise.all(updates);
-    onSubmit(prices);
-  };
+
+    // Call the parent's onSubmit handler
+    await onSubmit(prices)
+  }
 
   const handlePriceChange = (index, value) => {
     setPrices(prev => ({
