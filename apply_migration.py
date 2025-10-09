@@ -1,16 +1,6 @@
 #!/usr/bin/env python3
 """Apply schema migration to Supabase database"""
 
-import os
-from dotenv import load_dotenv
-import requests
-
-# Load environment variables
-load_dotenv()
-
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_SERVICE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
-
 # Read the SQL file
 with open('supabase/schema_update.sql', 'r') as f:
     sql_content = f.read()
@@ -23,7 +13,7 @@ print("=" * 80)
 print("MANUAL MIGRATION REQUIRED")
 print("=" * 80)
 print("\nPlease follow these steps:")
-print(f"\n1. Go to: {SUPABASE_URL.replace('https://', 'https://supabase.com/dashboard/project/')}/editor/sql")
+print(f"\n1. Go to: https://supabase.com/dashboard/project/wjhrxogbluuxbcbxruqu/editor/sql")
 print("\n2. Copy and paste the following SQL:\n")
 print("-" * 80)
 print(sql_content)
