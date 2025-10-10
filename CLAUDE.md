@@ -17,6 +17,7 @@ A dual-stack rental car price tracker for Costco Travel with:
 - **Build**: `npm run build` (TypeScript compilation + Vite build)
 - **Lint**: `npm run lint`
 - **Preview production build**: `npm run preview`
+- **Live dashboard**: Deployed to GitHub Pages at https://jruecke.github.io/rental-car-pricer/
 
 ### Python Backend
 - **Interactive mode**: `python3 main.py -i` or `python3 main.py --interactive`
@@ -86,6 +87,23 @@ The app has a unified dual-mode system:
 - **Vite env vars**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_GITHUB_TOKEN`, `VITE_GITHUB_OWNER`, `VITE_GITHUB_REPO`
 - **`price_history.json`**: Local JSON database for bookings (Python-managed)
 - **`price_history.template.json`**: Template structure for initializing empty history
+
+### GitHub Pages Deployment
+The React dashboard is automatically deployed to GitHub Pages on every push to `main` that modifies frontend files.
+
+**Required GitHub Secrets** (Settings → Secrets and variables → Actions):
+- `VITE_SUPABASE_URL`: Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Supabase anonymous key (public, safe for client-side)
+- `VITE_GITHUB_TOKEN`: Personal access token with `repo` and `workflow` scopes
+- `VITE_GITHUB_OWNER`: GitHub username (e.g., "jruecke")
+- `VITE_GITHUB_REPO`: Repository name (e.g., "rental-car-pricer")
+
+**Deployment workflow**: `.github/workflows/deploy-dashboard.yaml`
+- Triggers on pushes to `main` affecting frontend files
+- Can be manually triggered via "Actions" tab → "Deploy Dashboard to GitHub Pages" → "Run workflow"
+- Requires GitHub Pages to be enabled (Settings → Pages → Source: GitHub Actions)
+
+**Note on security**: The `VITE_GITHUB_TOKEN` will be embedded in the client-side JavaScript bundle and is visible to anyone. Consider the security implications of allowing public workflow triggers. For enhanced security, you could remove admin controls from the dashboard and manage bookings via Python CLI only.
 
 ## Important Implementation Details
 

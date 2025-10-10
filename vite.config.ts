@@ -5,6 +5,8 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  // GitHub Pages serves from /<repo-name>/ path
+  base: '/rental-car-pricer/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
