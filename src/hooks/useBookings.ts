@@ -84,10 +84,6 @@ export const useBookings = () => {
 
   useEffect(() => {
     fetchBookings()
-
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchBookings, 30000)
-    return () => clearInterval(interval)
   }, [isTestEnvironment])
 
   return {
