@@ -1,6 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, CheckCircle2, XCircle, ExternalLink } from 'lucide-react'
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
 import type { WorkflowStatus } from '@/hooks/useWorkflowStatus'
 
 interface WorkflowStatusBannerProps {
@@ -38,6 +39,14 @@ export function WorkflowStatusBanner({ status, onDismiss }: WorkflowStatusBanner
     }
 
     if (status.status === 'in_progress') {
+      if (status.currentStep) {
+        // Clean up step names for better readability
+        const cleanStep = status.currentStep
+          .replace(/^(Run|Set up|Post|Checkout) /, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+        return cleanStep
+      }
       return 'Checking prices...'
     }
 
@@ -64,33 +73,47 @@ export function WorkflowStatusBanner({ status, onDismiss }: WorkflowStatusBanner
 
   const showDismissButton = status.status === 'completed' || !!status.error
 
+  const showProgress = status.status === 'in_progress' && status.progress !== undefined
+
   return (
-    <Alert variant={getVariant()} className="flex items-center gap-2">
-      <div className="flex-shrink-0">
-        {getStatusIcon()}
+    <Alert variant={getVariant()}>
+      <div className="flex items-start gap-2">
+        <div className="flex-shrink-0 mt-0.5">
+          {getStatusIcon()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <AlertTitle>Workflow Status</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>{getStatusText()}</span>
+              {showProgress && (
+                <span className="text-xs text-muted-foreground">
+                  ({status.progress}%)
+                </span>
+              )}
+              {status.url && (
+                <a
+                  href={status.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm underline hover:no-underline"
+                >
+                  View details
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+            {showProgress && (
+              <Progress value={status.progress} className="h-2" />
+            )}
+          </AlertDescription>
+        </div>
+        {showDismissButton && onDismiss && (
+          <Button variant="ghost" size="sm" onClick={onDismiss} className="flex-shrink-0">
+            Dismiss
+          </Button>
+        )}
       </div>
-      <div className="flex-1">
-        <AlertTitle>Workflow Status</AlertTitle>
-        <AlertDescription className="flex items-center gap-2">
-          <span>{getStatusText()}</span>
-          {status.url && (
-            <a
-              href={status.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm underline hover:no-underline"
-            >
-              View details
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
-        </AlertDescription>
-      </div>
-      {showDismissButton && onDismiss && (
-        <Button variant="ghost" size="sm" onClick={onDismiss}>
-          Dismiss
-        </Button>
-      )}
     </Alert>
   )
 }

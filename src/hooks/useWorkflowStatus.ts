@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getWorkflowRun, type WorkflowRun } from '@/lib/github'
+import { getWorkflowRunDetails, type WorkflowRunDetails } from '@/lib/github'
 
 export interface WorkflowStatus {
   runId: number | null
@@ -7,6 +7,8 @@ export interface WorkflowStatus {
   conclusion: 'success' | 'failure' | 'cancelled' | 'skipped' | null
   url: string | null
   error: string | null
+  currentStep?: string
+  progress?: number
 }
 
 /**
@@ -30,6 +32,8 @@ export function useWorkflowStatus() {
       conclusion: null,
       url: null,
       error: null,
+      currentStep: undefined,
+      progress: 0,
     })
     setIsPolling(true)
   }, [])
@@ -45,6 +49,8 @@ export function useWorkflowStatus() {
       conclusion: null,
       url: null,
       error: null,
+      currentStep: undefined,
+      progress: 0,
     })
     setIsPolling(false)
   }, [])
@@ -56,7 +62,7 @@ export function useWorkflowStatus() {
 
     const pollStatus = async () => {
       try {
-        const run: WorkflowRun = await getWorkflowRun(workflowStatus.runId!)
+        const run: WorkflowRunDetails = await getWorkflowRunDetails(workflowStatus.runId!)
 
         if (cancelled) return
 
@@ -66,6 +72,8 @@ export function useWorkflowStatus() {
           conclusion: run.conclusion,
           url: run.html_url,
           error: null,
+          currentStep: run.currentStep,
+          progress: run.progress,
         })
 
         // Stop polling if workflow is complete
