@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "last_updated": "2025-11-03T14:07:41.685316",
+    "last_updated": "2025-11-03T22:31:05.826774",
     "active_bookings": [
       "SAN_04022026_04082026_StandardCar",
       "SAN_04022026_04082026_FullsizeCar"
@@ -677,7 +677,7 @@
         }
       ],
       "created_at": "2025-10-09T04:04:54.316496",
-      "holding_price": 420.39
+      "holding_price": 402.87
     }
   }
 }
