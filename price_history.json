@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "last_updated": "2025-11-17T14:07:34.286026",
+    "last_updated": "2025-11-20T14:07:42.046008",
     "active_bookings": [
       "SAN_04022026_04082026_StandardCar",
       "SAN_04022026_04082026_FullsizeCar"
@@ -509,6 +509,44 @@
             "category": "Standard Car",
             "price": 396.35
           }
+        },
+        {
+          "timestamp": "2025-11-20T14:06:59.150716",
+          "prices": {
+            "Economy Car": 400.81,
+            "Compact Car": 402.18,
+            "Intermediate Car": 403.29,
+            "Standard Car": 396.35,
+            "Full-size Car": 413.71,
+            "Premium Car": 434.75,
+            "Compact SUV": 423.42,
+            "Intermediate SUV": 436.61,
+            "Standard SUV": 499.7900000000001,
+            "Standard Elite SUV": 456.3399999999999,
+            "Full-size SUV": 806.26,
+            "Standard Crossover": 542.06,
+            "Premium Crossover": 576.11,
+            "Mini Van": 650.4,
+            "Standard Van": 715.0,
+            "Standard Convertible": 656.44,
+            "Standard Sporty Car": 434.68,
+            "Specialty SUV": 564.52,
+            "Premium SUV": 846.49,
+            "Luxury SUV": 699.87,
+            "Large Luxury SUV": 1059.2,
+            "Standard Specialty": 447.99,
+            "Premium Specialty": 456.16,
+            "Luxury Specialty": 2359.61,
+            "Luxury Car": 620.02,
+            "Midsize Pickup": 401.77,
+            "Full-size Pickup": 441.64,
+            "Full-size Van": 927.55,
+            "Electric Car": 670.7
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 396.35
+          }
         }
       ],
       "created_at": "2025-10-08T19:58:16.701089",
@@ -967,6 +1005,44 @@
             "Large Luxury SUV": 1059.2,
             "Standard Specialty": 446.88,
             "Premium Specialty": 455.02,
+            "Luxury Specialty": 2359.61,
+            "Luxury Car": 620.02,
+            "Midsize Pickup": 401.77,
+            "Full-size Pickup": 441.64,
+            "Full-size Van": 927.55,
+            "Electric Car": 670.7
+          },
+          "lowest_price": {
+            "category": "Standard Car",
+            "price": 396.35
+          }
+        },
+        {
+          "timestamp": "2025-11-20T14:07:42.045996",
+          "prices": {
+            "Economy Car": 400.81,
+            "Compact Car": 402.18,
+            "Intermediate Car": 403.29,
+            "Standard Car": 396.35,
+            "Full-size Car": 413.71,
+            "Premium Car": 434.75,
+            "Compact SUV": 423.42,
+            "Intermediate SUV": 436.61,
+            "Standard SUV": 499.7900000000001,
+            "Standard Elite SUV": 456.3399999999999,
+            "Full-size SUV": 806.26,
+            "Standard Crossover": 542.06,
+            "Premium Crossover": 576.11,
+            "Mini Van": 650.4,
+            "Standard Van": 715.0,
+            "Standard Convertible": 656.44,
+            "Standard Sporty Car": 434.68,
+            "Specialty SUV": 564.52,
+            "Premium SUV": 846.49,
+            "Luxury SUV": 699.87,
+            "Large Luxury SUV": 1059.2,
+            "Standard Specialty": 447.99,
+            "Premium Specialty": 456.16,
             "Luxury Specialty": 2359.61,
             "Luxury Car": 620.02,
             "Midsize Pickup": 401.77,
