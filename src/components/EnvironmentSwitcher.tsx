@@ -1,39 +1,25 @@
 // src/components/EnvironmentSwitcher.tsx
 import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
 
 export function EnvironmentSwitcher() {
   const { isTestEnvironment, setIsTestEnvironment } = useEnvironment()
 
   return (
-    <Card className={`mb-4 ${isTestEnvironment ? 'border-yellow-500 border-2' : 'border-green-500 border-2'}`}>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          Environment Settings
-          <span className={`text-xs px-2 py-1 rounded ${isTestEnvironment ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-            {isTestEnvironment ? '🧪 TEST MODE' : '🚀 PRODUCTION'}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="test-mode" className="font-normal">
-            Test Mode {isTestEnvironment ? 'Enabled' : 'Disabled'}
-          </Label>
-          <Switch
-            id="test-mode"
-            checked={isTestEnvironment}
-            onCheckedChange={setIsTestEnvironment}
-          />
-        </div>
-        <p className="text-sm text-gray-500 mt-2">
-          {isTestEnvironment
-            ? "Using mock data stored in localStorage (for testing)"
-            : "Using live Supabase database (real data)"}
-        </p>
-      </CardContent>
-    </Card>
+    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-900 border border-gray-800 text-xs text-gray-500">
+      <span>
+        {isTestEnvironment ? (
+          <span className="text-yellow-500 font-medium">TEST MODE</span>
+        ) : (
+          <span className="text-green-500 font-medium">PRODUCTION</span>
+        )}
+        <span className="ml-2">{isTestEnvironment ? 'using mock data' : 'using live Supabase'}</span>
+      </span>
+      <Switch
+        id="test-mode"
+        checked={isTestEnvironment}
+        onCheckedChange={setIsTestEnvironment}
+      />
+    </div>
   )
 }
