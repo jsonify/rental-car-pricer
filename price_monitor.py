@@ -37,6 +37,33 @@ def enter_location(page, location):
     page.wait_for_timeout(random.randint(1000, 2000))
 
 
+def enter_date(page, field_id, date_value, max_retries=3):
+    """
+    Clear a date field, type the value with delay, Tab to blur, verify.
+
+    Returns True if the entered value matches date_value, False after
+    max_retries unsuccessful attempts.
+    """
+    for attempt in range(max_retries):
+        locator = page.locator(f"#{field_id}")
+        locator.wait_for(state="attached")
+        locator.click()
+        page.wait_for_timeout(random.randint(300, 700))
+        # Clear via JS to avoid stale value issues
+        page.eval_on_selector(f"#{field_id}", "el => el.value = ''")
+        locator.click()
+        locator.type(date_value, delay=150)
+        page.keyboard.press("Tab")
+        page.wait_for_timeout(random.randint(1000, 1500))
+        entered = locator.input_value()
+        print(f"Entered date for {field_id}: {entered}")
+        if entered == date_value:
+            return True
+        if attempt < max_retries - 1:
+            print(f"Date entry failed, attempt {attempt + 1}/{max_retries}")
+    return False
+
+
 def setup_browser(headless=True):
     """
     Launch a Playwright Chromium browser with stealth settings.
