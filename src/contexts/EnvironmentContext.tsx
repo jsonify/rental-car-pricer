@@ -10,10 +10,13 @@ const EnvironmentContext = createContext<EnvironmentContextType | undefined>(und
 
 const STORAGE_KEY = 'use-test-environment'
 
+const hasSupabaseConfig = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
+
 export function EnvironmentProvider({ children }: { children: ReactNode }) {
   const [isTestEnvironment, setIsTestEnvironment] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : false
+    if (stored !== null) return JSON.parse(stored)
+    return !hasSupabaseConfig
   })
 
   useEffect(() => {
