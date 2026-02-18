@@ -1,9 +1,8 @@
 # requirements.txt
 
-selenium==4.18.1
+playwright>=1.41.0
 python-dotenv==1.0.1
 requests==2.31.0
 beautifulsoup4==4.12.3
 email-validator==2.1.0.post1
-selenium-wire==5.1.0
 supabase==2.0.3
