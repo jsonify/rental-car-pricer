@@ -1,6 +1,6 @@
 // src/hooks/useBookings.ts
 import { useState, useEffect } from 'react'
-import { differenceInCalendarDays, parseISO } from 'date-fns'
+import { differenceInCalendarDays } from 'date-fns'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
 import { createSupabaseClient } from '@/lib/supabase'
 import type { Booking, BookingWithHistory, PriceHistory } from '@/lib/types'
@@ -68,7 +68,7 @@ export const useBookings = () => {
             .map((r: PriceHistory) => r.prices?.[booking.focus_category])
             .filter((p: number | undefined): p is number => typeof p === 'number' && p > 0)
           const lowestPriceSeen = focusPrices.length > 0 ? Math.min(...focusPrices) : 0
-          const daysUntilPickup = differenceInCalendarDays(parseISO(booking.pickup_date), new Date())
+          const daysUntilPickup = differenceInCalendarDays(new Date(booking.pickup_date), new Date())
 
           return {
             ...booking,

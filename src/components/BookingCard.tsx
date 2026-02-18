@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import type { BookingWithHistory } from '@/lib/types'
 
@@ -49,8 +49,8 @@ export function BookingCard({ booking }: Props) {
 
   const holdingDelta = holding_price ? latestPrice - holding_price : null
 
-  const pickupLabel = format(parseISO(pickup_date), 'MMM d')
-  const dropoffLabel = format(parseISO(dropoff_date), 'MMM d')
+  const pickupLabel = format(new Date(pickup_date), 'MMM d')
+  const dropoffLabel = format(new Date(dropoff_date), 'MMM d')
 
   const daysLabel =
     daysUntilPickup > 0
@@ -61,7 +61,7 @@ export function BookingCard({ booking }: Props) {
 
   const chartData = price_history
     .map(r => ({
-      date: format(parseISO(r.created_at), 'MMM d'),
+      date: format(new Date(r.created_at), 'MMM d'),
       price: r.prices?.[focus_category],
     }))
     .filter((d): d is { date: string; price: number } => typeof d.price === 'number')
@@ -169,7 +169,7 @@ export function BookingCard({ booking }: Props) {
           <div className="space-y-1">
             {recentChecks.map(r => (
               <div key={r.id} className="flex justify-between text-xs text-gray-500">
-                <span>{format(parseISO(r.created_at), 'MMM d, h:mm a')}</span>
+                <span>{format(new Date(r.created_at), 'MMM d, h:mm a')}</span>
                 <span className="text-gray-300 tabular-nums">
                   {fmt(r.prices[focus_category])}
                 </span>
