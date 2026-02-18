@@ -24,13 +24,11 @@ The Selenium-based automation works but may be slow or fragile. Investigate whet
 the current approach is optimal or if an alternative (e.g., API-based, lighter-weight
 headless approach) would be more reliable and faster.
 
-### 2. Dashboard Redesign
-The existing React dashboard is being completely replaced. Current charts are
-confusing and don't communicate useful information intuitively. The new design
-should prioritize:
-- Immediate clarity: what's the price right now vs. when I first tracked it?
-- Simple trend communication: is this getting cheaper or more expensive?
-- Clean, opinionated layout over feature density
+### 2. Dashboard Redesign ✓ Shipped
+The dashboard has been fully redesigned. Dark minimal theme with per-booking
+cards showing: current price (large), holding/baseline deltas in green/red,
+all-time low, days until pickup, and a collapsible sparkline history panel.
+The previous multi-category chart, data grid, and category filter have been removed.
 
 ### 3. Email Improvements
 Email alerts are sent but currently lack useful context. Emails should clearly answer:
