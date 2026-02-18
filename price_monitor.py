@@ -21,6 +21,22 @@ WEBDRIVER_STEALTH_SCRIPT = (
 )
 
 
+def enter_location(page, location):
+    """Type location code into the pickup field and select from autocomplete."""
+    locator = page.locator("#pickupLocationTextWidget")
+    locator.wait_for(state="visible")
+    locator.click()
+    page.wait_for_timeout(random.randint(500, 1000))
+    locator.type(location, delay=150)
+    page.wait_for_timeout(random.randint(1500, 2500))
+    # Click first dropdown item containing the location code
+    dropdown = page.locator(f'li:has-text("{location}")').first
+    dropdown.wait_for(state="visible", timeout=10000)
+    page.wait_for_timeout(random.randint(500, 1000))
+    dropdown.click()
+    page.wait_for_timeout(random.randint(1000, 2000))
+
+
 def setup_browser(headless=True):
     """
     Launch a Playwright Chromium browser with stealth settings.
