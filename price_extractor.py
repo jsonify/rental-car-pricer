@@ -1,7 +1,7 @@
 # price_extractor.py
 
 from datetime import datetime
-from selenium.webdriver.common.by import By
+# TODO (Phase 4): Playwright page API will replace selenium By selectors
 from config import PRICES_FILE, PICKUP_LOCATION, PICKUP_DATE, DROPOFF_DATE
 
 def extract_lowest_prices(driver):

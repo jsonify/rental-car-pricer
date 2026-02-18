@@ -8,14 +8,9 @@ import argparse
 import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Set
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait, Select
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-
 from booking_tracker import BookingTracker
-from driver_setup import setup_driver
-from human_simulation import human_like_typing, random_mouse_movement, enter_date
+# TODO (Phase 2/3): from price_monitor import setup_browser, fill_search_form,
+#                   validate_category, get_available_categories, process_booking, wait_for_results
 from price_extractor import extract_lowest_prices
 from email_module import send_price_alert
 from services.price_alert_service import PriceAlertService
