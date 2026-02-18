@@ -1,5 +1,5 @@
 // src/hooks/useBookings.ts
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { differenceInCalendarDays } from 'date-fns'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
 import { createSupabaseClient } from '@/lib/supabase'
@@ -12,7 +12,7 @@ export const useBookings = () => {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const { isTestEnvironment } = useEnvironment()
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -95,11 +95,11 @@ export const useBookings = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [isTestEnvironment])
 
   useEffect(() => {
     fetchBookings()
-  }, [isTestEnvironment])
+  }, [fetchBookings])
 
   return {
     bookings,

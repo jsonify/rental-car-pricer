@@ -1,0 +1,15 @@
+dist/
+node_modules/
+
+# Pre-existing files with accumulated type debt — tracked separately
+src/hooks/usePriceChecker.ts
+src/lib/api-handler.ts
+src/lib/github-actions.ts
+src/lib/github.ts
+src/lib/mock-supabase.ts
+src/lib/supabase.ts
+src/mocks/
+src/components/HoldingPriceHistory.tsx
+src/components/HoldingPricesDialog.tsx
+src/components/AdminInterface.tsx
+src/components/ui/

@@ -30,6 +30,7 @@ export function EnvironmentProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useEnvironment() {
   const context = useContext(EnvironmentContext)
   if (context === undefined) {
