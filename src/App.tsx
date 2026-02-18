@@ -6,15 +6,12 @@ import { EnvironmentProvider } from './contexts/EnvironmentContext'
 function App() {
   return (
     <EnvironmentProvider>
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gray-950 text-gray-100">
+        <div className="max-w-2xl mx-auto px-4 pt-6 pb-2 space-y-4">
           <EnvironmentSwitcher />
           <AdminInterface />
         </div>
-        
-        <div className="container mx-auto px-4 pb-8">
-          <PriceTracker />
-        </div>
+        <PriceTracker />
       </div>
     </EnvironmentProvider>
   )
