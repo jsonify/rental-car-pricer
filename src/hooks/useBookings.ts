@@ -1,8 +1,9 @@
 // src/hooks/useBookings.ts
 import { useState, useEffect } from 'react'
+import { differenceInCalendarDays, parseISO } from 'date-fns'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
 import { createSupabaseClient } from '@/lib/supabase'
-import type { Booking, BookingWithHistory } from '@/lib/types'
+import type { Booking, BookingWithHistory, PriceHistory } from '@/lib/types'
 
 export const useBookings = () => {
   const [bookings, setBookings] = useState<BookingWithHistory[]>([])
@@ -49,8 +50,10 @@ export const useBookings = () => {
           if (holdingError) throw holdingError
 
           // Calculate derived values
-          const latestHistory = (priceHistories || [])[priceHistories?.length - 1]
-          const previousHistory = (priceHistories || [])[priceHistories?.length - 2]
+          const histories = priceHistories || []
+          const latestHistory = histories[histories.length - 1]
+          const previousHistory = histories[histories.length - 2]
+          const firstHistory = histories[0]
 
           const latestPrice = latestHistory?.prices?.[booking.focus_category] || 0
           const previousPrice = previousHistory?.prices?.[booking.focus_category] || 0
@@ -59,15 +62,27 @@ export const useBookings = () => {
           const priceChange = latestPrice - previousPrice
           const percentChange = previousPrice ? (priceChange / previousPrice) * 100 : 0
 
+          const firstTrackedPrice = firstHistory?.prices?.[booking.focus_category] || 0
+          const changeFromBaseline = latestPrice - firstTrackedPrice
+          const focusPrices = histories
+            .map((r: PriceHistory) => r.prices?.[booking.focus_category])
+            .filter((p: number | undefined): p is number => typeof p === 'number' && p > 0)
+          const lowestPriceSeen = focusPrices.length > 0 ? Math.min(...focusPrices) : 0
+          const daysUntilPickup = differenceInCalendarDays(parseISO(booking.pickup_date), new Date())
+
           return {
             ...booking,
-            price_history: priceHistories || [],
+            price_history: histories,
             holding_price_history: holdingPriceHistory || [],
             latestPrice,
             previousPrice,
             potentialSavings,
             priceChange,
-            percentChange
+            percentChange,
+            firstTrackedPrice,
+            changeFromBaseline,
+            lowestPriceSeen,
+            daysUntilPickup
           }
         })
       )

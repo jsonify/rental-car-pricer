@@ -39,6 +39,10 @@ export interface Booking {
     potentialSavings: number;
     priceChange: number;
     percentChange: number;
+    firstTrackedPrice: number;
+    changeFromBaseline: number;
+    lowestPriceSeen: number;
+    daysUntilPickup: number;
   }
 
   
