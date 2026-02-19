@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "last_updated": "2026-02-16T14:22:36.489081",
+    "last_updated": "2026-02-19T14:25:39.258562",
     "active_bookings": [
       "SAN_04022026_04082026_StandardCar",
       "SAN_04022026_04082026_FullsizeCar"
@@ -1516,6 +1516,46 @@
             "category": "Compact SUV",
             "price": 392.1
           }
+        },
+        {
+          "timestamp": "2026-02-19T14:24:53.803723",
+          "prices": {
+            "Economy Car": 427.16,
+            "Compact Car": 393.31,
+            "Intermediate Car": 396.49,
+            "Standard Car": 398.95,
+            "Full-size Car": 404.19000000000005,
+            "Premium Car": 453.59,
+            "Compact SUV": 392.1,
+            "Intermediate SUV": 404.3,
+            "Standard SUV": 448.28,
+            "Standard Elite SUV": 476.08,
+            "Full-size SUV": 631.62,
+            "Standard Crossover": 497.0,
+            "Premium Crossover": 505.97,
+            "Mini Van": 522.38,
+            "Standard Van": 574.0700000000002,
+            "Jeep Wrangler 4 door": 581.21,
+            "Standard Convertible": 611.65,
+            "Standard Sporty Car": 550.71,
+            "Specialty SUV": 588.7,
+            "Premium SUV": 663.07,
+            "Luxury SUV": 701.1,
+            "Large Luxury SUV": 764.53,
+            "Standard Specialty": 467.37,
+            "Premium Specialty": 475.9,
+            "Luxury Car": 523.18,
+            "Midsize Pickup": 428.12,
+            "Full-size Pickup": 448.82,
+            "Full-size Van": 566.56,
+            "Cargo Van": 933.15,
+            "Electric Car": 434.43,
+            "Hybrid Car": 548.56
+          },
+          "lowest_price": {
+            "category": "Compact SUV",
+            "price": 392.1
+          }
         }
       ],
       "created_at": "2025-10-08T19:58:16.701089",
@@ -2983,6 +3023,46 @@
             "Luxury Car": 543.79,
             "Midsize Pickup": 428.12,
             "Full-size Pickup": 470.54,
+            "Full-size Van": 566.56,
+            "Cargo Van": 933.15,
+            "Electric Car": 434.43,
+            "Hybrid Car": 548.56
+          },
+          "lowest_price": {
+            "category": "Compact SUV",
+            "price": 392.1
+          }
+        },
+        {
+          "timestamp": "2026-02-19T14:25:39.258550",
+          "prices": {
+            "Economy Car": 427.16,
+            "Compact Car": 393.31,
+            "Intermediate Car": 396.49,
+            "Standard Car": 398.95,
+            "Full-size Car": 404.19000000000005,
+            "Premium Car": 453.59,
+            "Compact SUV": 392.1,
+            "Intermediate SUV": 404.3,
+            "Standard SUV": 448.28,
+            "Standard Elite SUV": 476.08,
+            "Full-size SUV": 631.62,
+            "Standard Crossover": 497.0,
+            "Premium Crossover": 505.97,
+            "Mini Van": 522.38,
+            "Standard Van": 574.0700000000002,
+            "Jeep Wrangler 4 door": 581.21,
+            "Standard Convertible": 611.65,
+            "Standard Sporty Car": 550.71,
+            "Specialty SUV": 588.7,
+            "Premium SUV": 663.07,
+            "Luxury SUV": 701.1,
+            "Large Luxury SUV": 764.53,
+            "Standard Specialty": 467.37,
+            "Premium Specialty": 475.9,
+            "Luxury Car": 523.18,
+            "Midsize Pickup": 428.12,
+            "Full-size Pickup": 448.82,
             "Full-size Van": 566.56,
             "Cargo Van": 933.15,
             "Electric Car": 434.43,
