@@ -14,3 +14,13 @@ Patterns, gotchas, and context discovered during implementation.
 ---
 
 <!-- Learnings from implementation will be appended below -->
+
+## [2026-02-19] - Phase 1 Task 2 (resumed): Wire format_subject into send_price_alert
+
+- **Implemented:** Wired `format_subject(active_bookings)` into `send_price_alert()` replacing the hardcoded generic subject
+- **Files changed:** `email_module/sender.py`, `test_email_sender.py`
+- **Commit:** e561048
+- **Learnings:**
+  - Gotcha: `test_email_sender.py` was stubbing `email_module.templates.html_template` as an empty `types.ModuleType`. When pytest ran sender tests first, subsequent tests importing the real module got the empty stub → `ImportError: cannot import name 'format_booking_card' (unknown location)`. Fix: only stub the modules that actually import supabase (i.e., `supabase` and `supabase_client`). Template submodules (`html_template.py`, `formatters.py`, `css_styles.py`) have no supabase dependency and load fine without stubs.
+  - Pattern: `sys.modules.setdefault()` prevents overwriting real modules but does NOT prevent replacing real modules with stubs when the stub is registered first.
+---

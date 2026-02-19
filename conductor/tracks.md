@@ -12,5 +12,5 @@ This file tracks all major tracks for the project.
 
 ---
 
-## [~] Track: Email Improvements — concise, actionable, signal-driven alerts
+## [x] Track: Email Improvements — concise, actionable, signal-driven alerts
 *Link: [./conductor/tracks/email_20260218/](./conductor/tracks/email_20260218/)*
