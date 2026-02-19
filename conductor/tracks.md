@@ -10,5 +10,4 @@ This file tracks all major tracks for the project.
 
 ---
 
-## [x] Track: Replace Selenium with Playwright for faster, more reliable scraping
-*Link: [./conductor/tracks/playwright_20260218/](./conductor/tracks/playwright_20260218/)*
+<!-- Archived 2026-02-18: playwright_20260218 — Replace Selenium with Playwright → conductor/archive/playwright_20260218/ -->
