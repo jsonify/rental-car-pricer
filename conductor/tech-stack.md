@@ -18,19 +18,11 @@
 | Layer | Technology | Notes |
 |-------|-----------|-------|
 | Language | Python | 3.x |
-| Browser Automation | **Selenium** (current) | ⚠️ Targeted for replacement — see below |
+| Browser Automation | Playwright | 1.x (sync API) |
 | HTTP | requests | 2.x |
 | HTML Parsing | BeautifulSoup4 | 4.x |
 | Env Config | python-dotenv | 1.x |
 | DB Client | supabase | 2.x |
-
-### Planned: Migrate Selenium → Playwright
-
-`BROWSER_AUTOMATION_COMPARISON.md` documents the full analysis. Summary:
-- **Problem**: Selenium requires manual ChromeDriver version matching, is slower, and is more easily detected
-- **Solution**: Playwright auto-manages browsers, has built-in smart waiting, better stealth, and simpler setup
-- **Effort**: ~2 hours
-- **Status**: Planned (dedicated track)
 
 ## Infrastructure
 
