@@ -18,17 +18,6 @@ _sc_stub = types.ModuleType('supabase_client')
 _sc_stub.get_supabase_client = lambda: None
 sys.modules.setdefault('supabase_client', _sc_stub)
 
-# Stub template modules imported by sender.py.
-for _mod in (
-    'email_module.templates',
-    'email_module.templates.html_template',
-    'email_module.templates.formatters',
-):
-    sys.modules.setdefault(_mod, types.ModuleType(_mod))
-
-sys.modules['email_module.templates.html_template'].format_email_body_html = lambda *a, **kw: ''
-sys.modules['email_module.templates.formatters'].format_email_body_text = lambda *a, **kw: ''
-
 # Now import the function under test.
 from email_module.sender import format_subject  # noqa: E402
 

@@ -80,7 +80,7 @@ def send_price_alert(bookings_data: List[Dict]) -> bool:
 
         # Create message
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = f'Car Rental Price Update ({datetime.now().strftime("%Y-%m-%d %H:%M")})'
+        msg['Subject'] = format_subject(active_bookings)
         msg['From'] = sender_email
         msg['To'] = recipient_email
 
@@ -100,3 +100,42 @@ def send_price_alert(bookings_data: List[Dict]) -> bool:
         print(f"❌ Error sending price alert: {str(e)}")
         traceback.print_exc()
         return False
+
+def format_subject(bookings_data: List[Dict]) -> str:
+    """
+    Build the email subject line.
+
+    One pipe-separated segment per booking, ordered by pickup_date (MM/DD/YYYY).
+
+    Segment rules:
+    - current <= holding : '✅ {LOCATION} ${current:.2f} (under holding)'
+    - current > holding  : '⚠️ {LOCATION} ${current:.2f} (over holding +${delta:.2f})'
+    - holding is None    : '📊 {LOCATION} ${current:.2f}'
+    """
+    from datetime import datetime as _dt
+
+    def _pickup_sort_key(booking_data):
+        pickup = booking_data['booking']['pickup_date']
+        return _dt.strptime(pickup, '%m/%d/%Y')
+
+    sorted_bookings = sorted(bookings_data, key=_pickup_sort_key)
+
+    segments = []
+    for bd in sorted_bookings:
+        booking = bd['booking']
+        location = booking['location']
+        focus_category = booking['focus_category']
+        current_price = bd['prices'][focus_category]
+        holding_price = booking.get('holding_price')
+
+        if holding_price is None:
+            segment = f'📊 {location} ${current_price:.2f}'
+        elif current_price <= holding_price:
+            segment = f'✅ {location} ${current_price:.2f} (under holding)'
+        else:
+            delta = current_price - holding_price
+            segment = f'⚠️ {location} ${current_price:.2f} (over holding +${delta:.2f})'
+
+        segments.append(segment)
+
+    return ' | '.join(segments)
