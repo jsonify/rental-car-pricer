@@ -43,6 +43,7 @@ Reusable patterns discovered during development. Read this before starting new w
 - Mock Supabase client stores data in localStorage under `mockSupabaseStore` key
 - Recharts `Tooltip` needs explicit dark styling: `contentStyle={{ background: '#111827', border: '1px solid #1f2937' }}`
 - Mock Playwright locator chains with `MagicMock` + `side_effect` returning different mocks per CSS selector (from: playwright_20260218, 2026-02-18)
+- **`sys.modules` stub scope**: only stub modules that *directly* import the unavailable package. Template submodules (`html_template.py`, `formatters.py`) don't import supabase — stubbing them as empty `types.ModuleType` causes `ImportError` in other test files that share the same pytest session. Use `setdefault` only for the exact modules in the broken import chain. (from: email_20260218, 2026-02-19)
 
 ---
 Last refreshed: 2026-02-18
