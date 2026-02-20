@@ -39,6 +39,7 @@ Reusable patterns discovered during development. Read this before starting new w
 - When removing browser env vars from a CI workflow, check both the step's `env:` block AND any inline Python/shell `.env` file writers in the same step (from: playwright_20260218, 2026-02-18)
 - Playwright on GitHub Actions Linux **requires** `--no-sandbox` and `--disable-dev-shm-usage` in `chromium.launch(args=[...])` — without them `page.goto()` times out silently (from: playwright_ci_20260219, 2026-02-19)
 - `gh workflow run <file>.yaml --ref <branch>` + `gh run watch <run-id>` is the full loop for triggering and monitoring CI from the terminal (from: playwright_ci_20260219, 2026-02-19)
+- Use `channel="chrome"` in `playwright.chromium.launch()` in CI to get Google Chrome's real TLS fingerprint — Playwright's bundled Chromium may be blocked by bot detection on production sites (from: playwright_ci_20260219, archived 2026-02-20)
 
 ## Testing
 
@@ -48,6 +49,11 @@ Reusable patterns discovered during development. Read this before starting new w
 - **`sys.modules` stub scope**: only stub modules that *directly* import the unavailable package. Template submodules (`html_template.py`, `formatters.py`) don't import supabase — stubbing them as empty `types.ModuleType` causes `ImportError` in other test files that share the same pytest session. Use `setdefault` only for the exact modules in the broken import chain. (from: email_20260218, 2026-02-19)
 - **Intra-function imports**: `from price_extractor import extract_lowest_prices` inside a function body creates a fresh binding on every call. Patch by injecting `sys.modules["price_extractor"] = stub` before calling the function — `patch("price_monitor.extract_lowest_prices")` won't work since no module-level name exists to intercept. (from: playwright_ci_20260219, 2026-02-19)
 - **Playwright error-path cascade**: `page.screenshot()` in an `except` block can itself timeout (30 s default) when the page is already dead. Always wrap error screenshots in their own `try/except`. (from: playwright_ci_20260219, 2026-02-19)
+- **Mock kwargs robustness**: assert `call_args[1]["key"] == value` rather than `assert_called_once_with(key=value)` — the latter breaks when unrelated kwargs are added to the same call in the future (from: playwright_ci_20260219, archived 2026-02-20)
+- **`locator.focus()` + `keyboard.press("Enter")`** instead of `locator.click()` for buttons behind sticky headers — Playwright's `click()` always calls `scroll_into_view_if_needed()` internally, repositioning the element back under the header before clicking (from: playwright_ci_20260219, archived 2026-02-20)
+- **`has-text()` is case-insensitive** — use `ArrowDown`+`Enter` keyboard nav to select the first autocomplete suggestion instead of `li:has-text("XYZ").click()`, which can match navigation items case-insensitively and open menus (from: playwright_ci_20260219, archived 2026-02-20)
+- **`wait_for_url()` fast-path**: if a `wait_for_timeout` precedes the call, navigation may already be complete — check `page.url` against the pattern first and return immediately if it matches, otherwise `wait_for_url` will wait for a *new* navigation that never comes (from: playwright_ci_20260219, archived 2026-02-20)
+- **`set_default_navigation_timeout`** belongs on `page`, not `context` or `browser` (from: playwright_ci_20260219, archived 2026-02-20)
 
 ---
-Last refreshed: 2026-02-18
+Last refreshed: 2026-02-20
