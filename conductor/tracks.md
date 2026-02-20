@@ -14,5 +14,5 @@ This file tracks all major tracks for the project.
 
 ---
 
-## [ ] Track: Fix Playwright CI Navigation + gh CLI Workflow
+## [x] Track: Fix Playwright CI Navigation + gh CLI Workflow
 *Link: [./conductor/tracks/playwright_ci_20260219/](./conductor/tracks/playwright_ci_20260219/)*

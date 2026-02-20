@@ -37,6 +37,8 @@ Reusable patterns discovered during development. Read this before starting new w
 
 - `python3 -m playwright install chromium --with-deps` replaces all manual Chrome/ChromeDriver download steps in GitHub Actions — one line handles binary + OS dependencies (from: playwright_20260218, 2026-02-18)
 - When removing browser env vars from a CI workflow, check both the step's `env:` block AND any inline Python/shell `.env` file writers in the same step (from: playwright_20260218, 2026-02-18)
+- Playwright on GitHub Actions Linux **requires** `--no-sandbox` and `--disable-dev-shm-usage` in `chromium.launch(args=[...])` — without them `page.goto()` times out silently (from: playwright_ci_20260219, 2026-02-19)
+- `gh workflow run <file>.yaml --ref <branch>` + `gh run watch <run-id>` is the full loop for triggering and monitoring CI from the terminal (from: playwright_ci_20260219, 2026-02-19)
 
 ## Testing
 
@@ -44,6 +46,8 @@ Reusable patterns discovered during development. Read this before starting new w
 - Recharts `Tooltip` needs explicit dark styling: `contentStyle={{ background: '#111827', border: '1px solid #1f2937' }}`
 - Mock Playwright locator chains with `MagicMock` + `side_effect` returning different mocks per CSS selector (from: playwright_20260218, 2026-02-18)
 - **`sys.modules` stub scope**: only stub modules that *directly* import the unavailable package. Template submodules (`html_template.py`, `formatters.py`) don't import supabase — stubbing them as empty `types.ModuleType` causes `ImportError` in other test files that share the same pytest session. Use `setdefault` only for the exact modules in the broken import chain. (from: email_20260218, 2026-02-19)
+- **Intra-function imports**: `from price_extractor import extract_lowest_prices` inside a function body creates a fresh binding on every call. Patch by injecting `sys.modules["price_extractor"] = stub` before calling the function — `patch("price_monitor.extract_lowest_prices")` won't work since no module-level name exists to intercept. (from: playwright_ci_20260219, 2026-02-19)
+- **Playwright error-path cascade**: `page.screenshot()` in an `except` block can itself timeout (30 s default) when the page is already dead. Always wrap error screenshots in their own `try/except`. (from: playwright_ci_20260219, 2026-02-19)
 
 ---
 Last refreshed: 2026-02-18
