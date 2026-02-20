@@ -6,9 +6,32 @@ from datetime import datetime
 from ..styles.css_styles import EMAIL_CSS
 from .formatters import format_price_change_html
 
+# ── Color palette (blue-tinted dark, inline for email client compat) ───────────
+BODY_BG      = "#141521"
+CARD_BG      = "#1c1d2e"
+CARD_BORDER  = "#2a2b3d"
+DIVIDER      = "#232438"
+TEXT_PRIMARY = "#e8e8ed"
+TEXT_SEC     = "#8b8ca0"
+TEXT_MUTED   = "#6b6c80"
+COLOR_GREEN  = "#34d399"
+COLOR_AMBER  = "#fbbf24"
+COLOR_RED    = "#f87171"
+DEAL_BG      = "#172324"
+DEAL_BORDER  = "#1f3635"
+PILL_BG      = "#0d2d22"
+PILL_BORDER  = "#1a4d3a"
+FOCUS_ROW_BG = "#162e24"
+ROW_A        = "#1c1d2e"
+ROW_B        = "#191a2b"
+FONT         = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+MONO         = "'JetBrains Mono', 'Courier New', monospace"
+
+
+# ── Utility ────────────────────────────────────────────────────────────────────
 
 def calculate_better_deals(prices: Dict[str, float], focus_category: str) -> List[Dict]:
-    """Calculate better deals compared to focus category"""
+    """Return categories cheaper than focus_category, sorted by savings desc."""
     better_deals = []
     if focus_category in prices:
         focus_price = prices[focus_category]
@@ -27,325 +50,530 @@ def calculate_better_deals(prices: Dict[str, float], focus_category: str) -> Lis
     return sorted(better_deals, key=lambda x: x["savings"], reverse=True)
 
 
-def format_better_deals_section(better_deals: List[Dict]) -> str:
-    """Format the better deals section of the email"""
-    if not better_deals:
-        return ""
+# ── Summary stats ──────────────────────────────────────────────────────────────
 
-    deals_html = []
-    for deal in better_deals:
-        deals_html.append(f"""
-            <div style="background: white; padding: 8px; margin: 4px 0; border-radius: 4px;">
-                {deal["category"]}: ${deal["price"]:.2f}
-                <span style="color: #059669">
-                    (Save ${deal["savings"]:.2f}, {deal["savings_pct"]:.1f}%)
-                </span>
-            </div>
-        """)
+def _calculate_summary_stats(bookings_data: List[Dict]) -> Dict:
+    """Compute best/avg/worst across all bookings."""
+    all_prices = []
+    focus_prices = []
 
+    for bd in bookings_data:
+        booking = bd["booking"]
+        prices = bd.get("prices", {})
+        focus_category = booking.get("focus_category", "")
+
+        for cat, price in prices.items():
+            all_prices.append((price, cat, booking.get("location", "")))
+
+        if focus_category in prices:
+            focus_prices.append(prices[focus_category])
+
+    if not all_prices:
+        return {}
+
+    best  = min(all_prices, key=lambda x: x[0])
+    worst = max(all_prices, key=lambda x: x[0])
+    market_avg = sum(focus_prices) / len(focus_prices) if focus_prices else 0
+
+    return {
+        "best_price":    best[0],
+        "best_category": best[1],
+        "market_avg":    market_avg,
+        "max_price":     worst[0],
+        "max_category":  worst[1],
+    }
+
+
+# ── Header (centered/stacked) ──────────────────────────────────────────────────
+
+def _format_header(bookings_data: List[Dict]) -> str:
+    n   = len(bookings_data)
+    now = datetime.now().strftime("%b %d, %Y at %-I:%M %p")
     return f"""
-        <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #bae6fd;">
-            <div style="font-weight: bold; color: #0369a1; margin-bottom: 10px;">
-                💰 Better Deals Available
-            </div>
-            {"".join(deals_html)}
-        </div>
+        <tr>
+          <td style="padding: 0 0 24px 0;">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                   style="background-color:{CARD_BG}; border:1px solid {CARD_BORDER}; border-radius:12px; overflow:hidden;">
+              <tr>
+                <td style="padding:24px 24px 20px 24px; text-align:center;">
+                  <div style="font-size:22px; font-weight:800; color:{TEXT_PRIMARY}; letter-spacing:-0.5px; margin-bottom:4px; font-family:{FONT};">
+                    &#128663; Costco Travel Car Rental Update
+                  </div>
+                  <div style="font-size:12px; color:{TEXT_SEC}; font-family:{FONT};">
+                    Last checked: {now}
+                  </div>
+                  <div style="margin-top:8px;">
+                    <span style="display:inline-block; background-color:#0d2d22; border:1px solid #1a4d3a; border-radius:20px; padding:4px 14px; font-size:11px; font-weight:600; color:{COLOR_GREEN}; letter-spacing:0.3px; font-family:{FONT};">
+                      &#128737; Tracking {n} booking{"s" if n != 1 else ""}
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
     """
 
 
-def format_price_history_table(price_history: List[Dict], focus_category: str) -> str:
-    """Format price history table for a booking"""
-    if not price_history:
+# ── Summary bar ────────────────────────────────────────────────────────────────
+
+def _dot(color: str) -> str:
+    return f'<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:{color}; margin-right:6px; vertical-align:middle;"></span>'
+
+
+def _format_summary_bar(stats: Dict) -> str:
+    if not stats:
+        return ""
+    return f"""
+        <tr>
+          <td style="padding: 0 0 20px 0;">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                   style="background-color:{CARD_BG}; border:1px solid {CARD_BORDER}; border-radius:12px; overflow:hidden;">
+              <tr>
+                <td style="padding:14px 24px;">
+                  <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                    <tr>
+                      <td style="font-size:12px; color:{TEXT_SEC}; vertical-align:middle; font-family:{FONT};">
+                        {_dot(COLOR_GREEN)}Best:
+                        <strong style="color:{COLOR_GREEN}; font-family:{MONO};">&nbsp;${stats['best_price']:.2f}</strong>
+                        <span style="color:{TEXT_MUTED};">&nbsp;({stats['best_category']})</span>
+                      </td>
+                      <td style="font-size:12px; color:{TEXT_SEC}; text-align:center; vertical-align:middle; font-family:{FONT};">
+                        {_dot(COLOR_AMBER)}Avg:
+                        <strong style="color:{TEXT_PRIMARY}; font-family:{MONO};">&nbsp;${stats['market_avg']:.0f}</strong>
+                      </td>
+                      <td style="font-size:12px; color:{TEXT_SEC}; text-align:right; vertical-align:middle; font-family:{FONT};">
+                        {_dot(COLOR_RED)}High:
+                        <strong style="color:{TEXT_SEC}; font-family:{MONO};">&nbsp;${stats['max_price']:.0f}</strong>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+    """
+
+
+# ── Status badge ───────────────────────────────────────────────────────────────
+
+def _get_status_badge(current_price: float, holding_price: Optional[float]) -> str:
+    if holding_price is None:
+        return (
+            f'<table cellpadding="0" cellspacing="0" border="0"><tr>'
+            f'<td style="background-color:#27272a; border-radius:20px; padding:4px 12px; '
+            f'font-size:11px; font-weight:600; color:{TEXT_MUTED}; font-family:{FONT};">No Hold</td>'
+            f'</tr></table>'
+        )
+    if current_price <= holding_price:
+        return (
+            f'<table cellpadding="0" cellspacing="0" border="0"><tr>'
+            f'<td style="background-color:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.2); '
+            f'border-radius:20px; padding:4px 12px; font-size:11px; font-weight:600; color:{COLOR_GREEN}; '
+            f'text-transform:uppercase; letter-spacing:0.5px; font-family:{FONT};">Under Hold</td>'
+            f'</tr></table>'
+        )
+    return (
+        f'<table cellpadding="0" cellspacing="0" border="0"><tr>'
+        f'<td style="background-color:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.2); '
+        f'border-radius:20px; padding:4px 12px; font-size:11px; font-weight:600; color:{COLOR_AMBER}; '
+        f'text-transform:uppercase; letter-spacing:0.5px; font-family:{FONT};">Above Hold</td>'
+        f'</tr></table>'
+    )
+
+
+# ── Card header ────────────────────────────────────────────────────────────────
+
+def _format_card_header(booking: Dict, status_badge: str) -> str:
+    location  = booking.get("location", "")
+    full_name = booking.get("location_full_name", "Airport")
+    pickup    = booking.get("pickup_date", "")
+    dropoff   = booking.get("dropoff_date", "")
+    p_time    = booking.get("pickup_time", "")
+    d_time    = booking.get("dropoff_time", "")
+
+    return f"""
+      <tr>
+        <td style="padding:16px 20px; border-bottom:1px solid {DIVIDER};">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td style="vertical-align:middle;">
+                <div style="font-size:15px; font-weight:700; color:{TEXT_PRIMARY}; margin-bottom:4px; font-family:{FONT};">
+                  &#128205; {location} - {full_name}
+                </div>
+                <div style="font-size:12px; color:{TEXT_SEC}; font-family:{FONT};">
+                  &#128197; {pickup} - {dropoff} &nbsp;&nbsp; &#128336; {p_time} - {d_time}
+                </div>
+              </td>
+              <td style="padding:0; vertical-align:middle; text-align:right;">
+                {status_badge}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    """
+
+
+# ── Price hero ─────────────────────────────────────────────────────────────────
+
+def _format_price_hero(
+    current_price: float,
+    focus_category: str,
+    previous_price: Optional[float],
+    holding_price: Optional[float],
+) -> str:
+    # Price change line
+    if previous_price is None or previous_price == current_price:
+        change_html = f'<span style="color:{TEXT_SEC}; font-size:13px; font-family:{FONT};">&#8594; No change</span>'
+    else:
+        diff = current_price - previous_price
+        pct  = abs(diff / previous_price * 100)
+        if diff < 0:
+            change_html = f'<span style="color:{COLOR_GREEN}; font-size:13px; font-family:{FONT};">&#8595; -${abs(diff):.2f} (-{pct:.1f}%)</span>'
+        else:
+            change_html = f'<span style="color:{COLOR_RED}; font-size:13px; font-family:{FONT};">&#9650; +${diff:.2f} (+{pct:.1f}%)</span>'
+
+    left_col = f"""
+      <td style="vertical-align:top; width:55%;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:{TEXT_MUTED}; margin-bottom:4px; font-family:{FONT};">{focus_category}</div>
+        <div style="font-size:36px; font-weight:800; color:{TEXT_PRIMARY}; font-family:{MONO}; line-height:1.1;">${current_price:.2f}</div>
+        <div style="margin-top:6px;">{change_html}</div>
+      </td>
+    """
+
+    if holding_price is not None:
+        hold_diff = current_price - holding_price
+        if hold_diff > 0:
+            hold_delta = f'<span style="color:{COLOR_AMBER};">${hold_diff:.2f} above</span>'
+        else:
+            hold_delta = f'<span style="color:{COLOR_GREEN};">${abs(hold_diff):.2f} below</span>'
+
+        right_col = f"""
+          <td style="vertical-align:top; text-align:right;">
+            <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:{TEXT_MUTED}; margin-bottom:4px; font-family:{FONT};">Your Hold</div>
+            <div style="font-size:26px; font-weight:800; color:{TEXT_PRIMARY}; font-family:{MONO}; line-height:1.1;">${holding_price:.2f}</div>
+            <div style="margin-top:6px; font-size:12px; font-family:{FONT};">{hold_delta}</div>
+          </td>
+        """
+    else:
+        right_col = ""
+
+    return f"""
+      <tr>
+        <td style="padding:20px;">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              {left_col}
+              {right_col}
+            </tr>
+          </table>
+    """
+    # NOTE: range bar is appended inside the same <td> padding block, closed below
+
+
+def _close_price_section() -> str:
+    return """
+        </td>
+      </tr>
+    """
+
+
+# ── Range bar (table-based fill — no absolute positioning) ────────────────────
+
+def _format_range_bar(
+    current_price: float,
+    all_time_low: Optional[float],
+    all_time_high: Optional[float],
+    holding_price: Optional[float],
+) -> str:
+    gradient = f"linear-gradient(to right, {COLOR_GREEN}, {COLOR_AMBER}, {COLOR_RED})"
+
+    # Right-side label: holding price if available, else generic
+    if holding_price is not None:
+        right_label = f"Your hold: ${holding_price:.2f}"
+    else:
+        right_label = "All-time high"
+
+    if all_time_low is None or all_time_high is None or all_time_high <= all_time_low:
+        left_label = "Range data unavailable"
+        fill_pct   = "50%"
+    else:
+        pct        = (current_price - all_time_low) / (all_time_high - all_time_low) * 100
+        fill_pct   = f"{max(2.0, min(98.0, pct)):.2f}%"
+        left_label = f"All-time low: ${all_time_low:.2f}"
+
+    return f"""
+          <!-- Range bar -->
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:16px;">
+            <tr>
+              <td style="padding:0;">
+                <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                       style="border-radius:6px; overflow:hidden;">
+                  <tr>
+                    <td style="background-color:{DIVIDER}; height:8px; border-radius:6px; padding:0;">
+                      <table cellpadding="0" cellspacing="0" border="0" width="{fill_pct}"
+                             style="border-radius:6px;">
+                        <tr>
+                          <td style="background:{gradient}; height:8px; border-radius:6px; padding:0;"></td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-top:6px;">
+                <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="font-size:10px; color:{COLOR_GREEN}; text-transform:uppercase; letter-spacing:1px; font-weight:600; font-family:{FONT};">{left_label}</td>
+                    <td style="font-size:10px; color:{TEXT_SEC}; text-transform:uppercase; letter-spacing:1px; text-align:right; font-family:{FONT};">{right_label}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+    """
+
+
+# ── Better deals ───────────────────────────────────────────────────────────────
+
+def _format_better_deals_dark(
+    better_deals: List[Dict],
+    holding_price: Optional[float],
+    focus_price: float,
+) -> str:
+    if not better_deals:
         return ""
 
-    history_rows = []
-    # Sort history by timestamp in descending order (newest first)
-    sorted_history = sorted(price_history, key=lambda x: x["timestamp"], reverse=True)
+    top_deals        = better_deals[:5]
+    below_hold_count = sum(1 for d in better_deals if holding_price and d["price"] <= holding_price) if holding_price else 0
+    extra            = max(0, below_hold_count - 5)
 
-    for record in sorted_history:
-        timestamp = record.get("timestamp", "")
-        record_prices = record.get("prices", {})
-        if focus_category in record_prices:
-            category_price = record_prices[focus_category]
-            history_rows.append(f"""
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 8px; text-align: left;">{timestamp}</td>
-                    <td style="padding: 8px; text-align: right;">${category_price:.2f}</td>
-                </tr>
+    rows = []
+    for i, deal in enumerate(top_deals):
+        pad_top = "0" if i == 0 else "6px 0 0 0"
+        rows.append(f"""
+            <tr>
+              <td style="padding:{pad_top};">
+                <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                       style="background-color:{DEAL_BG}; border:1px solid {DEAL_BORDER}; border-radius:8px;">
+                  <tr>
+                    <td style="padding:10px 12px;">
+                      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <tr>
+                          <td style="font-size:13px; font-weight:500; color:{TEXT_PRIMARY}; font-family:{FONT};">{deal["category"]}</td>
+                          <td style="text-align:right; white-space:nowrap;">
+                            <span style="font-size:13px; font-weight:700; color:{TEXT_PRIMARY}; font-family:{MONO};">${deal["price"]:.2f}</span>
+                            <span style="display:inline-block; background-color:{PILL_BG}; border:1px solid {PILL_BORDER}; border-radius:12px; padding:2px 8px; font-size:10px; font-weight:600; color:{COLOR_GREEN}; margin-left:8px; font-family:{FONT};">-${deal["savings"]:.2f} ({deal["savings_pct"]:.1f}%)</span>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+        """)
+
+    extra_html = ""
+    if extra > 0:
+        extra_html = f'<tr><td style="padding-top:8px; text-align:center; font-size:12px; color:{TEXT_MUTED}; font-family:{FONT};">+{extra} more deals below your holding price</td></tr>'
+
+    return f"""
+      <tr>
+        <td style="padding:16px 20px 16px 20px; border-top:1px solid {DIVIDER};">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td style="padding-bottom:12px;">
+                <span style="color:{COLOR_GREEN}; font-size:14px; font-weight:700; font-family:{FONT};">&#9889; {len(better_deals)} Better Deal{"s" if len(better_deals) != 1 else ""} Available</span>
+              </td>
+            </tr>
+            {"".join(rows)}
+            {extra_html}
+          </table>
+        </td>
+      </tr>
+    """
+
+
+# ── All categories ─────────────────────────────────────────────────────────────
+
+def _format_all_categories_dark(
+    prices: Dict[str, float],
+    focus_category: str,
+    holding_price: Optional[float],
+) -> str:
+    sorted_prices = sorted(prices.items(), key=lambda x: x[1])
+    n = len(sorted_prices)
+
+    rows = []
+    for idx, (category, price) in enumerate(sorted_prices):
+        is_focus  = category == focus_category
+        row_color = ROW_A if idx % 2 == 0 else ROW_B
+
+        if is_focus:
+            label = f'<span style="display:inline-block; width:6px; height:6px; border-radius:50%; background-color:{COLOR_GREEN}; margin-right:4px;"></span>{category}{"  (your hold)" if holding_price else ""}'
+            rows.append(f"""
+              <tr>
+                <td style="background-color:{FOCUS_ROW_BG}; border-left:3px solid {COLOR_GREEN}; padding:8px 12px; font-size:12px; font-weight:700; color:{TEXT_PRIMARY}; border-bottom:1px solid {DIVIDER}; font-family:{FONT};">
+                  {label}
+                </td>
+                <td style="background-color:{FOCUS_ROW_BG}; padding:8px 12px; font-size:12px; font-weight:700; color:{COLOR_GREEN}; text-align:right; font-family:{MONO}; border-bottom:1px solid {DIVIDER};">
+                  ${price:.2f}
+                </td>
+              </tr>
+            """)
+        else:
+            rows.append(f"""
+              <tr>
+                <td style="background-color:{row_color}; padding:8px 12px; font-size:12px; font-weight:400; color:{TEXT_SEC}; border-bottom:1px solid {DIVIDER}; font-family:{FONT};">
+                  {category}
+                </td>
+                <td style="background-color:{row_color}; padding:8px 12px; font-size:12px; font-weight:400; color:{TEXT_SEC}; text-align:right; font-family:{MONO}; border-bottom:1px solid {DIVIDER};">
+                  ${price:.2f}
+                </td>
+              </tr>
             """)
 
-    if history_rows:  # Only show if we have history data
-        return f"""
-            <div style="margin: 15px 0; background: #f8fafc; border-radius: 8px; padding: 15px;">
-                <div style="font-weight: bold; margin-bottom: 8px;">📋 Price History for {focus_category}</div>
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid #e2e8f0; font-weight: bold;">
-                                <th style="padding: 8px; text-align: left;">Date</th>
-                                <th style="padding: 8px; text-align: right;">Price</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {"".join(history_rows)}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        """
-    return ""
+    return f"""
+      <tr>
+        <td style="padding:16px 20px; border-top:1px solid {DIVIDER};">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                 style="font-size:11px; color:{TEXT_MUTED}; text-transform:uppercase; letter-spacing:1px; font-weight:600; font-family:{FONT};">
+            <tr>
+              <td style="padding-bottom:8px;">All {n} Categories</td>
+              <td style="padding-bottom:8px; text-align:right;">Price</td>
+            </tr>
+          </table>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                 style="border-radius:8px; overflow:hidden; border:1px solid {DIVIDER};">
+            {"".join(rows)}
+          </table>
+        </td>
+      </tr>
+    """
 
 
-def create_price_rows(prices: Dict[str, float], focus_category: str) -> str:
-    """Create HTML rows for all price categories with enhanced focus highlighting"""
-    rows = []
-    for category, price in sorted(prices.items(), key=lambda x: x[1]):
-        is_focus = category == focus_category
-        row_style = """
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 12px;
-            border-bottom: 1px solid #e2e8f0;
-            {}
-        """.format("background: #e0f2fe;" if is_focus else "")
-
-        rows.append(f"""
-            <div style="{row_style}">
-                <span>
-                    {is_focus and "🎯 " or ""}{category}
-                </span>
-                <span>${price:.2f}</span>
-            </div>
-        """)
-    return "".join(rows)
-
-
-def _format_status_banner(current_price: float, holding_price: Optional[float]) -> str:
-    """Format the status banner based on holding price comparison."""
-    if holding_price is None:
-        return f"""
-            <div style="background: #f3f4f6; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #6b7280;">
-                <span style="color: #6b7280; font-weight: 600;">📊 No holding price set — currently ${current_price:.2f}</span>
-            </div>
-        """
-
-    delta = abs(current_price - holding_price)
-
-    if current_price <= holding_price:
-        return f"""
-            <div style="background: #dcfce7; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #16a34a;">
-                <span style="color: #16a34a; font-weight: 600;">✅ Rebook opportunity — ${current_price:.2f} is ${delta:.2f} below your holding price</span>
-            </div>
-        """
-    else:
-        return f"""
-            <div style="background: #fef3c7; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #d97706;">
-                <span style="color: #92400e; font-weight: 600;">⚠️ Waiting — ${delta:.2f} above your holding price</span>
-            </div>
-        """
-
-
-def _format_price_change_display(
-    current_price: float, previous_price: Optional[float]
-) -> str:
-    """Format the price change since last check."""
-    if previous_price is None:
-        return '<div style="font-size: 0.875rem; color: #6b7280; margin-top: 8px;">→ No change</div>'
-
-    price_change = current_price - previous_price
-
-    if price_change == 0:
-        return '<div style="font-size: 0.875rem; color: #6b7280; margin-top: 8px;">→ No change</div>'
-
-    pct_change = abs((price_change / previous_price) * 100)
-
-    if price_change < 0:
-        return f'<div style="font-size: 0.875rem; color: #16a34a; margin-top: 8px;">↓ ${abs(price_change):.2f} (-{pct_change:.1f}%)</div>'
-    else:
-        return f'<div style="font-size: 0.875rem; color: #dc2626; margin-top: 8px;">↑ ${price_change:.2f} (+{pct_change:.1f}%)</div>'
-
-
-def _format_all_time_low(current_price: float, all_time_low: Optional[float]) -> str:
-    """Format the all-time low display with optional highlighting."""
-    if all_time_low is None:
-        return ""
-
-    is_at_low = abs(current_price - all_time_low) < 0.01
-
-    if is_at_low:
-        return f"""
-            <div style="margin-top: 12px; padding: 8px 12px; background: #fef3c7; border-radius: 6px; border: 1px solid #fbbf24;">
-                <span style="color: #92400e; font-weight: 600;">🏆 All-time low: ${all_time_low:.2f}</span>
-            </div>
-        """
-    else:
-        return f"""
-            <div style="margin-top: 12px; padding: 8px 12px; background: #f8fafc; border-radius: 6px;">
-                <span style="color: #64748b;">All-time low: ${all_time_low:.2f}</span>
-            </div>
-        """
-
+# ── Card assembly ──────────────────────────────────────────────────────────────
 
 def format_booking_card(booking_data: Dict) -> str:
-    """Format a single booking card with updated layout"""
+    """Assemble a single dark-themed booking card (full-width, stacked)."""
     try:
-        booking = booking_data["booking"]
-        prices = booking_data["prices"]
-        trends = booking_data.get("trends", {})
+        booking  = booking_data["booking"]
+        prices   = booking_data["prices"]
+        trends   = booking_data.get("trends", {})
 
         focus_category = booking["focus_category"]
-        holding_price = booking.get("holding_price")
-        has_significant_drop = booking_data.get("has_significant_drop", False)
-        price_history = booking.get("price_history", [])
+        holding_price  = booking.get("holding_price")
+        current_price  = prices.get(focus_category, 0)
 
-        # Calculate better deals
+        focus_trends   = trends.get("focus_category", {})
+        previous_price = focus_trends.get("previous_price")
+        all_time_low   = focus_trends.get("lowest")
+        all_time_high  = focus_trends.get("highest")
+
         better_deals = calculate_better_deals(prices, focus_category)
-        better_deals_html = format_better_deals_section(better_deals)
+        status_badge = _get_status_badge(current_price, holding_price)
 
-        # Calculate stats and price changes
-        current_price = prices.get(focus_category, 0)
-        previous_record = price_history[-2] if len(price_history) > 1 else None
-        previous_price = (
-            previous_record["prices"].get(focus_category) if previous_record else None
+        card_header     = _format_card_header(booking, status_badge)
+        price_hero      = _format_price_hero(current_price, focus_category, previous_price, holding_price)
+        range_bar       = _format_range_bar(current_price, all_time_low, all_time_high, holding_price)
+        close_section   = _close_price_section()
+        better_deals_html = _format_better_deals_dark(better_deals, holding_price, current_price)
+        all_categories  = _format_all_categories_dark(prices, focus_category, holding_price)
+
+        inner = (
+            f'<table cellpadding="0" cellspacing="0" border="0" width="100%"'
+            f' style="background-color:{CARD_BG}; border:1px solid {CARD_BORDER}; border-radius:12px; overflow:hidden; margin-bottom:20px;">'
+            + card_header
+            + price_hero
+            + range_bar
+            + close_section
+            + better_deals_html
+            + all_categories
+            + '</table>'
         )
 
-        # Get all-time low from trends
-        all_time_low = trends.get("focus_category", {}).get("lowest")
+        return inner
 
-        # Format status banner
-        status_banner_html = _format_status_banner(current_price, holding_price)
-
-        # Format price change display
-        price_change_html = _format_price_change_display(current_price, previous_price)
-
-        # Format all-time low
-        all_time_low_html = _format_all_time_low(current_price, all_time_low)
-
-        # Card style with optional highlight for significant drops
-        card_style = """
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            {}
-        """.format("border: 2px solid #16a34a;" if has_significant_drop else "")
-
-        return f"""
-            <td style="width: 50%; padding: 20px; vertical-align: top;">
-                <div style="{card_style}">
-                    <h2 style="margin: 0 0 10px 0; color: #1a1a1a;">
-                        {booking["location"]} - {booking.get("location_full_name", "Airport")}
-                    </h2>
-                    
-                    <div style="background: #f3f4f6; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                        <div style="margin-bottom: 5px;">📅 {booking["pickup_date"]} to {booking["dropoff_date"]}</div>
-                        <div>⏰ {booking["pickup_time"]} - {booking["dropoff_time"]}</div>
-                    </div>
-                    
-                    {status_banner_html}
-                    
-                    <div style="text-align: center; padding: 20px 0; margin-bottom: 15px;">
-                        <div style="text-transform: uppercase; color: #64748b; font-size: 0.75rem; letter-spacing: 0.05em; margin-bottom: 8px;">
-                            {focus_category}
-                        </div>
-                        <div style="font-size: 2.5rem; font-weight: bold; color: #1a1a1a;">
-                            ${current_price:.2f}
-                        </div>
-                        {price_change_html}
-                        {all_time_low_html}
-                    </div>
-                    
-                    {better_deals_html}
-                    
-                    <div style="margin-top: 15px;">
-                        <div style="font-weight: bold; margin-bottom: 8px;">All Categories</div>
-                        <div style="background: #f8fafc; border-radius: 8px; overflow: hidden;">
-                            {create_price_rows(prices, focus_category)}
-                        </div>
-                    </div>
-                </div>
-            </td>
-        """
     except Exception as e:
         print(f"Error formatting booking card: {str(e)}")
         traceback.print_exc()
-        return f"""
-            <td style="padding: 20px;">
-                <div style="color: red;">Error formatting booking card: {str(e)}</div>
-            </td>
-        """
+        return f'<p style="color:{COLOR_RED}; font-family:{FONT};">Error formatting booking card: {str(e)}</p>'
 
+
+# ── Footer ─────────────────────────────────────────────────────────────────────
+
+def _format_footer() -> str:
+    return f"""
+        <tr>
+          <td style="padding: 8px 0 0 0;">
+            <table cellpadding="0" cellspacing="0" border="0" width="100%"
+                   style="background-color:{CARD_BG}; border:1px solid {CARD_BORDER}; border-radius:12px; overflow:hidden;">
+              <tr>
+                <td style="padding:20px 24px; text-align:center;">
+                  <a href="https://www.costcotravel.com/Rental-Cars" target="_blank"
+                     style="display:inline-block; background-color:{COLOR_GREEN}; color:{BODY_BG}; font-size:13px; font-weight:700; text-decoration:none; padding:10px 24px; border-radius:8px; letter-spacing:0.3px; font-family:{FONT};">
+                    View Current Prices at Costco Travel &#8594;
+                  </a>
+                  <div style="margin-top:14px; font-size:11px; color:{TEXT_MUTED}; font-family:{FONT};">
+                    All prices include taxes and fees &middot; Historical trends shown when available
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+    """
+
+
+# ── Email body ─────────────────────────────────────────────────────────────────
 
 def format_email_body_html(bookings_data: List[Dict]) -> str:
-    """Format the complete email body in HTML"""
+    """Format the complete dark-themed email body (single-column, 640px)."""
     try:
-        # Print debug info about bookings being processed
         print(f"\nFormatting email HTML for {len(bookings_data)} bookings:")
-        for booking_data in bookings_data:
-            booking = booking_data["booking"]
-            has_drop = booking_data.get("has_significant_drop", False)
-            print(
-                f"- {booking['location']}: {booking['pickup_date']} to {booking['dropoff_date']}"
-            )
+        for bd in bookings_data:
+            booking = bd["booking"]
+            has_drop = bd.get("has_significant_drop", False)
+            print(f"- {booking['location']}: {booking['pickup_date']} to {booking['dropoff_date']}")
             if has_drop:
                 print("  * Has significant price drop!")
 
-        # Split bookings into rows of 2
-        booking_rows = []
-        for i in range(0, len(bookings_data), 2):
-            row_bookings = bookings_data[i : i + 2]
-            row_html = "<tr>"
+        stats         = _calculate_summary_stats(bookings_data)
+        header_rows   = _format_header(bookings_data)
+        summary_rows  = _format_summary_bar(stats)
+        footer_rows   = _format_footer()
 
-            # Add booking cards
-            for booking_data in row_bookings:
-                row_html += format_booking_card(booking_data)
-
-            # Add empty cell if odd number of bookings
-            if len(row_bookings) == 1:
-                row_html += "<td style='width: 50%;'></td>"
-
-            row_html += "</tr>"
-            booking_rows.append(row_html)
+        cards_html = "\n".join(format_booking_card(bd) for bd in bookings_data)
 
         return f"""
-        <div style="max-width: 1200px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <h1 style="color: #1a1a1a; margin-bottom: 10px; font-size: 24px; font-weight: bold;">
-                    <a href="https://www.costcotravel.com/Rental-Cars" 
-                       style="color: #2563eb; text-decoration: none;"
-                       target="_blank">
-                        🚗 Costco Travel Car Rental Update
-                    </a>
-                </h1>
-                <div style="color: #666; font-size: 14px;">
-                    Last checked: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-                    <br>
-                    Tracking {len(bookings_data)} booking{"s" if len(bookings_data) != 1 else ""}
-                </div>
-            </div>
-            
-            <table style="width: 100%; border-collapse: separate; border-spacing: 15px;">
-                {"".join(booking_rows)}
-            </table>
-            
-            <div style="text-align: center; margin-top: 30px; padding: 20px;">
-                <a href="https://www.costcotravel.com/Rental-Cars" 
-                   style="color: #2563eb; text-decoration: none; font-weight: 500;"
-                   target="_blank">
-                    View Current Prices at Costco Travel →
-                </a>
-            </div>
-            
-            <div style="text-align: center; margin-top: 10px; color: #666; font-size: 12px;">
-                All prices include taxes and fees • Historical trends shown when available
-            </div>
-        </div>
+<style type="text/css">
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+</style>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="background-color:{BODY_BG};">
+  <tr>
+    <td align="center" style="padding:24px 16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="640"
+             style="max-width:640px; width:100%;">
+        {header_rows}
+        {summary_rows}
+        <tr>
+          <td>
+            {cards_html}
+          </td>
+        </tr>
+        {footer_rows}
+      </table>
+    </td>
+  </tr>
+</table>
         """
     except Exception as e:
         print(f"Error in format_email_body_html: {str(e)}")
         traceback.print_exc()
-        return f"""
-        <div style="color: red; padding: 20px;">
-            An error occurred while generating the email: {str(e)}
-        </div>
-        """
+        return f'<div style="color:{COLOR_RED}; padding:20px; font-family:{FONT};">An error occurred while generating the email: {str(e)}</div>'

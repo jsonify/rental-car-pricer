@@ -17,6 +17,7 @@ load_dotenv()
 # Import our actual email formatters
 from email_module.templates.html_template import format_email_body_html
 from email_module.templates.formatters import format_email_body_text
+from email_module.sender import format_subject
 
 def print_debug(msg: str, obj: Any = None) -> None:
     """Debug print function with clear separators"""
@@ -40,6 +41,7 @@ def generate_test_data() -> List[Dict]:
             'pickup_time': '12:00 PM',
             'dropoff_time': '12:00 PM',
             'focus_category': 'Full-size Car',
+            'holding_price': 500.00,
             'holding_price_histories': [
                 {
                     'price': 560.50,
@@ -86,7 +88,15 @@ def generate_test_data() -> List[Dict]:
                     'category': 'Full-size Car'
                 })
             }
-        ]
+        ],
+        'trends': {
+            'focus_category': {
+                'lowest': 445.00,
+                'highest': 560.50,
+                'average': 495.00,
+                'previous_price': 512.07,
+            }
+        },
     }]
     
     print_debug("Generated Test Data", test_data)
@@ -123,7 +133,7 @@ def test_smtp_connection():
 
         # Create message
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = f'Car Rental Price Tracker - Test Email ({datetime.now().strftime("%Y-%m-%d %H:%M:%S")})'
+        msg['Subject'] = format_subject(bookings_data)
         msg['From'] = sender_email
         msg['To'] = recipient_email
 
