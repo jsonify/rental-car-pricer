@@ -87,7 +87,7 @@ def click_search(page):
     search_btn = page.locator("#findMyCarButton")
     search_btn.scroll_into_view_if_needed()
     page.wait_for_timeout(random.randint(500, 1000))
-    search_btn.click()
+    search_btn.click(force=True)
 
 
 def fill_search_form(page, booking):

@@ -280,6 +280,14 @@ class TestClickSearch:
         locator.scroll_into_view_if_needed.assert_called_once()
         locator.click.assert_called_once()
 
+    def test_uses_force_click_to_bypass_sticky_header(self):
+        """force=True bypasses pointer-event interception from the sticky header."""
+        page, locator = _mock_page()
+        from price_monitor import click_search
+        click_search(page)
+        _, kwargs = locator.click.call_args
+        assert kwargs.get("force") is True
+
 
 class TestFillSearchForm:
     """Tests for fill_search_form(page, booking)."""
