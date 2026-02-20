@@ -1,0 +1,23 @@
+{
+  "track_id": "playwright_ci_20260219",
+  "type": "bug",
+  "status": "new",
+  "priority": "critical",
+  "depends_on": [],
+  "estimated_hours": null,
+  "beads_epic": "rental-car-pricer-xcp",
+  "beads_tasks": {
+    "phase1": "rental-car-pricer-xcp.1",
+    "phase1_task1": "rental-car-pricer-xcp.1.1",
+    "phase1_task2": "rental-car-pricer-xcp.1.2",
+    "phase2": "rental-car-pricer-xcp.2",
+    "phase2_task1": "rental-car-pricer-xcp.2.1",
+    "phase2_task2": "rental-car-pricer-xcp.2.2",
+    "phase3": "rental-car-pricer-xcp.3",
+    "phase3_task1": "rental-car-pricer-xcp.3.1",
+    "phase3_task2": "rental-car-pricer-xcp.3.2"
+  },
+  "created_at": "2026-02-19T00:00:00Z",
+  "updated_at": "2026-02-19T00:00:00Z",
+  "description": "Fix Playwright CI navigation timeout (missing anti-detection launch args) and cascade error screenshot failure; add gh CLI workflow for triggering/monitoring runs from terminal"
+}
