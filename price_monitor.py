@@ -251,7 +251,10 @@ def run_price_checks(tracker, active_bookings):
     from services.price_alert_service import PriceAlertService
     from email_module import send_price_alert
 
-    playwright, browser, context, page = setup_browser(headless=True)
+    # Use real Google Chrome in CI for proper TLS fingerprint (Playwright's
+    # bundled Chromium is blocked by Costco Travel's bot-detection on GH Actions)
+    channel = "chrome" if os.environ.get("CI") == "true" else None
+    playwright, browser, context, page = setup_browser(headless=True, channel=channel)
     alert_service = PriceAlertService(price_threshold=10.0)
 
     deleted_bookings = tracker.cleanup_expired_bookings()
@@ -330,9 +333,13 @@ def run_price_checks(tracker, active_bookings):
     return bool(bookings_data)
 
 
-def setup_browser(headless=True):
+def setup_browser(headless=True, channel=None):
     """
-    Launch a Playwright Chromium browser with stealth settings.
+    Launch a Playwright browser with stealth settings.
+
+    Pass channel="chrome" to use the installed Google Chrome binary instead
+    of Playwright's bundled Chromium (required in CI to match the TLS
+    fingerprint that Costco Travel's bot-detection expects).
 
     Returns (playwright, browser, context, page). The caller is responsible
     for teardown:
@@ -340,16 +347,19 @@ def setup_browser(headless=True):
         playwright.stop()
     """
     playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(
-        headless=headless,
-        args=[
+    launch_kwargs = {
+        "headless": headless,
+        "args": [
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
             "--disable-dev-shm-usage",
             "--disable-infobars",
             "--window-size=1920,1080",
         ],
-    )
+    }
+    if channel:
+        launch_kwargs["channel"] = channel
+    browser = playwright.chromium.launch(**launch_kwargs)
     context = browser.new_context(
         user_agent=USER_AGENT,
         viewport={"width": 1920, "height": 1080},

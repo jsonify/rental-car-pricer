@@ -66,9 +66,9 @@ jobs:
         pip install -r requirements.txt
         pip install python-dotenv
 
-    - name: Install Playwright Chromium
+    - name: Install Playwright Chrome
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
-      run: playwright install chromium --with-deps
+      run: playwright install chrome --with-deps
 
     - name: Add new booking
       if: github.event.inputs.action == 'add-booking'
