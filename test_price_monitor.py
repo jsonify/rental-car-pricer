@@ -272,25 +272,24 @@ class TestCheckAgeCheckbox:
 class TestClickSearch:
     """Tests for click_search(page)."""
 
-    def test_scrolls_button_to_viewport_center(self):
-        """eval_on_selector scrolls the button to viewport center (not top)
-        so the fixed sticky header cannot overlap it before the click."""
+    def test_waits_for_button_visible_before_submitting(self):
+        """wait_for(state='visible') confirms the button is present."""
+        page, locator = _mock_page()
+        from price_monitor import click_search
+        click_search(page)
+        locator.wait_for.assert_called_once_with(state="visible")
+
+    def test_submits_via_js_to_bypass_playwright_internal_scroll(self):
+        """eval_on_selector dispatches click in JS context, bypassing
+        Playwright's click() which always calls scroll_into_view_if_needed()
+        internally and re-places the button under the sticky header."""
         page, locator = _mock_page()
         from price_monitor import click_search
         click_search(page)
         page.eval_on_selector.assert_called_once()
         selector_arg, script_arg = page.eval_on_selector.call_args[0]
         assert selector_arg == "#findMyCarButton"
-        assert "center" in script_arg
-
-    def test_clicks_search_button_without_force(self):
-        """Regular (trusted) click is used once the button is below the header."""
-        page, locator = _mock_page()
-        from price_monitor import click_search
-        click_search(page)
-        locator.click.assert_called_once()
-        _, kwargs = locator.click.call_args
-        assert not kwargs.get("force")
+        assert ".click()" in script_arg
 
 
 class TestFillSearchForm:
