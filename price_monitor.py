@@ -328,8 +328,21 @@ def setup_browser(headless=True):
         playwright.stop()
     """
     playwright = sync_playwright().start()
-    browser = playwright.chromium.launch(headless=headless)
-    context = browser.new_context(user_agent=USER_AGENT)
+    browser = playwright.chromium.launch(
+        headless=headless,
+        args=[
+            "--disable-blink-features=AutomationControlled",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-infobars",
+            "--window-size=1920,1080",
+        ],
+    )
+    context = browser.new_context(
+        user_agent=USER_AGENT,
+        viewport={"width": 1920, "height": 1080},
+    )
     context.add_init_script(WEBDRIVER_STEALTH_SCRIPT)
     page = context.new_page()
+    page.set_default_navigation_timeout(60000)
     return playwright, browser, context, page

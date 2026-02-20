@@ -53,7 +53,7 @@ class TestSetupBrowser:
             from price_monitor import setup_browser
             setup_browser()
 
-        mock_pw.chromium.launch.assert_called_once_with(headless=True)
+        assert mock_pw.chromium.launch.call_args[1]["headless"] is True
 
     def test_launches_chromium_headed_when_requested(self):
         """setup_browser(headless=False) launches headed."""
@@ -62,7 +62,38 @@ class TestSetupBrowser:
             from price_monitor import setup_browser
             setup_browser(headless=False)
 
-        mock_pw.chromium.launch.assert_called_once_with(headless=False)
+        assert mock_pw.chromium.launch.call_args[1]["headless"] is False
+
+    def test_launch_args_include_ci_flags(self):
+        """chromium.launch() args include the CI-required anti-detection flags."""
+        mock_sp, mock_pw, *_ = self._make_mocks()
+        with patch("price_monitor.sync_playwright", mock_sp):
+            from price_monitor import setup_browser
+            setup_browser()
+
+        launch_args = mock_pw.chromium.launch.call_args[1].get("args", [])
+        assert "--no-sandbox" in launch_args
+        assert "--disable-dev-shm-usage" in launch_args
+        assert "--disable-blink-features=AutomationControlled" in launch_args
+
+    def test_context_has_1920x1080_viewport(self):
+        """Browser context is created with a 1920×1080 viewport."""
+        mock_sp, mock_pw, mock_browser, *_ = self._make_mocks()
+        with patch("price_monitor.sync_playwright", mock_sp):
+            from price_monitor import setup_browser
+            setup_browser()
+
+        call_kwargs = mock_browser.new_context.call_args[1]
+        assert call_kwargs.get("viewport") == {"width": 1920, "height": 1080}
+
+    def test_sets_60s_navigation_timeout(self):
+        """page.set_default_navigation_timeout(60000) is called after page creation."""
+        mock_sp, mock_pw, mock_browser, mock_context, mock_page = self._make_mocks()
+        with patch("price_monitor.sync_playwright", mock_sp):
+            from price_monitor import setup_browser
+            setup_browser()
+
+        mock_page.set_default_navigation_timeout.assert_called_once_with(60000)
 
     def test_sets_mozilla_user_agent_on_context(self):
         """Browser context is created with a Mozilla user-agent string."""
