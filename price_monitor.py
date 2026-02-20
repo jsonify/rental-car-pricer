@@ -190,7 +190,13 @@ def process_booking(page, booking):
         print(f"{booking['pickup_date']} to {booking['dropoff_date']}")
         print(f"Focus category: {booking['focus_category']}")
 
-        page.goto("https://www.costcotravel.com/Rental-Cars")
+        try:
+            page.goto("https://www.costcotravel.com/Rental-Cars")
+        except Exception:
+            print("Navigation timed out — retrying once after 5 s...")
+            page.wait_for_timeout(5000)
+            page.goto("https://www.costcotravel.com/Rental-Cars")  # may raise → caught by outer except
+
         page.wait_for_timeout(random.randint(2000, 4000))
 
         if not fill_search_form(page, booking):
@@ -231,8 +237,11 @@ def process_booking(page, booking):
         os.makedirs("screenshots", exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         error_name = f"error_{booking['location']}_{timestamp}.png"
-        page.screenshot(path=f"screenshots/{error_name}")
-        print(f"Error screenshot saved: {error_name}")
+        try:
+            page.screenshot(path=f"screenshots/{error_name}")
+            print(f"Error screenshot saved: {error_name}")
+        except Exception:
+            print("Error screenshot failed (page already closed)")
 
         return None
 

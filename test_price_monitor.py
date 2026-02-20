@@ -321,3 +321,65 @@ class TestWaitForResults:
         from price_monitor import wait_for_results
         result = wait_for_results(page, "https://www.costcotravel.com/Rental-Cars")
         assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: process_booking() error handling — cascade guard and nav retry
+# ---------------------------------------------------------------------------
+
+class TestProcessBooking:
+    """Tests for process_booking() error path — cascade guard and nav retry."""
+
+    BOOKING = {
+        "location": "KOA",
+        "pickup_date": "04/01/2025",
+        "dropoff_date": "04/08/2025",
+        "pickup_time": "12:00 PM",
+        "dropoff_time": "12:00 PM",
+        "focus_category": "Economy Car",
+    }
+
+    def _stub_price_extractor(self, prices=None):
+        """Insert a stub price_extractor into sys.modules so process_booking can import it."""
+        import sys, types as _t
+        stub = _t.ModuleType("price_extractor")
+        stub.extract_lowest_prices = MagicMock(return_value=prices or {})
+        sys.modules["price_extractor"] = stub
+
+    def test_returns_none_when_navigation_always_fails(self):
+        """Returns None cleanly when goto() times out on all attempts."""
+        self._stub_price_extractor()
+        page = MagicMock()
+        page.goto.side_effect = Exception("Timeout")
+
+        from price_monitor import process_booking
+        result = process_booking(page, self.BOOKING)
+        assert result is None
+
+    def test_error_screenshot_failure_does_not_propagate(self):
+        """Exception from error screenshot is swallowed — returns None cleanly."""
+        self._stub_price_extractor()
+        page = MagicMock()
+        page.goto.side_effect = Exception("Timeout")
+        page.screenshot.side_effect = Exception("Screenshot timeout")
+
+        from price_monitor import process_booking
+        result = process_booking(page, self.BOOKING)
+        assert result is None
+
+    def test_retries_navigation_once_and_returns_prices_on_success(self):
+        """On first goto timeout, retries once; prices returned when retry succeeds."""
+        mock_prices = {"Economy Car": 299.99}
+        self._stub_price_extractor(mock_prices)
+        page = MagicMock()
+        page.goto.side_effect = [Exception("Timeout"), None]  # first fails, retry succeeds
+        page.url = "https://www.costcotravel.com/Rental-Cars"
+
+        with patch("price_monitor.fill_search_form", return_value=True), \
+             patch("price_monitor.click_search"), \
+             patch("price_monitor.wait_for_results", return_value=True):
+            from price_monitor import process_booking
+            result = process_booking(page, self.BOOKING)
+
+        assert result == mock_prices
+        assert page.goto.call_count == 2  # first attempt + one retry
