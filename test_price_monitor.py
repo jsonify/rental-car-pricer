@@ -154,14 +154,17 @@ class TestEnterLocation:
         args, _ = locator.type.call_args
         assert "KOA" in args
 
-    def test_clicks_dropdown_item(self):
-        """A dropdown locator is clicked after typing."""
+    def test_selects_autocomplete_via_keyboard(self):
+        """ArrowDown+Enter selects the first autocomplete suggestion.
+        Replaces dropdown.click() which matched navigation li items
+        case-insensitively (e.g. 'San Diego' for 'SAN'), opening the
+        nav mega-menu and leaving the location field unfilled."""
         page, locator = _mock_page()
         from price_monitor import enter_location
         enter_location(page, "KOA")
-
-        # locator() is called multiple times — for the input field and dropdown
-        assert page.locator.call_count >= 2
+        calls = [c[0][0] for c in page.keyboard.press.call_args_list]
+        assert "ArrowDown" in calls
+        assert "Enter" in calls
 
     def test_focuses_input_rather_than_clicking(self):
         """focus() activates the field instead of click() to bypass sticky-header
@@ -286,12 +289,12 @@ class TestClickSearch:
         click_search(page)
         locator.focus.assert_called_once()
 
-    def test_activates_via_trusted_return_keypress(self):
-        """keyboard.press('Return') fires a trusted event that activates the button."""
+    def test_activates_via_trusted_enter_keypress(self):
+        """keyboard.press('Enter') fires a trusted event that activates the button."""
         page, locator = _mock_page()
         from price_monitor import click_search
         click_search(page)
-        page.keyboard.press.assert_called_once_with("Return")
+        page.keyboard.press.assert_called_once_with("Enter")
 
 
 class TestFillSearchForm:

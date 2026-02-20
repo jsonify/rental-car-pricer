@@ -23,18 +23,23 @@ WEBDRIVER_STEALTH_SCRIPT = (
 
 
 def enter_location(page, location):
-    """Type location code into the pickup field and select from autocomplete."""
+    """Type location code into the pickup field and select from autocomplete.
+
+    Uses keyboard ArrowDown+Enter instead of a DOM click on the autocomplete
+    suggestion. The li:has-text() selector was case-insensitive and matched
+    navigation mega-menu items like "San Diego" for location "SAN", opening
+    the nav overlay and leaving the location field unfilled.
+    """
     locator = page.locator("#pickupLocationTextWidget")
     locator.wait_for(state="visible")
     locator.focus()
     page.wait_for_timeout(random.randint(500, 1000))
     locator.type(location, delay=150)
     page.wait_for_timeout(random.randint(1500, 2500))
-    # Click first dropdown item containing the location code
-    dropdown = page.locator(f'li:has-text("{location}")').first
-    dropdown.wait_for(state="visible", timeout=10000)
-    page.wait_for_timeout(random.randint(500, 1000))
-    dropdown.click()
+    # Keyboard-select first autocomplete suggestion: avoids matching nav items
+    page.keyboard.press("ArrowDown")
+    page.wait_for_timeout(random.randint(300, 500))
+    page.keyboard.press("Enter")
     page.wait_for_timeout(random.randint(1000, 2000))
 
 
@@ -96,7 +101,7 @@ def click_search(page):
     search_btn.wait_for(state="visible")
     search_btn.focus()
     page.wait_for_timeout(random.randint(500, 1000))
-    page.keyboard.press("Return")
+    page.keyboard.press("Enter")
 
 
 def fill_search_form(page, booking):
@@ -211,8 +216,13 @@ def process_booking(page, booking):
         if not fill_search_form(page, booking):
             raise Exception("Failed to fill search form")
 
+        # Dismiss any navigation menus opened by keyboard focus during form fill
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(300)
+
         # Verify form values
         print("\nVerifying form fields:")
+        print(f"  Location: {page.locator('#pickupLocationTextWidget').input_value()}")
         print(f"  Pickup:  {page.locator('#pickUpDateWidget').input_value()}")
         print(f"  Dropoff: {page.locator('#dropOffDateWidget').input_value()}")
 
