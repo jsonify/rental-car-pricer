@@ -321,10 +321,13 @@ def run_price_checks(tracker, active_bookings):
     except Exception as e:
         print(f"\nAn error occurred: {str(e)}")
         traceback.print_exc()
+        return False
     finally:
         print("\nClosing browser...")
         browser.close()
         playwright.stop()
+
+    return bool(bookings_data)
 
 
 def setup_browser(headless=True):

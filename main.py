@@ -169,6 +169,7 @@ def interactive_mode():
 
 def automated_mode():
     """Run the price checker in automated mode without user interaction."""
+    import sys
     print("\n🤖 Running in automated mode")
     print("=" * 50)
 
@@ -180,7 +181,10 @@ def automated_mode():
         return
 
     print(f"📋 Found {len(active_bookings)} active bookings")
-    run_price_checks(tracker, active_bookings)
+    success = run_price_checks(tracker, active_bookings)
+    if not success:
+        print("\n❌ Price check failed — no prices obtained for any booking")
+        sys.exit(1)
 
 
 def main():
