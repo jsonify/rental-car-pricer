@@ -742,6 +742,15 @@ jobs:
           exit 1
         }
 
+    - name: Upload debug screenshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-screenshots
+        path: screenshots/
+        retention-days: 5
+        if-no-files-found: ignore
+
     - name: Sync booking to Supabase
       if: github.event.inputs.action == 'add-booking'
       env:

@@ -279,17 +279,19 @@ class TestClickSearch:
         click_search(page)
         locator.wait_for.assert_called_once_with(state="visible")
 
-    def test_submits_via_js_to_bypass_playwright_internal_scroll(self):
-        """eval_on_selector dispatches click in JS context, bypassing
-        Playwright's click() which always calls scroll_into_view_if_needed()
-        internally and re-places the button under the sticky header."""
+    def test_focuses_button_without_pointer_events(self):
+        """focus() grants keyboard focus without pointer events or scroll."""
         page, locator = _mock_page()
         from price_monitor import click_search
         click_search(page)
-        page.eval_on_selector.assert_called_once()
-        selector_arg, script_arg = page.eval_on_selector.call_args[0]
-        assert selector_arg == "#findMyCarButton"
-        assert ".click()" in script_arg
+        locator.focus.assert_called_once()
+
+    def test_activates_via_trusted_return_keypress(self):
+        """keyboard.press('Return') fires a trusted event that activates the button."""
+        page, locator = _mock_page()
+        from price_monitor import click_search
+        click_search(page)
+        page.keyboard.press.assert_called_once_with("Return")
 
 
 class TestFillSearchForm:

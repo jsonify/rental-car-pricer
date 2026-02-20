@@ -83,19 +83,20 @@ def check_age_checkbox(page):
 
 
 def click_search(page):
-    """Submit the search form via JS to bypass sticky-header interception.
+    """Activate the search button via keyboard focus + trusted Return keypress.
 
-    Playwright's locator.click() ALWAYS calls scroll_into_view_if_needed()
-    internally as part of its actionability checks, placing #findMyCarButton
-    at the viewport top — directly under the fixed sticky header — regardless
-    of any prior scroll we do. Using el.click() in the browser JS context
-    bypasses Playwright's scroll-and-click mechanism entirely, dispatching
-    the event directly to the button element.
+    Pointer-based approaches all fail: Playwright's click() internally calls
+    scroll_into_view_if_needed() which re-positions the button under the sticky
+    header, and JS el.click() generates an untrusted event that React may ignore.
+    focus() uses the accessibility tree (no pointer events, no scroll), then
+    keyboard.press("Return") dispatches a trusted keyboard event that activates
+    the button without triggering any scroll.
     """
     search_btn = page.locator("#findMyCarButton")
     search_btn.wait_for(state="visible")
+    search_btn.focus()
     page.wait_for_timeout(random.randint(500, 1000))
-    page.eval_on_selector("#findMyCarButton", "el => el.click()")
+    page.keyboard.press("Return")
 
 
 def fill_search_form(page, booking):
@@ -215,9 +216,31 @@ def process_booking(page, booking):
         print(f"  Pickup:  {page.locator('#pickUpDateWidget').input_value()}")
         print(f"  Dropoff: {page.locator('#dropOffDateWidget').input_value()}")
 
+        # Debug: detect duplicate IDs and whether button is inside the header
+        btn_count = page.evaluate(
+            "() => document.querySelectorAll('#findMyCarButton').length"
+        )
+        btn_in_header = page.evaluate(
+            "() => { const b = document.querySelector('#findMyCarButton');"
+            " return b ? !!b.closest('header') : false; }"
+        )
+        print(f"  #findMyCarButton count={btn_count}, first_in_header={btn_in_header}")
+
         current_url = page.url
-        print("\nInitiating search...")
+        print(f"\nInitiating search (URL: {current_url[:60]}...)")
+
+        os.makedirs("screenshots", exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        pre_name = f"pre_search_{booking['location']}_{ts}.png"
+        try:
+            page.screenshot(path=f"screenshots/{pre_name}")
+            print(f"Pre-search screenshot: {pre_name}")
+        except Exception:
+            pass
+
         click_search(page)
+        page.wait_for_timeout(3000)
+        print(f"URL 3 s after click: {page.url}")
 
         if not wait_for_results(page, current_url):
             raise Exception("Failed to load results")
