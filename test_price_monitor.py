@@ -340,6 +340,7 @@ class TestWaitForResults:
     def test_returns_true_on_successful_url_change(self):
         """Returns True when wait_for_url() succeeds."""
         page, _ = _mock_page()
+        page.url = "https://www.costcotravel.com/Rental-Cars"  # not yet on results
         page.wait_for_url = MagicMock()  # does not raise
         from price_monitor import wait_for_results
         result = wait_for_results(page, "https://www.costcotravel.com/Rental-Cars")
@@ -348,10 +349,26 @@ class TestWaitForResults:
     def test_returns_false_on_timeout(self):
         """Returns False when wait_for_url() raises (timeout)."""
         page, _ = _mock_page()
+        page.url = "https://www.costcotravel.com/Rental-Cars"  # not yet on results
         page.wait_for_url = MagicMock(side_effect=Exception("Timeout"))
         from price_monitor import wait_for_results
         result = wait_for_results(page, "https://www.costcotravel.com/Rental-Cars")
         assert result is False
+
+    def test_returns_true_when_already_on_results_url(self):
+        """Returns True immediately without calling wait_for_url when already on /h= URL.
+
+        Costco Travel's results URL is /Rental-Cars/h=XXXX. If we wait a few
+        seconds before calling wait_for_results the navigation will already be
+        done, so wait_for_url would wait for a *new* navigation that never comes.
+        We check page.url first and fast-path return True — confirmed by making
+        wait_for_url raise so any call to it causes a failure."""
+        page, _ = _mock_page()
+        page.url = "https://www.costcotravel.com/Rental-Cars/h=3002"
+        page.wait_for_url = MagicMock(side_effect=Exception("Should not be called"))
+        from price_monitor import wait_for_results
+        result = wait_for_results(page, "https://www.costcotravel.com/Rental-Cars")
+        assert result is True
 
 
 # ---------------------------------------------------------------------------

@@ -129,12 +129,20 @@ def fill_search_form(page, booking):
 
 
 def wait_for_results(page, current_url, timeout=60):
-    """Wait for the search results URL. Returns True on success."""
+    """Wait for the search results URL. Returns True on success.
+
+    Costco Travel's results page URL looks like /Rental-Cars/h=XXXX. Because
+    we wait a few seconds between clicking the search button and calling this
+    function, the navigation is often already complete by the time we get here.
+    wait_for_url() would then wait for a *new* matching navigation (that never
+    comes) and time out. We fast-path return True if the URL already matches.
+    """
     try:
-        page.wait_for_url(
-            re.compile(r"results|vehicles", re.IGNORECASE),
-            timeout=timeout * 1000,
-        )
+        results_pattern = re.compile(r"results|vehicles|/h=\d", re.IGNORECASE)
+        if results_pattern.search(page.url):
+            page.wait_for_timeout(5000)  # Let prices fully render
+            return True
+        page.wait_for_url(results_pattern, timeout=timeout * 1000)
         page.wait_for_timeout(5000)  # Let prices fully render
         return True
     except Exception as e:
