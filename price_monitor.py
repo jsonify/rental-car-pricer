@@ -228,37 +228,8 @@ def process_booking(page, booking):
         page.keyboard.press("Escape")
         page.wait_for_timeout(300)
 
-        # Verify form values
-        print("\nVerifying form fields:")
-        print(f"  Location: {page.locator('#pickupLocationTextWidget').input_value()}")
-        print(f"  Pickup:  {page.locator('#pickUpDateWidget').input_value()}")
-        print(f"  Dropoff: {page.locator('#dropOffDateWidget').input_value()}")
-
-        # Debug: detect duplicate IDs and whether button is inside the header
-        btn_count = page.evaluate(
-            "() => document.querySelectorAll('#findMyCarButton').length"
-        )
-        btn_in_header = page.evaluate(
-            "() => { const b = document.querySelector('#findMyCarButton');"
-            " return b ? !!b.closest('header') : false; }"
-        )
-        print(f"  #findMyCarButton count={btn_count}, first_in_header={btn_in_header}")
-
         current_url = page.url
-        print(f"\nInitiating search (URL: {current_url[:60]}...)")
-
-        os.makedirs("screenshots", exist_ok=True)
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pre_name = f"pre_search_{booking['location']}_{ts}.png"
-        try:
-            page.screenshot(path=f"screenshots/{pre_name}")
-            print(f"Pre-search screenshot: {pre_name}")
-        except Exception:
-            pass
-
         click_search(page)
-        page.wait_for_timeout(3000)
-        print(f"URL 3 s after click: {page.url}")
 
         if not wait_for_results(page, current_url):
             raise Exception("Failed to load results")
