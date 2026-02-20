@@ -26,7 +26,7 @@ def enter_location(page, location):
     """Type location code into the pickup field and select from autocomplete."""
     locator = page.locator("#pickupLocationTextWidget")
     locator.wait_for(state="visible")
-    locator.click()
+    locator.focus()
     page.wait_for_timeout(random.randint(500, 1000))
     locator.type(location, delay=150)
     page.wait_for_timeout(random.randint(1500, 2500))
@@ -48,11 +48,11 @@ def enter_date(page, field_id, date_value, max_retries=3):
     for attempt in range(max_retries):
         locator = page.locator(f"#{field_id}")
         locator.wait_for(state="attached")
-        locator.click()
+        locator.focus()
         page.wait_for_timeout(random.randint(300, 700))
         # Clear via JS to avoid stale value issues
         page.eval_on_selector(f"#{field_id}", "el => el.value = ''")
-        locator.click()
+        locator.focus()
         locator.type(date_value, delay=150)
         page.keyboard.press("Tab")
         page.wait_for_timeout(random.randint(1000, 1500))

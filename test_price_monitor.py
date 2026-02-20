@@ -163,6 +163,14 @@ class TestEnterLocation:
         # locator() is called multiple times — for the input field and dropdown
         assert page.locator.call_count >= 2
 
+    def test_focuses_input_rather_than_clicking(self):
+        """focus() activates the field instead of click() to bypass sticky-header
+        pointer-event interception on Costco Travel."""
+        page, locator = _mock_page()
+        from price_monitor import enter_location
+        enter_location(page, "KOA")
+        locator.focus.assert_called()
+
 
 class TestEnterDate:
     """Tests for enter_date(page, field_id, date_value)."""
@@ -212,6 +220,13 @@ class TestEnterDate:
         enter_date(page, "pickUpDateWidget", "04/01/2025")
         _, kwargs = locator.type.call_args
         assert kwargs.get("delay", 0) > 0
+
+    def test_focuses_date_field_rather_than_clicking(self):
+        """focus() is used instead of click() to avoid sticky-header interception."""
+        page, locator = self._make_page_success("04/01/2025")
+        from price_monitor import enter_date
+        enter_date(page, "pickUpDateWidget", "04/01/2025")
+        locator.focus.assert_called()
 
 
 class TestSetTimes:
