@@ -66,9 +66,21 @@ jobs:
         pip install -r requirements.txt
         pip install python-dotenv
 
-    - name: Install Playwright Chrome
+    - name: Cache Playwright browsers
       if: github.event.inputs.action == 'check-prices' || github.event_name == 'schedule'
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-chrome-${{ hashFiles('requirements.txt') }}
+
+    - name: Install Playwright Chrome
+      if: (github.event.inputs.action == 'check-prices' || github.event_name == 'schedule') && steps.playwright-cache.outputs.cache-hit != 'true'
       run: playwright install chrome --with-deps
+
+    - name: Install Playwright Chrome system deps only
+      if: (github.event.inputs.action == 'check-prices' || github.event_name == 'schedule') && steps.playwright-cache.outputs.cache-hit == 'true'
+      run: playwright install-deps chrome
 
     - name: Add new booking
       if: github.event.inputs.action == 'add-booking'
