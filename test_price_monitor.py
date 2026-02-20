@@ -272,21 +272,25 @@ class TestCheckAgeCheckbox:
 class TestClickSearch:
     """Tests for click_search(page)."""
 
-    def test_scrolls_into_view_before_clicking(self):
-        """scroll_into_view_if_needed() is called before click()."""
+    def test_scrolls_button_to_viewport_center(self):
+        """eval_on_selector scrolls the button to viewport center (not top)
+        so the fixed sticky header cannot overlap it before the click."""
         page, locator = _mock_page()
         from price_monitor import click_search
         click_search(page)
-        locator.scroll_into_view_if_needed.assert_called_once()
-        locator.click.assert_called_once()
+        page.eval_on_selector.assert_called_once()
+        selector_arg, script_arg = page.eval_on_selector.call_args[0]
+        assert selector_arg == "#findMyCarButton"
+        assert "center" in script_arg
 
-    def test_uses_force_click_to_bypass_sticky_header(self):
-        """force=True bypasses pointer-event interception from the sticky header."""
+    def test_clicks_search_button_without_force(self):
+        """Regular (trusted) click is used once the button is below the header."""
         page, locator = _mock_page()
         from price_monitor import click_search
         click_search(page)
+        locator.click.assert_called_once()
         _, kwargs = locator.click.call_args
-        assert kwargs.get("force") is True
+        assert not kwargs.get("force")
 
 
 class TestFillSearchForm:

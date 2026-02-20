@@ -83,11 +83,19 @@ def check_age_checkbox(page):
 
 
 def click_search(page):
-    """Scroll the search button into view and click it."""
-    search_btn = page.locator("#findMyCarButton")
-    search_btn.scroll_into_view_if_needed()
+    """Scroll the search button to viewport center and click it.
+
+    scroll_into_view_if_needed() places the element at the viewport top,
+    directly under the sticky header, causing pointer-event interception.
+    scrollIntoView({block:'center'}) places it at y≈540 (for 1080px),
+    well below the header, so a normal trusted click reaches the button.
+    """
+    page.eval_on_selector(
+        "#findMyCarButton",
+        "el => el.scrollIntoView({block: 'center', inline: 'nearest'})",
+    )
     page.wait_for_timeout(random.randint(500, 1000))
-    search_btn.click(force=True)
+    page.locator("#findMyCarButton").click()
 
 
 def fill_search_form(page, booking):
