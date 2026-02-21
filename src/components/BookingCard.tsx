@@ -31,26 +31,6 @@ const StatusBadge = ({ latestPrice, holdingPrice }: { latestPrice: number; holdi
   )
 }
 
-const DeltaBadge = ({
-  delta,
-  label,
-  size = 'md',
-}: {
-  delta: number
-  label: string
-  size?: 'sm' | 'md'
-}) => {
-  if (delta === 0) return null
-  const down = delta < 0
-  const color = down ? 'text-green-400' : 'text-red-400'
-  const arrow = down ? '↓' : '↑'
-  const textSize = size === 'sm' ? 'text-xs' : 'text-sm'
-  return (
-    <div className={`${textSize} ${color} font-medium`}>
-      {arrow} {fmt(Math.abs(delta))} <span className="text-slate-500 font-normal">{label}</span>
-    </div>
-  )
-}
 
 export function BookingCard({ booking }: Props) {
   const [showHistory, setShowHistory] = useState(false)
@@ -62,14 +42,13 @@ export function BookingCard({ booking }: Props) {
     focus_category,
     holding_price,
     latestPrice,
-    changeFromBaseline,
-    firstTrackedPrice,
+    priceChange,
     lowestPriceSeen,
     daysUntilPickup,
     price_history,
   } = booking
 
-  const holdingDelta = holding_price ? latestPrice - holding_price : null
+  const holdingDelta = holding_price != null ? latestPrice - holding_price : null
 
   const pickupLabel = format(new Date(pickup_date), 'MMM d')
   const dropoffLabel = format(new Date(dropoff_date), 'MMM d')
@@ -110,20 +89,39 @@ export function BookingCard({ booking }: Props) {
         </p>
       </div>
 
-      {/* Price + deltas */}
-      <div className="flex items-end gap-6 mb-5">
-        <div>
-          <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Current price</p>
-          <p className="text-5xl font-bold text-slate-100 tabular-nums">{fmt(latestPrice)}</p>
+      {/* Price hero — two-column */}
+      <div className="flex items-start gap-6 mb-5">
+        {/* Left: current price */}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">{focus_category}</p>
+          <p className="text-4xl font-mono font-bold text-slate-100 tabular-nums">{fmt(latestPrice)}</p>
+          <div className="mt-1 text-sm font-medium">
+            {priceChange < 0 ? (
+              <span className="text-emerald-400">↓ {fmt(Math.abs(priceChange))} vs last check</span>
+            ) : priceChange > 0 ? (
+              <span className="text-red-400">↑ {fmt(priceChange)} vs last check</span>
+            ) : (
+              <span className="text-slate-500">→ no change</span>
+            )}
+          </div>
         </div>
-        <div className="pb-1 space-y-1.5">
-          {holdingDelta !== null && (
-            <DeltaBadge delta={holdingDelta} label="vs what you booked" />
-          )}
-          {firstTrackedPrice > 0 && (
-            <DeltaBadge delta={changeFromBaseline} label="since tracking began" size="sm" />
-          )}
-        </div>
+
+        {/* Right: holding price (hidden if no hold) */}
+        {holding_price != null && holdingDelta !== null && (
+          <div className="shrink-0 text-right">
+            <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Your Hold</p>
+            <p className="text-2xl font-mono font-semibold text-slate-300 tabular-nums">{fmt(holding_price)}</p>
+            <div className="mt-1 text-sm font-medium">
+              {holdingDelta > 0 ? (
+                <span className="text-amber-400">↑ {fmt(holdingDelta)} above</span>
+              ) : holdingDelta < 0 ? (
+                <span className="text-emerald-400">↓ {fmt(Math.abs(holdingDelta))} below</span>
+              ) : (
+                <span className="text-slate-500">at hold price</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats footer */}
