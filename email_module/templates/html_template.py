@@ -550,10 +550,22 @@ def format_email_body_html(bookings_data: List[Dict]) -> str:
 
         cards_html = "\n".join(format_booking_card(bd) for bd in bookings_data)
 
-        return f"""
-<style type="text/css">
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
-</style>
+        return f"""<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Costco Travel Car Rental Update</title>
+  <style type="text/css">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+    body, table, td, a {{ -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }}
+    table, td {{ mso-table-lspace: 0pt; mso-table-rspace: 0pt; }}
+    body {{ margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: {BODY_BG} !important; }}
+    img {{ border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }}
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: {BODY_BG}; font-family: {FONT};">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
        style="background-color:{BODY_BG};">
   <tr>
@@ -572,7 +584,9 @@ def format_email_body_html(bookings_data: List[Dict]) -> str:
     </td>
   </tr>
 </table>
-        """
+</body>
+</html>
+"""
     except Exception as e:
         print(f"Error in format_email_body_html: {str(e)}")
         traceback.print_exc()
