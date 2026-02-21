@@ -25,7 +25,7 @@ const DeltaBadge = ({
   const textSize = size === 'sm' ? 'text-xs' : 'text-sm'
   return (
     <div className={`${textSize} ${color} font-medium`}>
-      {arrow} {fmt(Math.abs(delta))} <span className="text-gray-500 font-normal">{label}</span>
+      {arrow} {fmt(Math.abs(delta))} <span className="text-slate-500 font-normal">{label}</span>
     </div>
   )
 }
@@ -72,26 +72,26 @@ export function BookingCard({ booking }: Props) {
     .filter(r => typeof r.prices?.[focus_category] === 'number')
 
   return (
-    <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
+    <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
       {/* Header row */}
       <div className="flex justify-between items-start mb-5">
         <div>
-          <h2 className="text-lg font-semibold text-white leading-tight">{location_full_name}</h2>
-          <p className="text-sm text-gray-400 mt-0.5">{focus_category}</p>
+          <h2 className="text-lg font-semibold text-slate-100 leading-tight">{location_full_name}</h2>
+          <p className="text-sm text-slate-400 mt-0.5">{focus_category}</p>
         </div>
         <div className="text-right shrink-0 ml-4">
-          <p className="text-sm text-gray-300">
+          <p className="text-sm text-slate-300">
             {pickupLabel} – {dropoffLabel}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5">{daysLabel}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{daysLabel}</p>
         </div>
       </div>
 
       {/* Price + deltas */}
       <div className="flex items-end gap-6 mb-5">
         <div>
-          <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Current price</p>
-          <p className="text-5xl font-bold text-white tabular-nums">{fmt(latestPrice)}</p>
+          <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Current price</p>
+          <p className="text-5xl font-bold text-slate-100 tabular-nums">{fmt(latestPrice)}</p>
         </div>
         <div className="pb-1 space-y-1.5">
           {holdingDelta !== null && (
@@ -104,18 +104,18 @@ export function BookingCard({ booking }: Props) {
       </div>
 
       {/* Stats footer */}
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-500 border-t border-gray-800 pt-4">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500 border-t border-slate-700 pt-4">
         {lowestPriceSeen > 0 && (
           <span>
             All-time low:{' '}
-            <span className={lowestPriceSeen === latestPrice ? 'text-green-400 font-medium' : 'text-gray-300'}>
+            <span className={lowestPriceSeen === latestPrice ? 'text-green-400 font-medium' : 'text-slate-300'}>
               {fmt(lowestPriceSeen)}
             </span>
           </span>
         )}
         {holding_price && (
           <span>
-            Holding: <span className="text-gray-300">{fmt(holding_price)}</span>
+            Holding: <span className="text-slate-300">{fmt(holding_price)}</span>
           </span>
         )}
       </div>
@@ -124,7 +124,7 @@ export function BookingCard({ booking }: Props) {
       {chartData.length > 1 && (
         <button
           onClick={() => setShowHistory(v => !v)}
-          className="mt-4 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+          className="mt-4 text-xs text-slate-600 hover:text-slate-400 transition-colors"
         >
           {showHistory ? 'Hide history ↑' : 'Show history ↓'}
         </button>
@@ -168,9 +168,9 @@ export function BookingCard({ booking }: Props) {
 
           <div className="space-y-1">
             {recentChecks.map(r => (
-              <div key={r.id} className="flex justify-between text-xs text-gray-500">
+              <div key={r.id} className="flex justify-between text-xs text-slate-500">
                 <span>{format(new Date(r.created_at), 'MMM d, h:mm a')}</span>
-                <span className="text-gray-300 tabular-nums">
+                <span className="text-slate-300 tabular-nums">
                   {fmt(r.prices[focus_category])}
                 </span>
               </div>

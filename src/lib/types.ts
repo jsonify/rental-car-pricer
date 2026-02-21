@@ -43,6 +43,8 @@ export interface Booking {
     changeFromBaseline: number;
     lowestPriceSeen: number;
     daysUntilPickup: number;
+    allTimeHigh: number;
+    latestPrices: Record<string, number>;
   }
 
   

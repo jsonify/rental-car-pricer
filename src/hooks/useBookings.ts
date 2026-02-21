@@ -68,6 +68,8 @@ export const useBookings = () => {
             .map((r: PriceHistory) => r.prices?.[booking.focus_category])
             .filter((p: number | undefined): p is number => typeof p === 'number' && p > 0)
           const lowestPriceSeen = focusPrices.length > 0 ? Math.min(...focusPrices) : 0
+          const allTimeHigh = focusPrices.length > 0 ? Math.max(...focusPrices) : 0
+          const latestPrices: Record<string, number> = latestHistory?.prices ?? {}
           const daysUntilPickup = differenceInCalendarDays(new Date(booking.pickup_date), new Date())
 
           return {
@@ -82,6 +84,8 @@ export const useBookings = () => {
             firstTrackedPrice,
             changeFromBaseline,
             lowestPriceSeen,
+            allTimeHigh,
+            latestPrices,
             daysUntilPickup
           }
         })

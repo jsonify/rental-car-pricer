@@ -10,7 +10,7 @@ function App() {
 
   return (
     <EnvironmentProvider>
-      <div className="min-h-screen bg-gray-950 text-gray-100">
+      <div className="min-h-screen bg-slate-950 text-slate-100">
         <div className="max-w-2xl mx-auto px-4 pt-4 pb-2 space-y-2">
           <EnvironmentSwitcher />
 
