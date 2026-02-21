@@ -9,6 +9,38 @@ interface Props {
 
 const fmt = (price: number) => `$${price.toFixed(2)}`
 
+const RangeBar = ({
+  latestPrice,
+  lowestPriceSeen,
+  rightAnchor,
+  rightLabel,
+}: {
+  latestPrice: number
+  lowestPriceSeen: number
+  rightAnchor: number
+  rightLabel: string
+}) => {
+  if (lowestPriceSeen <= 0 || rightAnchor <= lowestPriceSeen) return null
+  const fillPct = Math.min(98, Math.max(2, ((latestPrice - lowestPriceSeen) / (rightAnchor - lowestPriceSeen)) * 100))
+  return (
+    <div className="mb-5">
+      <div className="relative h-2 w-full rounded-full overflow-hidden bg-slate-800">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full"
+          style={{
+            width: `${fillPct}%`,
+            background: 'linear-gradient(to right, #34d399, #fbbf24, #f87171)',
+          }}
+        />
+      </div>
+      <div className="flex justify-between mt-1.5 text-xs text-slate-500">
+        <span>All-time low {fmt(lowestPriceSeen)}</span>
+        <span>{rightLabel}</span>
+      </div>
+    </div>
+  )
+}
+
 const StatusBadge = ({ latestPrice, holdingPrice }: { latestPrice: number; holdingPrice?: number }) => {
   if (!holdingPrice) {
     return (
@@ -44,6 +76,7 @@ export function BookingCard({ booking }: Props) {
     latestPrice,
     priceChange,
     lowestPriceSeen,
+    allTimeHigh,
     daysUntilPickup,
     price_history,
   } = booking
@@ -124,22 +157,13 @@ export function BookingCard({ booking }: Props) {
         )}
       </div>
 
-      {/* Stats footer */}
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500 border-t border-slate-700 pt-4">
-        {lowestPriceSeen > 0 && (
-          <span>
-            All-time low:{' '}
-            <span className={lowestPriceSeen === latestPrice ? 'text-green-400 font-medium' : 'text-slate-300'}>
-              {fmt(lowestPriceSeen)}
-            </span>
-          </span>
-        )}
-        {holding_price && (
-          <span>
-            Holding: <span className="text-slate-300">{fmt(holding_price)}</span>
-          </span>
-        )}
-      </div>
+      {/* Range bar */}
+      <RangeBar
+        latestPrice={latestPrice}
+        lowestPriceSeen={lowestPriceSeen}
+        rightAnchor={holding_price ?? allTimeHigh}
+        rightLabel={holding_price != null ? `Your hold ${fmt(holding_price)}` : `All-time high ${fmt(allTimeHigh)}`}
+      />
 
       {/* Zone 2 toggle */}
       {chartData.length > 1 && (
