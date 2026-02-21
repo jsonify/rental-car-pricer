@@ -66,6 +66,8 @@ const StatusBadge = ({ latestPrice, holdingPrice }: { latestPrice: number; holdi
 
 export function BookingCard({ booking }: Props) {
   const [showHistory, setShowHistory] = useState(false)
+  const [showBetterDeals, setShowBetterDeals] = useState(false)
+  const [showAllCats, setShowAllCats] = useState(false)
 
   const {
     location_full_name,
@@ -77,11 +79,19 @@ export function BookingCard({ booking }: Props) {
     priceChange,
     lowestPriceSeen,
     allTimeHigh,
+    latestPrices,
     daysUntilPickup,
     price_history,
   } = booking
 
   const holdingDelta = holding_price != null ? latestPrice - holding_price : null
+
+  const betterDeals = Object.entries(latestPrices)
+    .filter(([cat, price]) => cat !== focus_category && price < latestPrice)
+    .map(([cat, price]) => ({ cat, price, savings: latestPrice - price }))
+    .sort((a, b) => b.savings - a.savings)
+
+  const allCatsSorted = Object.entries(latestPrices).sort(([, a], [, b]) => a - b)
 
   const pickupLabel = format(new Date(pickup_date), 'MMM d')
   const dropoffLabel = format(new Date(dropoff_date), 'MMM d')
@@ -164,6 +174,66 @@ export function BookingCard({ booking }: Props) {
         rightAnchor={holding_price ?? allTimeHigh}
         rightLabel={holding_price != null ? `Your hold ${fmt(holding_price)}` : `All-time high ${fmt(allTimeHigh)}`}
       />
+
+      {/* Better Deals */}
+      {betterDeals.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowBetterDeals(v => !v)}
+            className="w-full flex items-center justify-between text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+          >
+            <span>⚡ {betterDeals.length} Better Deal{betterDeals.length > 1 ? 's' : ''} Available</span>
+            <span className="text-slate-600">{showBetterDeals ? '↑' : '↓'}</span>
+          </button>
+          {showBetterDeals && (
+            <div className="mt-2 space-y-1.5">
+              {betterDeals.map(({ cat, price, savings }) => (
+                <div key={cat} className="flex items-center justify-between text-sm">
+                  <span className="text-slate-300">{cat}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-300 tabular-nums font-mono">{fmt(price)}</span>
+                    <span className="text-xs font-medium text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded">
+                      -{fmt(savings)} ({((savings / latestPrice) * 100).toFixed(0)}%)
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* All Categories */}
+      {allCatsSorted.length > 0 && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowAllCats(v => !v)}
+            className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
+          >
+            {showAllCats ? 'Hide all categories ↑' : 'All categories ↓'}
+          </button>
+          {showAllCats && (
+            <div className="mt-2 border border-slate-700 rounded-lg overflow-hidden">
+              {allCatsSorted.map(([cat, price]) => {
+                const isFocus = cat === focus_category
+                return (
+                  <div
+                    key={cat}
+                    className={`flex items-center justify-between px-3 py-2 text-sm border-b border-slate-800 last:border-b-0 ${
+                      isFocus ? 'border-l-2 border-l-emerald-400 bg-emerald-950/30' : ''
+                    }`}
+                  >
+                    <span className={isFocus ? 'text-emerald-400 font-medium' : 'text-slate-400'}>{cat}</span>
+                    <span className={`tabular-nums font-mono ${isFocus ? 'text-slate-100' : 'text-slate-300'}`}>
+                      {fmt(price)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Zone 2 toggle */}
       {chartData.length > 1 && (
