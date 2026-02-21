@@ -55,5 +55,15 @@ Reusable patterns discovered during development. Read this before starting new w
 - **`wait_for_url()` fast-path**: if a `wait_for_timeout` precedes the call, navigation may already be complete — check `page.url` against the pattern first and return immediately if it matches, otherwise `wait_for_url` will wait for a *new* navigation that never comes (from: playwright_ci_20260219, archived 2026-02-20)
 - **`set_default_navigation_timeout`** belongs on `page`, not `context` or `browser` (from: playwright_ci_20260219, archived 2026-02-20)
 
+## Dashboard / UI
+
+- Use `holding_price != null` guard (not `!holdingPrice`) when holding price could theoretically be `0` — avoids falsy-zero edge cases (from: dashboard_parity_20260221, 2026-02-21)
+- Gradient fills use inline `style={{ background: 'linear-gradient(to right, ...)' }}` — no Tailwind utility needed for multi-stop gradients (from: dashboard_parity_20260221, 2026-02-21)
+- `bg-emerald-950/30` is a valid Tailwind opacity modifier for subtle highlight backgrounds on focus rows (from: dashboard_parity_20260221, 2026-02-21)
+
+## Codebase Health
+
+- `src/hooks/usePriceChecker.ts` and `src/mocks/handlers.ts` were scaffolding artifacts with multiple modules concatenated — treat as legacy and do not extend them (from: dashboard_parity_20260221, 2026-02-21)
+
 ---
-Last refreshed: 2026-02-20
+Last refreshed: 2026-02-21
