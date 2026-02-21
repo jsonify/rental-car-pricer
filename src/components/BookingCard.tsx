@@ -9,6 +9,28 @@ interface Props {
 
 const fmt = (price: number) => `$${price.toFixed(2)}`
 
+const StatusBadge = ({ latestPrice, holdingPrice }: { latestPrice: number; holdingPrice?: number }) => {
+  if (!holdingPrice) {
+    return (
+      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-800 text-slate-500 border border-slate-700">
+        No Hold
+      </span>
+    )
+  }
+  if (latestPrice <= holdingPrice) {
+    return (
+      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+        Under Hold
+      </span>
+    )
+  }
+  return (
+    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-950 text-amber-400 border border-amber-800">
+      Above Hold
+    </span>
+  )
+}
+
 const DeltaBadge = ({
   delta,
   label,
@@ -74,17 +96,18 @@ export function BookingCard({ booking }: Props) {
   return (
     <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
       {/* Header row */}
-      <div className="flex justify-between items-start mb-5">
-        <div>
+      <div className="mb-4">
+        <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-100 leading-tight">{location_full_name}</h2>
-          <p className="text-sm text-slate-400 mt-0.5">{focus_category}</p>
+          <StatusBadge latestPrice={latestPrice} holdingPrice={holding_price} />
         </div>
-        <div className="text-right shrink-0 ml-4">
-          <p className="text-sm text-slate-300">
-            {pickupLabel} – {dropoffLabel}
-          </p>
-          <p className="text-xs text-slate-500 mt-0.5">{daysLabel}</p>
-        </div>
+        <p className="text-sm text-slate-400 mt-1">
+          {focus_category}
+          <span className="text-slate-600 mx-1.5">·</span>
+          {pickupLabel} – {dropoffLabel}
+          <span className="text-slate-600 mx-1.5">·</span>
+          {daysLabel}
+        </p>
       </div>
 
       {/* Price + deltas */}
