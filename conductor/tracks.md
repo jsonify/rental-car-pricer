@@ -8,7 +8,7 @@ This file tracks all major tracks for the project.
 
 ---
 
-## [ ] Track: Dashboard Email Parity — match BookingCard style to email design
+## [x] Track: Dashboard Email Parity — match BookingCard style to email design
 *Link: [./conductor/tracks/dashboard_parity_20260221/](./conductor/tracks/dashboard_parity_20260221/)*
 
 ---
