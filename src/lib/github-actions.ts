@@ -119,7 +119,7 @@ export const githubActions = {
 
     // Production GitHub Actions call
     try {
-      const response = await octokit.actions.createWorkflowDispatch({
+      await octokit.actions.createWorkflowDispatch({
         owner,
         repo,
         workflow_id: 'price-checker.yaml',

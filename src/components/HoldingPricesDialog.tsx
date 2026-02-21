@@ -13,24 +13,31 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from 'lucide-react'
+import type { Booking } from '@/lib/types'
 
-const formatPrice = (price) => `$${Number(price || 0).toFixed(2)}`
+const formatPrice = (price: number | undefined) => `$${Number(price || 0).toFixed(2)}`
 
-export function HoldingPricesDialog({ 
-  open, 
-  onOpenChange, 
-  bookings = [], 
-  onSubmit, 
-  loading 
-}) {
-  // Initialize prices state with empty strings
-  const [prices, setPrices] = useState({})
+interface HoldingPricesDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  bookings?: Booking[]
+  onSubmit: (prices: Record<string, string>) => Promise<void>
+  loading: boolean
+}
+
+export function HoldingPricesDialog({
+  open,
+  onOpenChange,
+  bookings = [],
+  onSubmit,
+  loading
+}: HoldingPricesDialogProps) {
+  const [prices, setPrices] = useState<Record<string, string>>({})
   const [message, setMessage] = useState('')
 
-  // Reset prices when dialog opens or bookings change
   useEffect(() => {
     if (open || bookings.length > 0) {
-      const initialPrices = {}
+      const initialPrices: Record<string, string> = {}
       bookings.forEach((booking, index) => {
         initialPrices[`booking${index + 1}`] = booking.holding_price?.toString() || ''
       })
@@ -40,7 +47,6 @@ export function HoldingPricesDialog({
   }, [open, bookings])
 
   const handleSubmit = async () => {
-    // Validate that at least one price was entered
     const hasAnyPrices = Object.values(prices).some(value => value && !isNaN(parseFloat(value)))
 
     if (!hasAnyPrices) {
@@ -48,11 +54,10 @@ export function HoldingPricesDialog({
       return
     }
 
-    // Call the parent's onSubmit handler
     await onSubmit(prices)
   }
 
-  const handlePriceChange = (index, value) => {
+  const handlePriceChange = (index: number, value: string) => {
     setPrices(prev => ({
       ...prev,
       [`booking${index + 1}`]: value

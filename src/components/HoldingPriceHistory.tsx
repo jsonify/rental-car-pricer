@@ -1,8 +1,9 @@
 // src/components/HoldingPriceHistory.tsx - New component to display history
 import { format } from 'date-fns';
+import type { HoldingPriceHistory as HoldingPriceHistoryType } from '@/lib/types';
 
 interface HoldingPriceHistoryProps {
-  history: HoldingPriceHistory[];
+  history: HoldingPriceHistoryType[];
 }
 
 export const HoldingPriceHistory = ({ history }: HoldingPriceHistoryProps) => {

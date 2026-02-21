@@ -24,9 +24,9 @@ export const adminApi = {
   checkPrices: async () => {
     try {
       // Trigger price check job
-      const { data, error } = await supabase
+      const { error } = await supabase
         .rpc('check_rental_prices')
-      
+
       if (error) throw error
       return { success: true, message: 'Price check initiated successfully' }
     } catch (error) {
@@ -46,7 +46,7 @@ export const adminApi = {
       const booking_id = `${booking.location}_${booking.pickup_date}_${booking.dropoff_date}`.replace(/\//g, '')
 
       // Insert new booking
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('bookings')
         .insert([{
           id: booking_id,

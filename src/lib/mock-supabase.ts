@@ -123,7 +123,7 @@ const saveMockStore = () => {
 export const createMockSupabaseClient = () => {
   return {
     from: (table: string) => ({
-      select: (columns: string = '*') => {
+      select: (_columns: string = '*') => {
         const query = {
           data: [] as any[],
           error: null as any,

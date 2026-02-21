@@ -96,17 +96,3 @@ export const handlers = [
   })
 ]
 
-// src/mocks/browser.ts
-import { setupWorker } from 'msw/browser'
-import { handlers } from './handlers'
-
-export const worker = setupWorker(...handlers)
-
-// src/main.tsx
-import { worker } from './mocks/browser'
-
-if (process.env.NODE_ENV === 'development') {
-  worker.start({
-    onUnhandledRequest: 'bypass'
-  })
-}

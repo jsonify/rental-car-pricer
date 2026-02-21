@@ -194,7 +194,6 @@ export async function getWorkflowRunDetails(runId: number): Promise<WorkflowRunD
 
   if (jobs.length > 0) {
     const activeJob = jobs.find(job => job.status === 'in_progress') || jobs[jobs.length - 1]
-    const activeSteps = activeJob.steps.filter(step => step.status !== 'queued')
     const completedSteps = activeJob.steps.filter(step => step.status === 'completed')
 
     if (activeJob.status === 'in_progress') {
