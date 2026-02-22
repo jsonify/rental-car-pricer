@@ -57,7 +57,6 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
 
   const holdingPrice = holding_price ?? 0
   const potentialSavings = holdingPrice > 0 ? holdingPrice - latestPrice : 0
-  const holdingDelta = holding_price != null ? latestPrice - holding_price : null
 
   const betterDealsBaseline = holdingPrice > 0 ? holdingPrice : 0
   const betterDeals = betterDealsBaseline > 0
@@ -284,7 +283,7 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
                   y={holdingPrice}
                   stroke="#fbbf24"
                   strokeDasharray="4 3"
-                  label={{ value: `Hold $${holdingPrice.toFixed(0)}`, fill: '#fbbf24', fontSize: 11, position: 'insideTopRight' } as any}
+                  label={{ value: `Hold $${holdingPrice.toFixed(0)}`, fill: '#fbbf24', fontSize: 11, position: 'insideTopRight' } as object}
                 />
               )}
               {lowestPriceSeen > 0 && lowestPriceSeen !== holdingPrice && (
@@ -292,7 +291,7 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
                   y={lowestPriceSeen}
                   stroke="#34d399"
                   strokeDasharray="4 3"
-                  label={{ value: `Low $${lowestPriceSeen.toFixed(0)}`, fill: '#34d399', fontSize: 11, position: 'insideBottomRight' } as any}
+                  label={{ value: `Low $${lowestPriceSeen.toFixed(0)}`, fill: '#34d399', fontSize: 11, position: 'insideBottomRight' } as object}
                 />
               )}
               <Area
