@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useEnvironment } from '@/contexts/EnvironmentContext'
 import { createSupabaseClient } from '@/lib/supabase'
 import { triggerWorkflow } from '@/lib/github'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -12,9 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from 'lucide-react'
-import {HoldingPricesDialog} from './HoldingPricesDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DatePicker } from "@/components/ui/date-picker"
 import { format } from "date-fns"
@@ -31,7 +28,6 @@ export function AdminInterface() {
 
   // Dialog states
   const [addBookingOpen, setAddBookingOpen] = useState(false)
-  const [updatePricesOpen, setUpdatePricesOpen] = useState(false)
   const [deleteBookingOpen, setDeleteBookingOpen] = useState(false)
 
   const [newBooking, setNewBooking] = useState({
@@ -155,89 +151,6 @@ export function AdminInterface() {
     }
   }
 
-  const handleUpdateHoldingPrices = async (prices: Record<string, string>) => {
-    setLoading(true)
-    setMessage('')
-
-    try {
-      if (isTestEnvironment) {
-        // Test mode: Update database directly
-        for (const [key, value] of Object.entries(prices)) {
-          if (value) {
-            const bookingIndex = parseInt(key.replace('booking', '')) - 1
-            const booking = bookings[bookingIndex]
-            if (booking) {
-              const newPrice = parseFloat(value)
-
-              // Close current holding price history entry (set effective_to)
-              const { data: currentHistory } = await supabase
-                .from('holding_price_histories')
-                .select('*')
-                .eq('booking_id', booking.id)
-                .is('effective_to', null)
-                .single()
-
-              if (currentHistory) {
-                await supabase
-                  .from('holding_price_histories')
-                  .update({ effective_to: new Date().toISOString() })
-                  .eq('id', currentHistory.id)
-              }
-
-              // Create new history entry
-              const { error: historyError } = await supabase
-                .from('holding_price_histories')
-                .insert({
-                  booking_id: booking.id,
-                  price: newPrice,
-                  effective_from: new Date().toISOString(),
-                  effective_to: null
-                })
-
-              if (historyError) throw historyError
-
-              // Update the booking's current holding_price
-              const { error: bookingError } = await supabase
-                .from('bookings')
-                .update({ holding_price: newPrice })
-                .eq('id', booking.id)
-
-              if (bookingError) throw bookingError
-            }
-          }
-        }
-
-        setMessage('Holding prices updated successfully (test mode)')
-        await fetchBookings()
-      } else {
-        // Production mode: Trigger workflow for each price update
-        // The workflow expects JSON format: [booking_number, price]
-        for (const [key, value] of Object.entries(prices)) {
-          if (value) {
-            const bookingNumber = parseInt(key.replace('booking', ''))
-            const updatesJson = JSON.stringify([bookingNumber, parseFloat(value)])
-
-            await triggerWorkflow({
-              action: 'update-holding-prices',
-              booking_updates_json: updatesJson
-            })
-          }
-        }
-
-        setMessage('Workflow(s) triggered! Check GitHub Actions for status.')
-        // Refresh bookings after a delay
-        setTimeout(() => fetchBookings(), 5000)
-      }
-
-      setUpdatePricesOpen(false)
-    } catch (error) {
-      console.error('Error updating prices:', error)
-      setMessage(error instanceof Error ? error.message : 'Failed to update prices')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleCheckPrices = async () => {
     setLoading(true)
     setMessage('')
@@ -310,154 +223,130 @@ export function AdminInterface() {
   }
 
   return (
-    <Card className="w-full max-w-4xl mx-auto mt-8">
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>Admin Controls {isTestEnvironment && '(Test Mode)'}</span>
-        </CardTitle>
-      </CardHeader>
+    <div className="w-full max-w-2xl mx-auto mt-4 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+      <p className="text-slate-400 text-xs uppercase tracking-widest mb-1">
+        Admin Controls {isTestEnvironment && <span className="text-amber-400 normal-case">(Test Mode)</span>}
+      </p>
 
-      <CardContent className="flex flex-col gap-4">
-        {/* Workflow Status Banner */}
-        {!isTestEnvironment && workflowStatus.runId && (
-          <WorkflowStatusBanner
-            status={workflowStatus}
-            onDismiss={resetWorkflowStatus}
-          />
-        )}
-
-        {/* Check Prices Button */}
-        {!isTestEnvironment && (
-          <Button
-            variant="default"
-            className="w-full"
-            onClick={handleCheckPrices}
-            disabled={loading || bookings.length === 0 || workflowStatus.status === 'in_progress' || workflowStatus.status === 'queued'}
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Check Prices Now
-          </Button>
-        )}
-
-        {/* Add Booking Button */}
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setAddBookingOpen(true)}
-        >
-          Add New Booking
-        </Button>
-
-        {/* Update Prices Button */}
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setUpdatePricesOpen(true)}
-        >
-          Update Holding Prices
-        </Button>
-
-        {/* Delete Booking Button */}
-        <Button
-          variant="destructive"
-          className="w-full"
-          onClick={() => setDeleteBookingOpen(true)}
-        >
-          Delete Booking
-        </Button>
-
-        {message && (
-          <Alert>
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Add Booking Dialog */}
-        <Dialog open={addBookingOpen} onOpenChange={setAddBookingOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Booking</DialogTitle>
-              <DialogDescription>Enter the details for the new booking.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <Input
-                placeholder="Airport code (e.g., KOA)"
-                value={newBooking.location}
-                onChange={(e) => setNewBooking({...newBooking, location: e.target.value})}
-              />
-              <DatePicker
-                date={newBooking.pickup_date}
-                onDateChange={(date) => setNewBooking({...newBooking, pickup_date: date})}
-                placeholder="Select pickup date"
-              />
-              <DatePicker
-                date={newBooking.dropoff_date}
-                onDateChange={(date) => setNewBooking({...newBooking, dropoff_date: date})}
-                placeholder="Select dropoff date"
-              />
-              <Input
-                placeholder="Vehicle category"
-                value={newBooking.category}
-                onChange={(e) => setNewBooking({...newBooking, category: e.target.value})}
-              />
-              <Input
-                type="number"
-                placeholder="Holding price (optional)"
-                value={newBooking.holding_price}
-                onChange={(e) => setNewBooking({...newBooking, holding_price: e.target.value})}
-              />
-              <Button
-                onClick={handleAddBooking}
-                disabled={loading}
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add Booking
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Holding Prices Dialog */}
-        <HoldingPricesDialog
-          open={updatePricesOpen}
-          onOpenChange={setUpdatePricesOpen}
-          bookings={bookings}
-          onSubmit={handleUpdateHoldingPrices}
-          loading={loading}
+      {/* Workflow Status Banner */}
+      {!isTestEnvironment && workflowStatus.runId && (
+        <WorkflowStatusBanner
+          status={workflowStatus}
+          onDismiss={resetWorkflowStatus}
         />
+      )}
 
-        {/* Delete Booking Dialog */}
-        <Dialog open={deleteBookingOpen} onOpenChange={setDeleteBookingOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Booking</DialogTitle>
-              <DialogDescription>Select a booking to delete.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <Select onValueChange={setBookingToDelete}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select booking to delete" />
-                </SelectTrigger>
-                <SelectContent>
-                  {bookings.map((booking, index) => (
-                    <SelectItem key={booking.id} value={(index + 1).toString()}>
-                      {booking.location}: {booking.pickup_date} to {booking.dropoff_date}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleDeleteBooking}
-                disabled={loading || !bookingToDelete}
-                variant="destructive"
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Delete Booking
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </Card>
+      {/* Check Prices Button */}
+      {!isTestEnvironment && (
+        <button
+          className="w-full bg-emerald-700 hover:bg-emerald-600 text-white border-0 rounded-lg py-2 px-4 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          onClick={handleCheckPrices}
+          disabled={loading || bookings.length === 0 || workflowStatus.status === 'in_progress' || workflowStatus.status === 'queued'}
+        >
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          Check Prices Now
+        </button>
+      )}
+
+      {/* Add Booking Button */}
+      <button
+        className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg py-2 px-4 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+        onClick={() => setAddBookingOpen(true)}
+      >
+        Add New Booking
+      </button>
+
+      {/* Delete Booking Button */}
+      <button
+        className="w-full bg-red-950 hover:bg-red-900 border border-red-800 text-red-400 rounded-lg py-2 px-4 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+        onClick={() => setDeleteBookingOpen(true)}
+      >
+        Delete Booking
+      </button>
+
+      {message && (
+        <p className="text-sm text-slate-400 text-center py-1">{message}</p>
+      )}
+
+      {/* Add Booking Dialog */}
+      <Dialog open={addBookingOpen} onOpenChange={setAddBookingOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="text-slate-100">Add New Booking</DialogTitle>
+            <DialogDescription className="text-slate-400">Enter the details for the new booking.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Input
+              className="bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500"
+              placeholder="Airport code (e.g., KOA)"
+              value={newBooking.location}
+              onChange={(e) => setNewBooking({...newBooking, location: e.target.value})}
+            />
+            <DatePicker
+              date={newBooking.pickup_date}
+              onDateChange={(date) => setNewBooking({...newBooking, pickup_date: date})}
+              placeholder="Select pickup date"
+            />
+            <DatePicker
+              date={newBooking.dropoff_date}
+              onDateChange={(date) => setNewBooking({...newBooking, dropoff_date: date})}
+              placeholder="Select dropoff date"
+            />
+            <Input
+              className="bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500"
+              placeholder="Vehicle category"
+              value={newBooking.category}
+              onChange={(e) => setNewBooking({...newBooking, category: e.target.value})}
+            />
+            <Input
+              className="bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500"
+              type="number"
+              placeholder="Holding price (optional)"
+              value={newBooking.holding_price}
+              onChange={(e) => setNewBooking({...newBooking, holding_price: e.target.value})}
+            />
+            <Button
+              onClick={handleAddBooking}
+              disabled={loading}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Add Booking
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Booking Dialog */}
+      <Dialog open={deleteBookingOpen} onOpenChange={setDeleteBookingOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="text-slate-100">Delete Booking</DialogTitle>
+            <DialogDescription className="text-slate-400">Select a booking to delete.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Select onValueChange={setBookingToDelete}>
+              <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100">
+                <SelectValue placeholder="Select booking to delete" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                {bookings.map((booking, index) => (
+                  <SelectItem key={booking.id} value={(index + 1).toString()} className="text-slate-200 focus:bg-slate-700 focus:text-slate-100">
+                    {booking.location}: {booking.pickup_date} to {booking.dropoff_date}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleDeleteBooking}
+              disabled={loading || !bookingToDelete}
+              variant="destructive"
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete Booking
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

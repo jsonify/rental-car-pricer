@@ -61,7 +61,7 @@
 ## Phase 4: Admin Panel Restyle
 <!-- depends: -->
 
-- [ ] Task 1: Remove HoldingPricesDialog; restyle AdminInterface to dark theme
+- [x] Task 1: Remove HoldingPricesDialog; restyle AdminInterface to dark theme
   <!-- files: src/components/AdminInterface.tsx -->
   1. Remove the "Update Holding Prices" button, its `updatePricesOpen` state, the `<HoldingPricesDialog>` usage, and the `handleUpdateHoldingPrices` function. Hold price is now handled inline on each card.
   2. Restyle the panel wrapper: remove `<Card>/<CardContent>` — use `<div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">`.
@@ -71,13 +71,13 @@
      - "Delete Booking" → `bg-red-950 hover:bg-red-900 border border-red-800 text-red-400`
   4. Restyle all dialog interiors: dialog content bg `bg-slate-900`, inputs `bg-slate-800 border-slate-700`, labels `text-slate-300`.
 
-- [ ] Task 2: Update App.tsx admin toggle
+- [x] Task 2: Update App.tsx admin toggle
   <!-- files: src/App.tsx -->
   Replace the "⚙ Admin" text toggle with a `Settings` lucide icon button:
   `className="fixed top-4 right-4 z-50 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-2 text-slate-400 hover:text-slate-200 transition-colors"`
   The admin panel renders below the PortfolioSummary (inside max-w-2xl), not fixed. Only the toggle button is fixed.
 
-- [ ] Task 3: Conductor - User Manual Verification 'Admin Panel'
+- [~] Task 3: Conductor - User Manual Verification 'Admin Panel'
 
 ## Phase 5: Card Layout Polish
 <!-- depends: phase3 -->
