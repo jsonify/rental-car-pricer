@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { BookingCard } from './BookingCard'
+import { TrackedRentals } from './TrackedRentals'
 import { StatCards } from './StatCards'
 import { PriceTrendWave } from './PriceTrendWave'
 import { PriceWatchTable } from './PriceWatchTable'
@@ -65,6 +66,8 @@ export const PriceTracker = () => {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
       {isDevelopment && <TestControls />}
+
+      <TrackedRentals bookings={bookings} />
 
       <StatCards bookings={bookings} />
 
