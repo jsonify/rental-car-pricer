@@ -1,8 +1,26 @@
+import { parseISO, subDays } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import type { BookingWithHistory } from '@/lib/types'
 
 interface Props {
   bookings: BookingWithHistory[]
+}
+
+function getLastWeekPrice(booking: BookingWithHistory): number | null {
+  const now = new Date()
+  const sevenDaysAgo = subDays(now, 7)
+  const fourteenDaysAgo = subDays(now, 14)
+
+  // Find the most recent price_history record between 7 and 14 days ago
+  const candidates = booking.price_history
+    .filter(h => {
+      const d = parseISO(h.created_at)
+      return d >= fourteenDaysAgo && d <= sevenDaysAgo
+    })
+    .sort((a, b) => parseISO(b.created_at).getTime() - parseISO(a.created_at).getTime())
+
+  if (candidates.length === 0) return null
+  return candidates[0].prices[booking.focus_category] ?? null
 }
 
 export function StatCards({ bookings }: Props) {
@@ -63,6 +81,23 @@ export function StatCards({ bookings }: Props) {
             <p className="text-slate-500 text-xs mt-1">
               {bestDeal.location} · {bestDeal.focus_category}
             </p>
+            {(() => {
+              const lwp = getLastWeekPrice(bestDeal)
+              if (lwp === null) return null
+              const delta = bestDeal.latestPrice - lwp
+              const pct = lwp > 0 ? Math.abs(delta / lwp * 100) : 0
+              const dropped = delta < 0
+              return (
+                <div className="mt-2 space-y-0.5">
+                  <p className={`text-xs font-medium ${dropped ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {dropped ? '▼' : '▲'} ${Math.abs(delta).toFixed(2)} from last week
+                  </p>
+                  <p className={`text-xs ${dropped ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {pct.toFixed(1)}% {dropped ? 'drop' : 'rise'}
+                  </p>
+                </div>
+              )
+            })()}
           </>
         ) : (
           <p className="text-2xl font-semibold text-slate-500">—</p>
@@ -85,6 +120,23 @@ export function StatCards({ bookings }: Props) {
             <p className="text-slate-500 text-xs mt-1">
               {surgeBooking.location} · {surgeBooking.focus_category}
             </p>
+            {(() => {
+              const lwp = getLastWeekPrice(surgeBooking)
+              if (lwp === null) return null
+              const delta = surgeBooking.latestPrice - lwp
+              const pct = lwp > 0 ? Math.abs(delta / lwp * 100) : 0
+              const dropped = delta < 0
+              return (
+                <div className="mt-2 space-y-0.5">
+                  <p className={`text-xs font-medium ${dropped ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {dropped ? '▼' : '▲'} ${Math.abs(delta).toFixed(2)} from last week
+                  </p>
+                  <p className={`text-xs ${dropped ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {pct.toFixed(1)}% {dropped ? 'drop' : 'rise'}
+                  </p>
+                </div>
+              )
+            })()}
           </>
         ) : (
           <p className="text-2xl font-semibold text-slate-500">None</p>
