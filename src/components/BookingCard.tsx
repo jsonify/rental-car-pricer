@@ -91,10 +91,13 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
   const potentialSavings = holdingPrice > 0 ? holdingPrice - latestPrice : 0
   const holdingDelta = holding_price != null ? latestPrice - holding_price : null
 
-  const betterDeals = Object.entries(latestPrices)
-    .filter(([cat, price]) => cat !== focus_category && price < latestPrice)
-    .map(([cat, price]) => ({ cat, price, savings: latestPrice - price }))
-    .sort((a, b) => b.savings - a.savings)
+  const betterDealsBaseline = holdingPrice > 0 ? holdingPrice : 0
+  const betterDeals = betterDealsBaseline > 0
+    ? Object.entries(latestPrices)
+        .filter(([cat, price]) => cat !== focus_category && price < betterDealsBaseline)
+        .map(([cat, price]) => ({ cat, price, savings: betterDealsBaseline - price }))
+        .sort((a, b) => b.savings - a.savings)
+    : []
 
   const allCatsSorted = Object.entries(latestPrices).sort(([, a], [, b]) => a - b)
 
@@ -232,7 +235,7 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
                   <div className="flex items-center gap-2">
                     <span className="text-slate-300 tabular-nums font-mono">{fmt(price)}</span>
                     <span className="text-xs font-medium text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded">
-                      -{fmt(savings)} ({((savings / latestPrice) * 100).toFixed(0)}%)
+                      -{fmt(savings)} ({((savings / betterDealsBaseline) * 100).toFixed(0)}%)
                     </span>
                   </div>
                 </div>
