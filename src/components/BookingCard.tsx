@@ -11,38 +11,6 @@ interface Props {
 
 const fmt = (price: number) => `$${price.toFixed(2)}`
 
-const RangeBar = ({
-  latestPrice,
-  lowestPriceSeen,
-  rightAnchor,
-  rightLabel,
-}: {
-  latestPrice: number
-  lowestPriceSeen: number
-  rightAnchor: number
-  rightLabel: string
-}) => {
-  if (lowestPriceSeen <= 0 || rightAnchor <= lowestPriceSeen) return null
-  const fillPct = Math.min(98, Math.max(2, ((latestPrice - lowestPriceSeen) / (rightAnchor - lowestPriceSeen)) * 100))
-  return (
-    <div className="mb-5">
-      <div className="relative h-2 w-full rounded-full overflow-hidden bg-slate-800">
-        <div
-          className="absolute inset-y-0 left-0 rounded-full"
-          style={{
-            width: `${fillPct}%`,
-            background: 'linear-gradient(to right, #34d399, #fbbf24, #f87171)',
-          }}
-        />
-      </div>
-      <div className="flex justify-between mt-1.5 text-xs text-slate-500">
-        <span>All-time low {fmt(lowestPriceSeen)}</span>
-        <span>{rightLabel}</span>
-      </div>
-    </div>
-  )
-}
-
 const StatusBadge = ({ latestPrice, holdingPrice }: { latestPrice: number; holdingPrice?: number }) => {
   if (!holdingPrice) {
     return (
@@ -126,8 +94,14 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
     }
   }
 
+  const topAccent = holding_price != null
+    ? latestPrice <= holding_price
+      ? 'border-t-2 border-t-emerald-500/40'
+      : 'border-t-2 border-t-amber-500/40'
+    : ''
+
   return (
-    <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
+    <div className={`bg-slate-900 rounded-xl p-6 border border-slate-700 ${topAccent}`}>
       {/* Header row */}
       <div className="mb-4">
         <div className="flex items-center justify-between gap-3">
@@ -208,14 +182,6 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
           </div>
         )}
       </div>
-
-      {/* Range bar */}
-      <RangeBar
-        latestPrice={latestPrice}
-        lowestPriceSeen={lowestPriceSeen}
-        rightAnchor={holding_price ?? allTimeHigh}
-        rightLabel={holding_price != null ? `Your hold ${fmt(holding_price)}` : `All-time high ${fmt(allTimeHigh)}`}
-      />
 
       {/* Better Deals */}
       {betterDeals.length > 0 && (
@@ -342,6 +308,22 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Stats footer */}
+      <div className="grid grid-cols-3 divide-x divide-slate-800 text-center mt-4 pt-4 border-t border-slate-800">
+        <div>
+          <p className="text-slate-500 text-xs">All-time Low</p>
+          <p className="font-mono text-slate-200 text-sm mt-0.5">{fmt(lowestPriceSeen)}</p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-xs">Your Hold</p>
+          <p className="font-mono text-slate-200 text-sm mt-0.5">{holdingPrice ? fmt(holdingPrice) : '—'}</p>
+        </div>
+        <div>
+          <p className="text-slate-500 text-xs">All-time High</p>
+          <p className="font-mono text-slate-200 text-sm mt-0.5">{fmt(allTimeHigh)}</p>
+        </div>
+      </div>
     </div>
   )
 }
