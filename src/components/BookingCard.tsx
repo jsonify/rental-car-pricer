@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { parseISO } from 'date-fns'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
@@ -35,6 +36,7 @@ const StatusBadge = ({ latestPrice, holdingPrice }: { latestPrice: number; holdi
 
 
 export function BookingCard({ booking, onUpdateHold }: Props) {
+  const navigate = useNavigate()
   const [showBetterDeals, setShowBetterDeals] = useState(false)
   const [showAllCats, setShowAllCats] = useState(false)
   const [isEditingHold, setIsEditingHold] = useState(false)
@@ -100,7 +102,10 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
     : ''
 
   return (
-    <div className={`bg-slate-900 rounded-xl p-6 border border-slate-700 ${topAccent}`}>
+    <div
+      className={`bg-slate-900 rounded-xl p-6 border border-slate-700 ${topAccent} cursor-pointer`}
+      onClick={() => navigate(`/booking/${booking.id}`)}
+    >
       {/* Header row */}
       <div className="mb-4">
         <div className="flex items-center justify-between gap-3">
@@ -152,12 +157,12 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
                 />
                 <button
                   className="text-emerald-400 hover:text-emerald-300 text-sm px-1"
-                  onClick={handleHoldConfirm}
+                  onClick={e => { e.stopPropagation(); handleHoldConfirm() }}
                   disabled={!holdEditValue || isNaN(parseFloat(holdEditValue))}
                 >✓</button>
                 <button
                   className="text-slate-500 hover:text-slate-400 text-sm px-1"
-                  onClick={() => setIsEditingHold(false)}
+                  onClick={e => { e.stopPropagation(); setIsEditingHold(false) }}
                 >✕</button>
               </div>
             ) : (
@@ -166,7 +171,7 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
                 {onUpdateHold && (
                   <button
                     className="text-slate-600 hover:text-amber-400 transition-colors ml-1"
-                    onClick={() => { setHoldEditValue(holdingPrice.toFixed(2)); setIsEditingHold(true) }}
+                    onClick={e => { e.stopPropagation(); setHoldEditValue(holdingPrice.toFixed(2)); setIsEditingHold(true) }}
                     title="Edit hold price"
                   >✎</button>
                 )}
@@ -186,7 +191,7 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
       {betterDeals.length > 0 && (
         <div className="mb-4">
           <button
-            onClick={() => setShowBetterDeals(v => !v)}
+            onClick={e => { e.stopPropagation(); setShowBetterDeals(v => !v) }}
             className="w-full flex items-center justify-between text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
           >
             <span>⚡ {betterDeals.length} Better Deal{betterDeals.length > 1 ? 's' : ''} Available</span>
@@ -214,7 +219,7 @@ export function BookingCard({ booking, onUpdateHold }: Props) {
       {allCatsSorted.length > 0 && (
         <div className="mb-4">
           <button
-            onClick={() => setShowAllCats(v => !v)}
+            onClick={e => { e.stopPropagation(); setShowAllCats(v => !v) }}
             className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
           >
             {showAllCats ? 'Hide all categories ↑' : 'All categories ↓'}
