@@ -8,11 +8,7 @@ This file tracks all major tracks for the project.
 
 ---
 
-## [~] Track: Docs Cleanup & README Refresh
-*Link: [./conductor/tracks/docs_cleanup_20260221/](./conductor/tracks/docs_cleanup_20260221/)*
-
----
-
+<!-- Archived 2026-02-21: docs_cleanup_20260221 — Docs Cleanup & README Refresh → conductor/archive/docs_cleanup_20260221/ -->
 <!-- Archived 2026-02-21: booking_detail_20260221 — Booking Detail Page → conductor/archive/booking_detail_20260221/ -->
 <!-- Archived 2026-02-18: playwright_20260218 — Replace Selenium with Playwright → conductor/archive/playwright_20260218/ -->
 
