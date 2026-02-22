@@ -1,0 +1,11 @@
+{
+  "track_id": "docs_cleanup_20260221",
+  "type": "chore",
+  "status": "new",
+  "priority": "critical",
+  "depends_on": [],
+  "estimated_hours": null,
+  "created_at": "2026-02-21T00:00:00Z",
+  "updated_at": "2026-02-21T00:00:00Z",
+  "description": "Delete stale docs, consolidate surviving guides into docs/, rewrite README.md to reflect current stack."
+}

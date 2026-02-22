@@ -104,10 +104,8 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 
 ## 📚 Full Documentation
 
-- **Chrome/ChromeDriver**: [CHROMEDRIVER_SETUP_COMPLETE.md](CHROMEDRIVER_SETUP_COMPLETE.md)
 - **Supabase**: [SUPABASE_SETUP_CHECKLIST.md](SUPABASE_SETUP_CHECKLIST.md)
-- **Architecture**: [CLAUDE.md](CLAUDE.md)
-- **Migration**: [MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md)
+- **Architecture**: [CLAUDE.md](../CLAUDE.md)
 
 ## 🆘 Troubleshooting
 

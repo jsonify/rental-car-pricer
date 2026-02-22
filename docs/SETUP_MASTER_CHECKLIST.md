@@ -178,7 +178,7 @@ deactivate
 | **SUPABASE_SETUP_CHECKLIST.md** | Supabase database setup |
 | **GMAIL_SETUP_QUICKSTART.md** | Gmail app password (quick) |
 | **GMAIL_APP_PASSWORD_SETUP.md** | Gmail setup (detailed) |
-| **CHROMEDRIVER_SETUP_COMPLETE.md** | Chrome/ChromeDriver details |
+| **PLAYWRIGHT_QUICKSTART.md** | Playwright / scraper setup |
 | **CLAUDE.md** | Architecture documentation |
 | **README.md** | Project overview |
 

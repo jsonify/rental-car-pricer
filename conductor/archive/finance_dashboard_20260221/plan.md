@@ -56,7 +56,7 @@
      - Production mode: call `triggerWorkflow({ action: 'update-holding-prices', booking_updates_json: JSON.stringify([bookingIndex + 1, newPrice]) })`, then `setTimeout(refetch, 5000)`.
   5. Pass `onUpdateHold={(price) => handleUpdateHoldPrice(booking.id, index, price)}` to each `<BookingCard>`.
 
-- [ ] Task 2: Conductor - User Manual Verification 'PriceTracker Integration'
+- [~] Task 2: Conductor - User Manual Verification 'PriceTracker Integration'
 
 ## Phase 4: Admin Panel Restyle
 <!-- depends: -->
@@ -82,7 +82,7 @@
 ## Phase 5: Card Layout Polish
 <!-- depends: phase3 -->
 
-- [ ] Task 1: Remove RangeBar; add 3-column stats footer; add top-border accent
+- [x] Task 1: Remove RangeBar; add 3-column stats footer; add top-border accent
   <!-- files: src/components/BookingCard.tsx -->
   1. Delete the `RangeBar` component and its single usage entirely.
   2. Add a 3-column stats footer below the chart area:
@@ -97,12 +97,12 @@
      - Under Hold → append `border-t-2 border-t-emerald-500/40`
      - Above Hold → append `border-t-2 border-t-amber-500/40`
 
-- [ ] Task 2: Conductor - User Manual Verification 'Card Polish'
+- [x] Task 2: Conductor - User Manual Verification 'Card Polish'
 
 ## Phase 6: Validation
 <!-- depends: phase5 -->
 
-- [ ] Task 1: TypeScript and lint clean-up
+- [x] Task 1: TypeScript and lint clean-up
   Run `npm run build`. Fix any type errors:
   - `onUpdateHold` prop on BookingCard
   - Recharts `ReferenceLine` label prop types (use `LabelProps` or cast as needed)
@@ -110,4 +110,4 @@
   - Any unused state after removing old chart toggle
   Target: 0 TypeScript errors, 0 ESLint warnings. Verify test env renders correctly.
 
-- [ ] Task 2: Conductor - User Manual Verification 'Validation'
+- [x] Task 2: Conductor - User Manual Verification 'Validation'

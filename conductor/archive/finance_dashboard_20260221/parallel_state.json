@@ -7,7 +7,9 @@
       "worker_id": "worker_1_portfolio_summary",
       "task": "Phase 1: PortfolioSummary Component",
       "beads_task_id": "rental-car-pricer-m71.1",
-      "files": ["src/components/PortfolioSummary.tsx"],
+      "files": [
+        "src/components/PortfolioSummary.tsx"
+      ],
       "status": "completed",
       "started_at": "2026-02-21T00:00:00Z",
       "commit_sha": "868d78f"
@@ -16,17 +18,24 @@
       "worker_id": "worker_2_booking_card",
       "task": "Phase 2: BookingCard Area Chart + Inline Hold Edit",
       "beads_task_id": "rental-car-pricer-m71.2",
-      "files": ["src/components/BookingCard.tsx"],
-      "status": "in_progress",
-      "started_at": "2026-02-21T00:00:00Z"
+      "files": [
+        "src/components/BookingCard.tsx"
+      ],
+      "status": "completed",
+      "started_at": "2026-02-21T00:00:00Z",
+      "commit_sha": "95ea377"
     },
     {
       "worker_id": "worker_4_admin_restyle",
       "task": "Phase 4: Admin Panel Restyle",
       "beads_task_id": "rental-car-pricer-m71.4",
-      "files": ["src/components/AdminInterface.tsx", "src/App.tsx"],
-      "status": "in_progress",
-      "started_at": "2026-02-21T00:00:00Z"
+      "files": [
+        "src/components/AdminInterface.tsx",
+        "src/App.tsx"
+      ],
+      "status": "completed",
+      "started_at": "2026-02-21T00:00:00Z",
+      "commit_sha": "edcdedd"
     }
   ],
   "file_locks": {
@@ -35,6 +44,6 @@
     "src/components/AdminInterface.tsx": "worker_4_admin_restyle",
     "src/App.tsx": "worker_4_admin_restyle"
   },
-  "completed_workers": 1,
+  "completed_workers": 3,
   "total_workers": 3
 }

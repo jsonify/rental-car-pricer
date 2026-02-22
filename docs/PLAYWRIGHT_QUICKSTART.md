@@ -70,7 +70,7 @@ Just ask and I'll set it up.
 
 - **Playwright Docs**: https://playwright.dev/python/
 - **Examples folder**: `examples/playwright_example.py`
-- **Comparison**: See `BROWSER_AUTOMATION_COMPARISON.md`
+- **Playwright Docs**: https://playwright.dev/python/docs/intro
 
 ## Quick Comparison
 
