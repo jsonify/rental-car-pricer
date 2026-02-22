@@ -17,7 +17,7 @@
 ## Phase 2: BookingCard — Area Chart + Inline Hold Edit
 <!-- depends: -->
 
-- [ ] Task 1: Replace LineChart with AreaChart + gradient fill + reference lines
+- [x] Task 1: Replace LineChart with AreaChart + gradient fill + reference lines
   <!-- files: src/components/BookingCard.tsx -->
   Import `AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine` from recharts.
   Build chart data from `booking.price_history` filtering out zero prices; format dates as "MMM d".
@@ -31,7 +31,7 @@
   - `<ReferenceLine>` for lowestPriceSeen (if >0): y={lowestPriceSeen} stroke="#34d399" strokeDasharray="4 3" label={{ value: `Low $${lowestPriceSeen.toFixed(0)}`, fill: '#34d399', fontSize: 11, position: 'insideBottomRight' }}
   Remove `showHistory` state and the old LineChart entirely.
 
-- [ ] Task 2: Add inline hold price edit to the card
+- [x] Task 2: Add inline hold price edit to the card
   <!-- files: src/components/BookingCard.tsx -->
   Add prop: `onUpdateHold?: (newPrice: number) => Promise<void>`.
   Add local state: `isEditingHold: boolean`, `holdEditValue: string`.
@@ -41,7 +41,7 @@
   - On confirm: call `onUpdateHold(parseFloat(holdEditValue))`, set `isEditingHold` false.
   - Disable confirm if value is empty or NaN.
 
-- [ ] Task 3: Conductor - User Manual Verification 'Area Chart + Inline Edit'
+- [~] Task 3: Conductor - User Manual Verification 'Area Chart + Inline Edit'
 
 ## Phase 3: PriceTracker Integration
 <!-- depends: phase1, phase2 -->

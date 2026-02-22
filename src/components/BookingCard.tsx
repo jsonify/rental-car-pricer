@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { parseISO } from 'date-fns'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import type { BookingWithHistory } from '@/lib/types'
 
 interface Props {
   booking: BookingWithHistory
+  onUpdateHold?: (newPrice: number) => Promise<void>
 }
 
 const fmt = (price: number) => `$${price.toFixed(2)}`
@@ -64,10 +66,11 @@ const StatusBadge = ({ latestPrice, holdingPrice }: { latestPrice: number; holdi
 }
 
 
-export function BookingCard({ booking }: Props) {
-  const [showHistory, setShowHistory] = useState(false)
+export function BookingCard({ booking, onUpdateHold }: Props) {
   const [showBetterDeals, setShowBetterDeals] = useState(false)
   const [showAllCats, setShowAllCats] = useState(false)
+  const [isEditingHold, setIsEditingHold] = useState(false)
+  const [holdEditValue, setHoldEditValue] = useState('')
 
   const {
     location_full_name,
@@ -84,6 +87,8 @@ export function BookingCard({ booking }: Props) {
     price_history,
   } = booking
 
+  const holdingPrice = holding_price ?? 0
+  const potentialSavings = holdingPrice > 0 ? holdingPrice - latestPrice : 0
   const holdingDelta = holding_price != null ? latestPrice - holding_price : null
 
   const betterDeals = Object.entries(latestPrices)
@@ -104,16 +109,19 @@ export function BookingCard({ booking }: Props) {
         : `${Math.abs(daysUntilPickup)} days ago`
 
   const chartData = price_history
-    .map(r => ({
-      date: format(new Date(r.created_at), 'MMM d'),
-      price: r.prices?.[focus_category],
+    .map(h => ({
+      date: format(parseISO(h.created_at), 'MMM d'),
+      price: h.prices?.[focus_category] ?? 0,
     }))
-    .filter((d): d is { date: string; price: number } => typeof d.price === 'number')
+    .filter(d => d.price > 0)
 
-  const recentChecks = [...price_history]
-    .reverse()
-    .slice(0, 5)
-    .filter(r => typeof r.prices?.[focus_category] === 'number')
+  const handleHoldConfirm = async () => {
+    const parsed = parseFloat(holdEditValue)
+    if (!isNaN(parsed) && onUpdateHold) {
+      await onUpdateHold(parsed)
+      setIsEditingHold(false)
+    }
+  }
 
   return (
     <div className="bg-slate-900 rounded-xl p-6 border border-slate-700">
@@ -149,20 +157,51 @@ export function BookingCard({ booking }: Props) {
           </div>
         </div>
 
-        {/* Right: holding price (hidden if no hold) */}
-        {holding_price != null && holdingDelta !== null && (
-          <div className="shrink-0 text-right">
-            <p className="text-xs text-slate-500 mb-1 uppercase tracking-wide">Your Hold</p>
-            <p className="text-2xl font-mono font-semibold text-slate-300 tabular-nums">{fmt(holding_price)}</p>
-            <div className="mt-1 text-sm font-medium">
-              {holdingDelta > 0 ? (
-                <span className="text-amber-400">↑ {fmt(holdingDelta)} above</span>
-              ) : holdingDelta < 0 ? (
-                <span className="text-emerald-400">↓ {fmt(Math.abs(holdingDelta))} below</span>
-              ) : (
-                <span className="text-slate-500">at hold price</span>
-              )}
-            </div>
+        {/* Right column: Hold price */}
+        {holdingPrice != null && holdingPrice > 0 && (
+          <div className="text-right">
+            <p className="text-slate-400 text-xs uppercase tracking-widest mb-1">Your Hold</p>
+            {isEditingHold ? (
+              <div className="flex items-center gap-1 justify-end">
+                <input
+                  type="number"
+                  className="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm font-mono text-slate-100 text-right"
+                  value={holdEditValue}
+                  onChange={e => setHoldEditValue(e.target.value)}
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleHoldConfirm()
+                    if (e.key === 'Escape') setIsEditingHold(false)
+                  }}
+                />
+                <button
+                  className="text-emerald-400 hover:text-emerald-300 text-sm px-1"
+                  onClick={handleHoldConfirm}
+                  disabled={!holdEditValue || isNaN(parseFloat(holdEditValue))}
+                >✓</button>
+                <button
+                  className="text-slate-500 hover:text-slate-400 text-sm px-1"
+                  onClick={() => setIsEditingHold(false)}
+                >✕</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 justify-end">
+                <span className="text-xl font-mono text-amber-400">{fmt(holdingPrice)}</span>
+                {onUpdateHold && (
+                  <button
+                    className="text-slate-600 hover:text-amber-400 transition-colors ml-1"
+                    onClick={() => { setHoldEditValue(holdingPrice.toFixed(2)); setIsEditingHold(true) }}
+                    title="Edit hold price"
+                  >✎</button>
+                )}
+              </div>
+            )}
+            {/* savings/overage delta below hold price */}
+            {potentialSavings > 0 ? (
+              <p className="text-xs text-emerald-400 mt-0.5">saving {fmt(potentialSavings)}</p>
+            ) : (
+              <p className="text-xs text-red-400 mt-0.5">over by {fmt(Math.abs(potentialSavings))}</p>
+            )}
           </div>
         )}
       </div>
@@ -235,62 +274,69 @@ export function BookingCard({ booking }: Props) {
         </div>
       )}
 
-      {/* Zone 2 toggle */}
+      {/* Area Chart — always visible when there is history */}
       {chartData.length > 1 && (
-        <button
-          onClick={() => setShowHistory(v => !v)}
-          className="mt-4 text-xs text-slate-600 hover:text-slate-400 transition-colors"
-        >
-          {showHistory ? 'Hide history ↑' : 'Show history ↓'}
-        </button>
-      )}
-
-      {/* Zone 2 — detail panel */}
-      {showHistory && (
-        <div className="mt-4 space-y-4">
-          <ResponsiveContainer width="100%" height={120}>
-            <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+        <div className="px-5 pb-2">
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`priceGradient-${booking.id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#34d399" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                </linearGradient>
+              </defs>
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: '#6b7280' }}
+                tick={{ fill: '#64748b', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
+                interval="preserveStartEnd"
               />
               <YAxis
                 domain={['auto', 'auto']}
-                tick={{ fontSize: 11, fill: '#6b7280' }}
+                tick={{ fill: '#64748b', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v: number) => `$${v}`}
-                width={52}
+                width={55}
               />
               <Tooltip
-                contentStyle={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 6 }}
-                labelStyle={{ color: '#9ca3af', fontSize: 11 }}
-                itemStyle={{ color: '#e5e7eb', fontSize: 12 }}
-                formatter={(v: number) => [fmt(v), focus_category]}
+                contentStyle={{
+                  background: '#1e293b',
+                  border: '1px solid #334155',
+                  borderRadius: 8,
+                  color: '#f1f5f9',
+                  fontSize: 12,
+                }}
+                formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
               />
-              <Line
+              {holdingPrice > 0 && (
+                <ReferenceLine
+                  y={holdingPrice}
+                  stroke="#fbbf24"
+                  strokeDasharray="4 3"
+                  label={{ value: `Hold $${holdingPrice.toFixed(0)}`, fill: '#fbbf24', fontSize: 11, position: 'insideTopRight' } as any}
+                />
+              )}
+              {lowestPriceSeen > 0 && lowestPriceSeen !== holdingPrice && (
+                <ReferenceLine
+                  y={lowestPriceSeen}
+                  stroke="#34d399"
+                  strokeDasharray="4 3"
+                  label={{ value: `Low $${lowestPriceSeen.toFixed(0)}`, fill: '#34d399', fontSize: 11, position: 'insideBottomRight' } as any}
+                />
+              )}
+              <Area
                 type="monotone"
                 dataKey="price"
-                stroke="#60a5fa"
+                stroke="#34d399"
                 strokeWidth={2}
+                fill={`url(#priceGradient-${booking.id})`}
                 dot={false}
-                activeDot={{ r: 4, fill: '#60a5fa' }}
+                activeDot={{ r: 4, fill: '#34d399' }}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
-
-          <div className="space-y-1">
-            {recentChecks.map(r => (
-              <div key={r.id} className="flex justify-between text-xs text-slate-500">
-                <span>{format(new Date(r.created_at), 'MMM d, h:mm a')}</span>
-                <span className="text-slate-300 tabular-nums">
-                  {fmt(r.prices[focus_category])}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
     </div>
