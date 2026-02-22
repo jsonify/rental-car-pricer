@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DriveTrack - Car Rental Price Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; font-family: 'Segoe UI', sans-serif; color: #fff; min-height: 100vh; padding: 16px; }
+
+  /* NAV */
+  nav { background: #111827; border-radius: 14px; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #00f5a0, #00d9f5); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #111; }
+  .logo-text { font-size: 18px; font-weight: 700; color: #fff; }
+  .nav-tabs { display: flex; gap: 6px; }
+  .nav-tab { padding: 7px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; color: #9ca3af; border: none; background: none; }
+  .nav-tab.active { background: #00f5a0; color: #111; font-weight: 700; }
+  .nav-icons { display: flex; gap: 12px; align-items: center; }
+  .nav-icon { width: 34px; height: 34px; background: #1f2937; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; cursor: pointer; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+
+  /* GRID */
+  .top-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .mid-row { margin-bottom: 14px; }
+  .bot-row { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 14px; }
+
+  /* CARDS */
+  .card { background: #111827; border-radius: 16px; padding: 18px; position: relative; overflow: hidden; }
+  .card-title { font-size: 13px; font-weight: 600; color: #9ca3af; margin-bottom: 4px; }
+  .card-value { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .card-sub { font-size: 11px; color: #6b7280; }
+  .badge-green { color: #00f5a0; font-size: 11px; font-weight: 700; }
+  .badge-red { color: #f87171; font-size: 11px; font-weight: 700; }
+  .filter-tabs { display: flex; gap: 6px; }
+  .ftab { padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; color: #6b7280; background: none; border: none; }
+  .ftab.active { background: #1f2937; color: #fff; border: 1px solid #374151; font-weight: 600; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .cal-icon { width: 28px; height: 28px; background: #00f5a020; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+  /* BUDGET CARD BARS */
+  .mini-bars { display: flex; align-items: flex-end; gap: 2px; height: 50px; }
+  .mini-bar { flex: 1; border-radius: 2px; opacity: 0.85; }
+
+  /* BIG CHART */
+  .chart-wrap { position: relative; height: 200px; }
+  svg.chart { width: 100%; height: 100%; }
+  .tooltip-box { position: absolute; background: #1f2937; border: 1px solid #374151; border-radius: 10px; padding: 10px 14px; font-size: 12px; top: 20px; left: 48%; pointer-events: none; }
+  .tooltip-box strong { display: block; margin-bottom: 6px; font-size: 13px; }
+  .tooltip-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* GAUGE */
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 160px; position: relative; }
+  .gauge-label { font-size: 22px; font-weight: 800; margin-top: -10px; }
+  .gauge-sub { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+  /* WAVE */
+  .wave-card { background: linear-gradient(135deg, #00f5a0, #00d9f5, #6366f1); }
+  .wave-card .card-title { color: #111; }
+  .wave-wrap { height: 100px; position: relative; margin-top: 8px; }
+  .wave-wrap svg { width: 100%; height: 100%; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { color: #6b7280; font-weight: 600; padding: 6px 8px; text-align: left; border-bottom: 1px solid #1f2937; }
+  td { padding: 10px 8px; border-bottom: 1px solid #1f2937; color: #d1d5db; }
+  td:last-child { font-weight: 700; }
+  .pct-green { color: #34d399; }
+  .pct-yellow { color: #fbbf24; }
+  .pct-red { color: #f87171; }
+  .pct-blue { color: #60a5fa; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🚗</div>
+    <div class="logo-text">DriveTrack</div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active">Dashboard</button>
+    <button class="nav-tab">Vehicles</button>
+    <button class="nav-tab">Alerts</button>
+    <button class="nav-tab">Bookings</button>
+    <button class="nav-tab">More ▾</button>
+  </div>
+  <div class="nav-icons">
+    <div class="nav-icon">🔔</div>
+    <div class="nav-icon">🔖</div>
+    <div class="nav-icon">⚙️</div>
+    <div class="avatar">JD</div>
+  </div>
+</nav>
+
+<!-- TOP ROW -->
+<div class="top-row">
+
+  <!-- Tracked Rentals -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Tracked Rentals</div>
+        <div class="card-value">$1,284.00</div>
+        <div class="card-sub">avg. across 14 tracked vehicles</div>
+      </div>
+      <div class="filter-tabs">
+        <button class="ftab">Today</button>
+        <button class="ftab active">This Month</button>
+        <button class="ftab">This Year</button>
+      </div>
+    </div>
+    <div class="mini-bars">
+      <!-- colorful bars simulating daily price spikes -->
+      <script>
+        const colors = ['#f87171','#fb923c','#fbbf24','#a3e635','#34d399','#22d3ee','#818cf8','#c084fc','#f472b6','#00f5a0','#00d9f5','#6366f1','#f87171','#fbbf24','#34d399','#22d3ee','#818cf8','#00f5a0','#f472b6','#fb923c','#a3e635','#c084fc','#34d399','#fbbf24','#00d9f5','#818cf8','#f87171','#22d3ee','#a3e635','#00f5a0'];
+        const heights = [40,25,55,38,60,30,45,70,35,50,65,28,42,58,33,48,72,26,53,44,68,31,57,39,63,27,49,74,36,52];
+        document.write(colors.map((c,i)=>`<div class="mini-bar" style="background:${c};height:${heights[i]}%"></div>`).join(''));
+      </script>
+    </div>
+  </div>
+
+  <!-- Lowest Price Found -->
+  <div class="card" style="background:linear-gradient(135deg,#0f2027,#1a3a3a);">
+    <div class="card-header">
+      <div class="card-title">Lowest Price Found</div>
+      <div class="cal-icon">📅</div>
+    </div>
+    <div class="card-value">$38.50<span style="font-size:14px;color:#9ca3af;">/day</span></div>
+    <div style="margin-top:6px;">
+      <span class="badge-green">↓ $12.00 from last week</span>
+    </div>
+    <div class="card-sub" style="margin-top:4px;">Economy · Seattle-Tacoma Airport</div>
+    <div class="badge-green" style="margin-top:6px; font-size:13px;">▼ 23.7% drop</div>
+  </div>
+
+  <!-- Highest Price Surge -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Highest Price Surge</div>
+      <div class="cal-icon">📅</div>
+    </div>
+    <div class="card-value">$189.00<span style="font-size:14px;color:#9ca3af;">/day</span></div>
+    <div style="margin-top:6px;">
+      <span class="badge-red">+$44.00 from last week</span>
+    </div>
+    <div class="card-sub" style="margin-top:4px;">Luxury SUV · LAX Airport</div>
+    <div class="badge-red" style="margin-top:6px; font-size:13px;">▲ 30.3% surge</div>
+  </div>
+
+</div>
+
+<!-- MID ROW — Big Chart -->
+<div class="mid-row">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div style="font-size:15px;font-weight:700;">Price Range & Booking Flow</div>
+        <div class="card-sub">Average daily rate vs. bookings made — by month</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="filter-tabs">
+          <button class="ftab">Today</button>
+          <button class="ftab active">This Month</button>
+          <button class="ftab">This Year</button>
+        </div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <svg class="chart" viewBox="0 0 900 180" preserveAspectRatio="none">
+        <!-- grid lines -->
+        <line x1="0" y1="30" x2="900" y2="30" stroke="#1f2937" stroke-width="1"/>
+        <line x1="0" y1="70" x2="900" y2="70" stroke="#1f2937" stroke-width="1"/>
+        <line x1="0" y1="110" x2="900" y2="110" stroke="#1f2937" stroke-width="1"/>
+        <line x1="0" y1="150" x2="900" y2="150" stroke="#1f2937" stroke-width="1"/>
+
+        <!-- Y labels -->
+        <text x="0" y="28" fill="#4b5563" font-size="11">$200</text>
+        <text x="0" y="68" fill="#4b5563" font-size="11">$150</text>
+        <text x="0" y="108" fill="#4b5563" font-size="11">$100</text>
+        <text x="0" y="148" fill="#4b5563" font-size="11">$50</text>
+
+        <!-- Bars: each month pair (avg rate = teal, bookings volume = hatched blue) -->
+        <!-- Jan -->
+        <rect x="40" y="80" width="22" height="70" fill="#14b8a6" rx="3"/>
+        <rect x="64" y="110" width="22" height="40" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Feb -->
+        <rect x="115" y="90" width="22" height="60" fill="#14b8a6" rx="3"/>
+        <rect x="139" y="120" width="22" height="30" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Mar -->
+        <rect x="190" y="60" width="22" height="90" fill="#14b8a6" rx="3"/>
+        <rect x="214" y="95" width="22" height="55" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Apr -->
+        <rect x="265" y="35" width="22" height="115" fill="#14b8a6" rx="3"/>
+        <rect x="289" y="65" width="22" height="85" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- May -->
+        <rect x="340" y="55" width="22" height="95" fill="#14b8a6" rx="3"/>
+        <rect x="364" y="85" width="22" height="65" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Jun - HIGHLIGHTED -->
+        <rect x="415" y="30" width="22" height="120" fill="#00f5a0" rx="3"/>
+        <rect x="439" y="55" width="22" height="95" fill="#164e4e" rx="3" stroke="#00d9f5" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <!-- Jul -->
+        <rect x="490" y="50" width="22" height="100" fill="#14b8a6" rx="3"/>
+        <rect x="514" y="80" width="22" height="70" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Aug -->
+        <rect x="565" y="65" width="22" height="85" fill="#14b8a6" rx="3"/>
+        <rect x="589" y="100" width="22" height="50" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Sep -->
+        <rect x="640" y="80" width="22" height="70" fill="#14b8a6" rx="3"/>
+        <rect x="664" y="115" width="22" height="35" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Oct -->
+        <rect x="715" y="55" width="22" height="95" fill="#14b8a6" rx="3"/>
+        <rect x="739" y="80" width="22" height="70" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Nov -->
+        <rect x="790" y="60" width="22" height="90" fill="#14b8a6" rx="3"/>
+        <rect x="814" y="90" width="22" height="60" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+        <!-- Dec -->
+        <rect x="860" y="40" width="22" height="110" fill="#14b8a6" rx="3"/>
+        <rect x="876" y="65" width="22" height="85" fill="#1e3a4a" rx="3" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Month labels -->
+        <text x="51" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Jan</text>
+        <text x="126" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Feb</text>
+        <text x="201" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Mar</text>
+        <text x="276" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Apr</text>
+        <text x="351" y="175" fill="#6b7280" font-size="11" text-anchor="middle">May</text>
+        <text x="426" y="175" fill="#00f5a0" font-size="11" text-anchor="middle" font-weight="bold">Jun</text>
+        <text x="501" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Jul</text>
+        <text x="576" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Aug</text>
+        <text x="651" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Sep</text>
+        <text x="726" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Oct</text>
+        <text x="801" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Nov</text>
+        <text x="868" y="175" fill="#6b7280" font-size="11" text-anchor="middle">Dec</text>
+      </svg>
+
+      <!-- Tooltip -->
+      <div class="tooltip-box">
+        <strong>June 2025</strong>
+        <div class="tooltip-row"><div class="dot" style="background:#00f5a0"></div> Avg Rate &nbsp; <strong>$164.50/day</strong></div>
+        <div class="tooltip-row"><div class="dot" style="background:#00d9f5"></div> Bookings &nbsp; <strong>312 made</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM ROW -->
+<div class="bot-row">
+
+  <!-- Price Trend Wave -->
+  <div class="card wave-card">
+    <div class="card-title" style="color:#0f172a;font-weight:800;font-size:14px;">Price Trend Flow</div>
+    <div style="font-size:11px;color:#0f4c3a;margin-bottom:6px;">30-day rolling average</div>
+    <div class="wave-wrap">
+      <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+        <polyline
+          points="0,70 20,55 40,65 60,40 80,50 100,30 120,45 140,35 160,55 180,40 200,60 220,38 240,50 260,30 280,45 300,35"
+          fill="none" stroke="#0f172a" stroke-width="3" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Spending Categories → Vehicle Class Distribution -->
+  <div class="card">
+    <div class="card-header">
+      <div style="font-size:14px;font-weight:700;">Vehicle Class Pricing</div>
+    </div>
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 200 120" width="200" height="120">
+        <!-- Background arc -->
+        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1f2937" stroke-width="18" stroke-linecap="round"/>
+        <!-- Economy segment -->
+        <path d="M 20 100 A 80 80 0 0 1 68 32" fill="none" stroke="#34d399" stroke-width="18" stroke-linecap="round"/>
+        <!-- Mid-size segment -->
+        <path d="M 68 32 A 80 80 0 0 1 132 32" fill="none" stroke="#22d3ee" stroke-width="18" stroke-linecap="round"/>
+        <!-- SUV segment -->
+        <path d="M 132 32 A 80 80 0 0 1 163 55" fill="none" stroke="#818cf8" stroke-width="18" stroke-linecap="round"/>
+        <!-- Luxury segment -->
+        <path d="M 163 55 A 80 80 0 0 1 180 100" fill="none" stroke="#c084fc" stroke-width="18" stroke-linecap="round"/>
+        <!-- Needle -->
+        <line x1="100" y1="100" x2="130" y2="42" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="100" cy="100" r="5" fill="#fff"/>
+        <!-- Labels -->
+        <text x="100" y="88" fill="#fff" font-size="16" font-weight="800" text-anchor="middle">$82.40</text>
+        <text x="100" y="102" fill="#6b7280" font-size="9" text-anchor="middle">SUV · avg daily rate</text>
+      </svg>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+        <span style="font-size:10px;color:#34d399;">● Economy</span>
+        <span style="font-size:10px;color:#22d3ee;">● Mid-size</span>
+        <span style="font-size:10px;color:#818cf8;">● SUV</span>
+        <span style="font-size:10px;color:#c084fc;">● Luxury</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spending History → Rental Price by Category -->
+  <div class="card">
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;">Price Watch — By Vehicle Type</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Vehicle Type</th>
+          <th>Target Price</th>
+          <th>Current Avg</th>
+          <th>Alert</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Economy</td>
+          <td>$45.00/day</td>
+          <td>$43.50/day</td>
+          <td class="pct-green">✅ 97%</td>
+        </tr>
+        <tr>
+          <td>Mid-size</td>
+          <td>$75.00/day</td>
+          <td>$52.00/day</td>
+          <td class="pct-green">🟢 69%</td>
+        </tr>
+        <tr>
+          <td>Full-size SUV</td>
+          <td>$95.00/day</td>
+          <td>$82.40/day</td>
+          <td class="pct-yellow">🟡 87%</td>
+        </tr>
+        <tr>
+          <td>Luxury</td>
+          <td>$140.00/day</td>
+          <td>$189.00/day</td>
+          <td class="pct-red">🔴 135%</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px;font-size:10px;color:#4b5563;">🔴 Over budget target &nbsp;|&nbsp; 🟡 Approaching limit &nbsp;|&nbsp; 🟢 Good deal</div>
+  </div>
+
+</div>
+
+</body>
+</html>

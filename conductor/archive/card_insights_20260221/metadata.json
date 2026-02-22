@@ -1,0 +1,24 @@
+{
+  "track_id": "card_insights_20260221",
+  "type": "feature",
+  "status": "new",
+  "priority": "medium",
+  "depends_on": [],
+  "estimated_hours": null,
+  "created_at": "2026-02-21T00:00:00Z",
+  "updated_at": "2026-02-21T00:00:00Z",
+  "description": "Dashboard card insights — Tracked Rentals bar chart + week-over-week deltas on Best Deal/Biggest Surge",
+  "beads_epic": "rental-car-pricer-8g5",
+  "beads_tasks": {
+    "phase1": "rental-car-pricer-8g5.1",
+    "phase1_task1": "rental-car-pricer-8g5.1.1",
+    "phase1_task2": "rental-car-pricer-8g5.1.2",
+    "phase2": "rental-car-pricer-8g5.2",
+    "phase2_task1": "rental-car-pricer-8g5.2.1",
+    "phase2_task2": "rental-car-pricer-8g5.2.2",
+    "phase3": "rental-car-pricer-8g5.3",
+    "phase3_task1": "rental-car-pricer-8g5.3.1",
+    "phase3_task2": "rental-car-pricer-8g5.3.2",
+    "phase3_task3": "rental-car-pricer-8g5.3.3"
+  }
+}

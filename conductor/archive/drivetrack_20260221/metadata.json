@@ -1,0 +1,29 @@
+{
+  "track_id": "drivetrack_20260221",
+  "type": "feature",
+  "status": "new",
+  "priority": "medium",
+  "depends_on": [],
+  "estimated_hours": null,
+  "created_at": "2026-02-21T00:00:00Z",
+  "updated_at": "2026-02-21T00:00:00Z",
+  "description": "DriveTrack dashboard upgrade — Navbar, StatCards, PriceTrendWave, PriceWatchTable",
+  "beads_epic": "rental-car-pricer-d31",
+  "beads_tasks": {
+    "phase1": "rental-car-pricer-d31.1",
+    "phase1_task1": "rental-car-pricer-d31.1.1",
+    "phase1_task2": "rental-car-pricer-d31.1.2",
+    "phase2": "rental-car-pricer-d31.2",
+    "phase2_task1": "rental-car-pricer-d31.2.1",
+    "phase2_task2": "rental-car-pricer-d31.2.2",
+    "phase2_task3": "rental-car-pricer-d31.2.3",
+    "phase2_task4": "rental-car-pricer-d31.2.4",
+    "phase3": "rental-car-pricer-d31.3",
+    "phase3_task1": "rental-car-pricer-d31.3.1",
+    "phase3_task2": "rental-car-pricer-d31.3.2",
+    "phase3_task3": "rental-car-pricer-d31.3.3",
+    "phase4": "rental-car-pricer-d31.4",
+    "phase4_task1": "rental-car-pricer-d31.4.1",
+    "phase4_task2": "rental-car-pricer-d31.4.2"
+  }
+}

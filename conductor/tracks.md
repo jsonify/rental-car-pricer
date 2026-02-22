@@ -6,7 +6,15 @@ This file tracks all major tracks for the project.
 
 ## Backlog (future tracks)
 
+- **Tracked Rentals bar drill-down** — clicking a bar in the Tracked Rentals chart narrows the view to that day's detail (hourly breakdown or per-booking breakdown)
+
 ---
+
+<!-- Archived 2026-02-21: card_insights_20260221 — Dashboard Card Insights Enhancements → conductor/archive/card_insights_20260221/ -->
+
+---
+
+<!-- Archived 2026-02-21: drivetrack_20260221 — DriveTrack Dashboard Upgrade → conductor/archive/drivetrack_20260221/ -->
 
 <!-- Archived 2026-02-21: docs_cleanup_20260221 — Docs Cleanup & README Refresh → conductor/archive/docs_cleanup_20260221/ -->
 <!-- Archived 2026-02-21: booking_detail_20260221 — Booking Detail Page → conductor/archive/booking_detail_20260221/ -->

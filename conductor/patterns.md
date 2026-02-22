@@ -65,5 +65,13 @@ Reusable patterns discovered during development. Read this before starting new w
 
 - `src/hooks/usePriceChecker.ts` and `src/mocks/handlers.ts` were scaffolding artifacts with multiple modules concatenated — treat as legacy and do not extend them (from: dashboard_parity_20260221, 2026-02-21)
 
+- Place `<Navbar />` between `<EnvironmentProvider>` and `<Routes>` — renders on all routes while still having access to environment context and react-router hooks (from: drivetrack_20260221, 2026-02-21)
+- `reduce<Type | null>(...)` with null initial value is the idiomatic pattern for finding best/worst booking across an array (from: drivetrack_20260221, 2026-02-21)
+- For 30-day rolling avg: build date array with `subDays(today, i)` loop, then for each date find most recent `price_history` record with `created_at <= endOfDate` using a sort + [0] (from: drivetrack_20260221, 2026-02-21)
+- Status badge pattern: `getStatus()` helper returns a typed union (`'over' | 'within' | 'under' | 'none'`), `STATUS_ORDER` lookup dict for sort, `StatusBadge` sub-component for rendering (from: drivetrack_20260221, 2026-02-21)
+
+- Recharts per-bar coloring: use `<Cell key={i} fill={getBarColor(entry.value)} />` inside `<Bar>` — requires importing `Cell` from recharts (from: card_insights_20260221, 2026-02-21)
+- Week-over-week price lookup: filter `price_history` for records where `created_at` is between `subDays(now, 14)` and `subDays(now, 7)`, sort descending, take `[0]` — return null if empty rather than 0 (from: card_insights_20260221, 2026-02-21)
+
 ---
 Last refreshed: 2026-02-21
