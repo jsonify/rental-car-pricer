@@ -46,7 +46,7 @@
 ## Phase 3: PriceTracker Integration
 <!-- depends: phase1, phase2 -->
 
-- [ ] Task 1: Wire PortfolioSummary and updateHold handler into PriceTracker
+- [x] Task 1: Wire PortfolioSummary and updateHold handler into PriceTracker
   <!-- files: src/components/PriceTracker.tsx -->
   1. Import and render `<PortfolioSummary bookings={bookings} />` above the booking card list.
   2. Remove the old "Rentals" h1 header; move `lastUpdated` timestamp to a subtle `text-xs text-slate-600` line below the summary strip.
