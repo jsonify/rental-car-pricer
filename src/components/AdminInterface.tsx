@@ -24,7 +24,7 @@ export function AdminInterface() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [bookings, setBookings] = useState<Booking[]>([])
-  const { workflowStatus, startTracking, reset: resetWorkflowStatus } = useWorkflowStatus()
+  const { workflowStatus, startTracking, cancel: cancelWorkflow, reset: resetWorkflowStatus } = useWorkflowStatus()
 
   // Dialog states
   const [addBookingOpen, setAddBookingOpen] = useState(false)
@@ -232,6 +232,7 @@ export function AdminInterface() {
       {!isTestEnvironment && workflowStatus.runId && (
         <WorkflowStatusBanner
           status={workflowStatus}
+          onCancel={cancelWorkflow}
           onDismiss={resetWorkflowStatus}
         />
       )}

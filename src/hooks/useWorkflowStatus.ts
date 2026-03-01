@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getWorkflowRunDetails, type WorkflowRunDetails } from '@/lib/github'
+import { getWorkflowRunDetails, cancelWorkflowRun, type WorkflowRunDetails } from '@/lib/github'
 
 export interface WorkflowStatus {
   runId: number | null
@@ -9,6 +9,7 @@ export interface WorkflowStatus {
   error: string | null
   currentStep?: string
   progress?: number
+  startedAt: number | null
 }
 
 /**
@@ -21,6 +22,7 @@ export function useWorkflowStatus() {
     conclusion: null,
     url: null,
     error: null,
+    startedAt: null,
   })
 
   const [isPolling, setIsPolling] = useState(false)
@@ -34,6 +36,7 @@ export function useWorkflowStatus() {
       error: null,
       currentStep: undefined,
       progress: 0,
+      startedAt: Date.now(),
     })
     setIsPolling(true)
   }, [])
@@ -51,6 +54,7 @@ export function useWorkflowStatus() {
       error: null,
       currentStep: undefined,
       progress: 0,
+      startedAt: null,
     })
     setIsPolling(false)
   }, [])
@@ -66,7 +70,8 @@ export function useWorkflowStatus() {
 
         if (cancelled) return
 
-        setWorkflowStatus({
+        setWorkflowStatus(prev => ({
+          ...prev,
           runId: run.id,
           status: run.status,
           conclusion: run.conclusion,
@@ -74,7 +79,7 @@ export function useWorkflowStatus() {
           error: null,
           currentStep: run.currentStep,
           progress: run.progress,
-        })
+        }))
 
         // Stop polling if workflow is complete
         if (run.status === 'completed') {
@@ -104,11 +109,23 @@ export function useWorkflowStatus() {
     }
   }, [isPolling, workflowStatus.runId])
 
+  const cancel = useCallback(async () => {
+    if (!workflowStatus.runId) return
+    await cancelWorkflowRun(workflowStatus.runId)
+    setIsPolling(false)
+    setWorkflowStatus(prev => ({
+      ...prev,
+      status: 'completed',
+      conclusion: 'cancelled',
+    }))
+  }, [workflowStatus.runId])
+
   return {
     workflowStatus,
     startTracking,
     stopTracking,
     reset,
+    cancel,
     isTracking: isPolling,
   }
 }

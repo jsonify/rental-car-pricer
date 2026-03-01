@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Loader2, CheckCircle2, XCircle, ExternalLink } from 'lucide-react'
 import { Button } from "@/components/ui/button"
@@ -6,10 +7,31 @@ import type { WorkflowStatus } from '@/hooks/useWorkflowStatus'
 
 interface WorkflowStatusBannerProps {
   status: WorkflowStatus
+  onCancel?: () => void
   onDismiss?: () => void
 }
 
-export function WorkflowStatusBanner({ status, onDismiss }: WorkflowStatusBannerProps) {
+function useElapsedTime(startedAt: number | null, stopped: boolean) {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (!startedAt) { setElapsed(0); return }
+    const tick = () => setElapsed(Math.floor((Date.now() - startedAt) / 1000))
+    tick()
+    if (stopped) return
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [startedAt, stopped])
+
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, '0')
+  const ss = String(elapsed % 60).padStart(2, '0')
+  return `${mm}:${ss}`
+}
+
+export function WorkflowStatusBanner({ status, onCancel, onDismiss }: WorkflowStatusBannerProps) {
+  const stopped = status.status === 'completed' || !!status.error
+  const elapsed = useElapsedTime(status.startedAt, stopped)
+
   if (!status.runId) return null
 
   const getStatusIcon = () => {
@@ -71,8 +93,8 @@ export function WorkflowStatusBanner({ status, onDismiss }: WorkflowStatusBanner
     return 'default'
   }
 
+  const isActive = status.status === 'queued' || status.status === 'in_progress'
   const showDismissButton = status.status === 'completed' || !!status.error
-
   const showProgress = status.status === 'in_progress' && status.progress !== undefined
 
   return (
@@ -86,6 +108,11 @@ export function WorkflowStatusBanner({ status, onDismiss }: WorkflowStatusBanner
           <AlertDescription className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span>{getStatusText()}</span>
+              {status.startedAt && (
+                <span className="text-xs font-mono text-muted-foreground tabular-nums">
+                  {elapsed}
+                </span>
+              )}
               {showProgress && (
                 <span className="text-xs text-muted-foreground">
                   ({status.progress}%)
@@ -108,6 +135,11 @@ export function WorkflowStatusBanner({ status, onDismiss }: WorkflowStatusBanner
             )}
           </AlertDescription>
         </div>
+        {isActive && onCancel && (
+          <Button variant="ghost" size="sm" onClick={onCancel} className="flex-shrink-0 text-red-400 hover:text-red-300 hover:bg-red-950">
+            Cancel
+          </Button>
+        )}
         {showDismissButton && onDismiss && (
           <Button variant="ghost" size="sm" onClick={onDismiss} className="flex-shrink-0">
             Dismiss

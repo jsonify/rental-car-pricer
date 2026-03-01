@@ -65,6 +65,9 @@ export async function triggerWorkflow(inputs: WorkflowDispatchInputs): Promise<n
 
   console.log('Triggering workflow with inputs:', inputs)
 
+  // Stamp time before dispatch so we can identify the new run afterward
+  const triggerTime = new Date()
+
   const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/price-checker.yaml/dispatches`
 
   const response = await fetch(url, {
@@ -90,28 +93,62 @@ export async function triggerWorkflow(inputs: WorkflowDispatchInputs): Promise<n
 
   console.log('Workflow triggered successfully!')
 
-  // Get the latest workflow run ID (GitHub doesn't return it in the dispatch response)
-  // We need to poll the runs list to find the one we just created
-  await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1s for GitHub to register the run
+  // Poll until we see a run created after our trigger time (avoids grabbing a stale completed run)
+  const runsUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/price-checker.yaml/runs?per_page=5`
+  const maxAttempts = 10
+  const retryDelayMs = 2000
 
-  const runsUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/price-checker.yaml/runs?per_page=1`
-  const runsResponse = await fetch(runsUrl, {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, retryDelayMs))
+
+    const runsResponse = await fetch(runsUrl, {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      },
+    })
+
+    if (!runsResponse.ok) {
+      throw new Error('Failed to fetch workflow run ID')
+    }
+
+    const runsData = await runsResponse.json()
+    const newRun = (runsData.workflow_runs ?? []).find(
+      (r: { created_at: string }) => new Date(r.created_at) >= triggerTime
+    )
+
+    if (newRun) {
+      console.log(`Found new workflow run ${newRun.id} on attempt ${attempt + 1}`)
+      return newRun.id
+    }
+
+    console.log(`Attempt ${attempt + 1}: new run not yet visible, retrying...`)
+  }
+
+  throw new Error('Timed out waiting for new workflow run to appear')
+}
+
+/**
+ * Cancel a running workflow run
+ */
+export async function cancelWorkflowRun(runId: number): Promise<void> {
+  if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
+    throw new Error('GitHub configuration is missing')
+  }
+
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${runId}/cancel`
+
+  const response = await fetch(url, {
+    method: 'POST',
     headers: {
       'Accept': 'application/vnd.github.v3+json',
       'Authorization': `Bearer ${GITHUB_TOKEN}`,
     },
   })
 
-  if (!runsResponse.ok) {
-    throw new Error('Failed to fetch workflow run ID')
+  if (!response.ok) {
+    throw new Error(`Failed to cancel workflow: ${response.status} ${response.statusText}`)
   }
-
-  const runsData = await runsResponse.json()
-  if (!runsData.workflow_runs || runsData.workflow_runs.length === 0) {
-    throw new Error('No workflow runs found')
-  }
-
-  return runsData.workflow_runs[0].id
 }
 
 /**
