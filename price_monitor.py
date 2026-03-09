@@ -139,14 +139,19 @@ def wait_for_results(page, current_url, timeout=60):
     """
     try:
         results_pattern = re.compile(r"results|vehicles|/h=\d", re.IGNORECASE)
+        print(f"Current URL before waiting: {page.url}")
         if results_pattern.search(page.url):
             page.wait_for_timeout(5000)  # Let prices fully render
+            print(f"URL matched immediately: {page.url}")
             return True
         page.wait_for_url(results_pattern, timeout=timeout * 1000)
         page.wait_for_timeout(5000)  # Let prices fully render
+        print(f"URL after navigation: {page.url}")
         return True
     except Exception as e:
         print(f"Error waiting for results: {str(e)}")
+        print(f"URL at timeout: {page.url}")
+        print(f"Page title at timeout: {page.title()}")
         return False
 
 
