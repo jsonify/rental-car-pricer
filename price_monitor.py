@@ -233,19 +233,28 @@ def process_booking(page, booking):
         page.keyboard.press("Escape")
         page.wait_for_timeout(300)
 
-        # Log ALL network requests after search click to diagnose missing API call
-        search_requests = []
-        def handle_request(request):
-            search_requests.append(f"  {request.method} {request.url}")
-        page.on("request", handle_request)
+        # Intercept rentalCarSearch.act response to diagnose server-side failure
+        search_response_info = {}
+        def handle_response(response):
+            if "rentalCarSearch" in response.url:
+                try:
+                    body = response.text()
+                    search_response_info["status"] = response.status
+                    search_response_info["body"] = body[:2000]
+                except Exception as e:
+                    search_response_info["status"] = response.status
+                    search_response_info["body"] = f"(could not read body: {e})"
+        page.on("response", handle_response)
 
         current_url = page.url
         click_search(page)
 
         if not wait_for_results(page, current_url):
-            print(f"Network requests made after search click ({len(search_requests)} total):")
-            for r in search_requests[-30:]:
-                print(r)
+            if search_response_info:
+                print(f"rentalCarSearch.act response status: {search_response_info.get('status')}")
+                print(f"rentalCarSearch.act response body:\n{search_response_info.get('body')}")
+            else:
+                print("rentalCarSearch.act was never called.")
             raise Exception("Failed to load results")
 
         print("Results loaded successfully")
