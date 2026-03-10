@@ -10,7 +10,6 @@ import traceback
 import os
 from datetime import datetime
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
 
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -227,22 +226,6 @@ def process_booking(page, booking):
 
         page.wait_for_timeout(random.randint(2000, 4000))
 
-        # Screenshot to diagnose page state after navigation
-        os.makedirs("screenshots", exist_ok=True)
-        page.screenshot(path=f"screenshots/post_nav_{booking['location']}.png")
-        print(f"Post-navigation URL: {page.url}")
-        print(f"Post-navigation title: {page.title()}")
-
-        # Explicitly activate the Rental Cars tab — stealth may delay JS init
-        # that would otherwise auto-select it based on the URL
-        rental_cars_tab = page.locator("a[data-tab='rental-cars'], a:has-text('Rental Cars'), #rental-cars-tab").first
-        if rental_cars_tab.count() > 0 and rental_cars_tab.is_visible():
-            rental_cars_tab.click()
-            page.wait_for_timeout(random.randint(500, 1000))
-            print("Clicked Rental Cars tab")
-        else:
-            print(f"Rental Cars tab not found (count={rental_cars_tab.count()}) — assuming already active")
-
         if not fill_search_form(page, booking):
             raise Exception("Failed to fill search form")
 
@@ -426,6 +409,5 @@ def setup_browser(headless=True, channel=None):
     )
     context.add_init_script(WEBDRIVER_STEALTH_SCRIPT)
     page = context.new_page()
-    stealth_sync(page)
     page.set_default_navigation_timeout(60000)
     return playwright, browser, context, page
