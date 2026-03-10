@@ -132,24 +132,21 @@ def fill_search_form(page, booking):
 
 
 def wait_for_results(page, current_url, timeout=60):
-    """Wait for the search results URL. Returns True on success.
+    """Wait for car result cards to appear in the DOM.
 
-    Costco Travel's results page URL looks like /Rental-Cars/h=XXXX. Because
-    we wait a few seconds between clicking the search button and calling this
-    function, the navigation is often already complete by the time we get here.
-    wait_for_url() would then wait for a *new* matching navigation (that never
-    comes) and time out. We fast-path return True if the URL already matches.
+    Costco Travel previously navigated to /Rental-Cars/h=XXXX for results but
+    now loads results in-place (SPA behavior) without changing the URL. We wait
+    for the result card DOM element instead of a URL change.
     """
     try:
-        results_pattern = re.compile(r"results|vehicles|/h=\d", re.IGNORECASE)
         print(f"Current URL before waiting: {page.url}")
-        if results_pattern.search(page.url):
-            page.wait_for_timeout(5000)  # Let prices fully render
-            print(f"URL matched immediately: {page.url}")
-            return True
-        page.wait_for_url(results_pattern, timeout=timeout * 1000)
-        page.wait_for_timeout(5000)  # Let prices fully render
-        print(f"URL after navigation: {page.url}")
+        page.wait_for_selector(
+            "a.card.car-result-card",
+            state="attached",
+            timeout=timeout * 1000,
+        )
+        page.wait_for_timeout(2000)  # Let all cards render
+        print(f"Result cards loaded. URL: {page.url}")
         return True
     except Exception as e:
         print(f"Error waiting for results: {str(e)}")
