@@ -227,6 +227,16 @@ def process_booking(page, booking):
 
         page.wait_for_timeout(random.randint(2000, 4000))
 
+        # Explicitly activate the Rental Cars tab — stealth may delay JS init
+        # that would otherwise auto-select it based on the URL
+        rental_cars_tab = page.locator("a[data-tab='rental-cars'], a:has-text('Rental Cars'), #rental-cars-tab").first
+        if rental_cars_tab.count() > 0 and rental_cars_tab.is_visible():
+            rental_cars_tab.click()
+            page.wait_for_timeout(random.randint(500, 1000))
+            print("Clicked Rental Cars tab")
+        else:
+            print("Rental Cars tab not found — assuming already active")
+
         if not fill_search_form(page, booking):
             raise Exception("Failed to fill search form")
 
