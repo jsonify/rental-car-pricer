@@ -227,6 +227,12 @@ def process_booking(page, booking):
 
         page.wait_for_timeout(random.randint(2000, 4000))
 
+        # Screenshot to diagnose page state after navigation
+        os.makedirs("screenshots", exist_ok=True)
+        page.screenshot(path=f"screenshots/post_nav_{booking['location']}.png")
+        print(f"Post-navigation URL: {page.url}")
+        print(f"Post-navigation title: {page.title()}")
+
         # Explicitly activate the Rental Cars tab — stealth may delay JS init
         # that would otherwise auto-select it based on the URL
         rental_cars_tab = page.locator("a[data-tab='rental-cars'], a:has-text('Rental Cars'), #rental-cars-tab").first
@@ -235,7 +241,7 @@ def process_booking(page, booking):
             page.wait_for_timeout(random.randint(500, 1000))
             print("Clicked Rental Cars tab")
         else:
-            print("Rental Cars tab not found — assuming already active")
+            print(f"Rental Cars tab not found (count={rental_cars_tab.count()}) — assuming already active")
 
         if not fill_search_form(page, booking):
             raise Exception("Failed to fill search form")
