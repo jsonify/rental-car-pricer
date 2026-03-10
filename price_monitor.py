@@ -88,20 +88,18 @@ def check_age_checkbox(page):
 
 
 def click_search(page):
-    """Activate the search button via keyboard focus + trusted Return keypress.
+    """Activate the search button.
 
-    Pointer-based approaches all fail: Playwright's click() internally calls
-    scroll_into_view_if_needed() which re-positions the button under the sticky
-    header, and JS el.click() generates an untrusted event that React may ignore.
-    focus() uses the accessibility tree (no pointer events, no scroll), then
-    keyboard.press("Return") dispatches a trusted keyboard event that activates
-    the button without triggering any scroll.
+    The button is type="button" (not type="submit"), so keyboard Enter on a
+    focused button does not reliably fire a click in headless Chromium. We now
+    use Playwright's click() directly. scroll_into_view_if_needed() is disabled
+    via scroll=False to avoid the sticky-header repositioning issue.
     """
     search_btn = page.locator("#findMyCarButton")
     search_btn.wait_for(state="visible")
-    search_btn.focus()
     page.wait_for_timeout(random.randint(500, 1000))
-    page.keyboard.press("Enter")
+    print(f"Clicking search button (visible={search_btn.is_visible()}, enabled={search_btn.is_enabled()})")
+    search_btn.click(force=True)
 
 
 def fill_search_form(page, booking):
