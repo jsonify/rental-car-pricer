@@ -233,25 +233,19 @@ def process_booking(page, booking):
         page.keyboard.press("Escape")
         page.wait_for_timeout(300)
 
-        # Log network responses around the search to detect bot-blocking
-        search_responses = []
-        def handle_response(response):
-            if "costcotravel" in response.url and response.status >= 400:
-                search_responses.append(f"  {response.status} {response.url}")
-            elif any(k in response.url for k in ["rental", "vehicle", "search", "car"]):
-                search_responses.append(f"  {response.status} {response.url}")
-        page.on("response", handle_response)
+        # Log ALL network requests after search click to diagnose missing API call
+        search_requests = []
+        def handle_request(request):
+            search_requests.append(f"  {request.method} {request.url}")
+        page.on("request", handle_request)
 
         current_url = page.url
         click_search(page)
 
         if not wait_for_results(page, current_url):
-            if search_responses:
-                print("Network responses captured during search:")
-                for r in search_responses[-20:]:
-                    print(r)
-            else:
-                print("No relevant network responses captured.")
+            print(f"Network requests made after search click ({len(search_requests)} total):")
+            for r in search_requests[-30:]:
+                print(r)
             raise Exception("Failed to load results")
 
         print("Results loaded successfully")
