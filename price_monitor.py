@@ -10,6 +10,7 @@ import traceback
 import os
 from datetime import datetime
 from playwright.sync_api import sync_playwright
+from playwright_stealth import stealth_sync
 
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -409,5 +410,6 @@ def setup_browser(headless=True, channel=None):
     )
     context.add_init_script(WEBDRIVER_STEALTH_SCRIPT)
     page = context.new_page()
+    stealth_sync(page)
     page.set_default_navigation_timeout(60000)
     return playwright, browser, context, page
