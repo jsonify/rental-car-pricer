@@ -36,11 +36,16 @@ def enter_location(page, location):
     page.wait_for_timeout(random.randint(500, 1000))
     locator.type(location, delay=150)
     page.wait_for_timeout(random.randint(1500, 2500))
+    print(f"Location field value after typing: '{locator.input_value()}'")
     # Keyboard-select first autocomplete suggestion: avoids matching nav items
     page.keyboard.press("ArrowDown")
     page.wait_for_timeout(random.randint(300, 500))
     page.keyboard.press("Enter")
     page.wait_for_timeout(random.randint(1000, 2000))
+    print(f"Location field value after autocomplete select: '{locator.input_value()}'")
+    # Check for the hidden location code input that the form actually submits
+    hidden_val = page.eval_on_selector("#pickupLocationWidget", "el => el.value") if page.locator("#pickupLocationWidget").count() > 0 else "N/A"
+    print(f"Hidden location widget value: '{hidden_val}'")
 
 
 def enter_date(page, field_id, date_value, max_retries=3):
